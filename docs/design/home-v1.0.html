@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XTEInk OS — Home v1.0 (High-Fidelity Editorial North Star)</title>
+  <style>
+    /* ==========================================================================
+       XTEInk OS Design Tokens v1.0 — High-Fidelity Editorial Foundations
+       Target: XTEINK X4 Pro (480x800 Portrait UI Canvas)
+       Aesthetic: Premium Editorial Minimalism × Apple HIG × Durobo Krono
+       ========================================================================== */
+    :root {
+      /* Pure 1-Bit Ink & Paper Palette */
+      --xos-ink: #000000;
+      --xos-paper: #FFFFFF;
+      --xos-ink-subtle: #444444; /* WCAG AAA 9.7:1 contrast on white */
+      --xos-rule: #000000;
+      --xos-rule-subtle: #E2E2E2;
+
+      /* 480x800 Integer Pixel Geometry */
+      --xos-screen-w: 480px;
+      --xos-screen-h: 800px;
+      --xos-inset-h: 24px;
+      --xos-masthead-h: 42px;
+      --xos-footer-h: 56px;
+      --xos-touch-min: 44px; /* Apple HIG ergonomic touch minimum */
+
+      /* Typography: Expressive Serif + Confirmed In-Tree UI Fonts */
+      --xos-font-serif: 'Merriweather', 'Literata', 'Georgia', serif;
+      --xos-font-sans: 'Ubuntu', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+      /* Confirmed 150 DPI In-Tree Line Advances */
+      --xos-u8-advance: 19px;
+      --xos-u10-advance: 24px;
+      --xos-u12-advance: 29px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: none; /* Authentic 1-bit e-paper sharpness */
+    }
+
+    body {
+      background-color: #E2E2E5;
+      font-family: var(--xos-font-sans);
+      color: var(--xos-ink);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+      min-height: 100vh;
+    }
+
+    /* Device Chassis Frame Simulator (Reflects physical X4 Pro bezel) */
+    .device-chassis {
+      width: calc(480px + 32px);
+      height: calc(800px + 36px);
+      background-color: #1A1A1A;
+      border-radius: 18px;
+      box-shadow: 0 20px 48px rgba(0,0,0,0.28);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .bezel-home-indicator {
+      position: absolute;
+      bottom: 8px;
+      width: 32px;
+      height: 3px;
+      background-color: #444444;
+      border-radius: 2px;
+    }
+
+    /* Screen Canvas: EXACTLY 480x800 Portrait UI */
+    .screen {
+      width: 480px;
+      height: 800px;
+      background-color: var(--xos-paper);
+      color: var(--xos-ink);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* 1-Bit Pure Monochrome Contrast Simulator */
+    .screen.pure-1bit {
+      filter: contrast(300%);
+    }
+
+    /* ==========================================================================
+       1. Quiet Masthead (42px) — Restrained Top Bar
+       ========================================================================== */
+    .masthead {
+      height: var(--xos-masthead-h);
+      padding: 0 var(--xos-inset-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--xos-ink);
+      background-color: var(--xos-paper);
+      flex-shrink: 0;
+    }
+
+    .masthead-left {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .masthead-brand {
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-family: var(--xos-font-sans);
+    }
+
+    .masthead-clock {
+      font-size: 10px;
+      color: var(--xos-ink-subtle);
+      font-weight: 700;
+    }
+
+    .masthead-actions {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .touch-btn {
+      width: var(--xos-touch-min);
+      height: var(--xos-touch-min);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--xos-ink);
+      background: none;
+      border: none;
+    }
+
+    .touch-btn svg {
+      width: 18px;
+      height: 18px;
+      stroke: var(--xos-ink);
+      stroke-width: 1.6;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .touch-btn:active {
+      background-color: var(--xos-ink);
+      color: var(--xos-paper);
+    }
+    .touch-btn:active svg {
+      stroke: var(--xos-paper);
+    }
+
+    .status-indicators {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      font-weight: 700;
+      margin-left: 6px;
+    }
+
+    .battery-icon {
+      width: 17px;
+      height: 9px;
+      border: 1px solid var(--xos-ink);
+      border-radius: 1px;
+      position: relative;
+      padding: 1px;
+    }
+
+    .battery-icon::after {
+      content: '';
+      position: absolute;
+      right: -3px;
+      top: 1.5px;
+      width: 2px;
+      height: 4px;
+      background: var(--xos-ink);
+    }
+
+    .battery-fill {
+      height: 100%;
+      width: 86%;
+      background: var(--xos-ink);
+    }
+
+    /* ==========================================================================
+       2. Content Stage (Airy Editorial Composition)
+       ========================================================================== */
+    .content-area {
+      flex: 1;
+      padding: 14px var(--xos-inset-h) 0 var(--xos-inset-h);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Kicker */
+    .hero-kicker {
+      text-align: center;
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--xos-ink-subtle);
+      margin-bottom: 10px;
+      height: var(--xos-u8-advance);
+      line-height: var(--xos-u8-advance);
+    }
+
+    /* Centered Editorial Hero Unit */
+    .centered-hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    /* Centered Cover Frame: 116x174px (2:3 aspect-fit) */
+    .hero-cover-frame {
+      width: 116px;
+      height: 174px;
+      border: 1px solid var(--xos-ink);
+      background: #FFFFFF;
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+      margin-bottom: 12px;
+      box-shadow: 0 0 0 1px #000000;
+    }
+
+    .hero-cover-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Typographic Jacket Fallback */
+    .cover-fallback {
+      width: 100%;
+      height: 100%;
+      padding: 8px 6px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background-color: #FFFFFF;
+      text-align: center;
+    }
+
+    .fallback-inner-rule {
+      height: 100%;
+      border: 1px solid var(--xos-ink);
+      padding: 6px 4px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .fallback-badge-top {
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+    }
+
+    .fallback-title {
+      font-family: var(--xos-font-serif);
+      font-size: 9.5px;
+      font-weight: 700;
+      line-height: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      padding: 0 2px;
+    }
+
+    .fallback-rule {
+      width: 20px;
+      height: 1px;
+      background: var(--xos-ink);
+      margin: 4px auto;
+    }
+
+    .fallback-author {
+      font-family: var(--xos-font-serif);
+      font-size: 8.5px;
+      font-style: italic;
+      color: var(--xos-ink-subtle);
+    }
+
+    .fallback-badge-bot {
+      font-size: 6.5px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      border-top: 1px solid var(--xos-rule-subtle);
+      padding-top: 2px;
+    }
+
+    /* Editorial Title: Dominant Focal Point (Serif with Expressive Accents) */
+    .hero-title-wrap {
+      max-width: 400px;
+      margin-bottom: 3px;
+      min-height: 28px;
+    }
+
+    .hero-title {
+      font-family: var(--xos-font-serif);
+      font-size: 21px;
+      font-weight: 700;
+      line-height: 26px;
+      letter-spacing: -0.015em;
+      color: var(--xos-ink);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      word-break: break-word;
+    }
+
+    .hero-title.expanded-multiline {
+      -webkit-line-clamp: 3;
+      font-size: 19px;
+      line-height: 24px;
+    }
+
+    /* Author: Expressive Serif Italic */
+    .hero-author {
+      font-family: var(--xos-font-serif);
+      font-size: 13px;
+      font-style: italic;
+      color: var(--xos-ink-subtle);
+      line-height: var(--xos-u10-advance);
+      margin-bottom: 10px;
+    }
+
+    /* Refined Reading Progress Indicator */
+    .hero-progress-unit {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 12px;
+      width: 140px;
+    }
+
+    .progress-stats-line {
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--xos-ink);
+      font-family: var(--xos-font-sans);
+    }
+
+    .progress-track-hairline {
+      width: 100%;
+      height: 3px;
+      border: 1px solid var(--xos-ink);
+      background-color: #FFFFFF;
+      overflow: hidden;
+    }
+
+    .progress-fill-black {
+      height: 100%;
+      background-color: var(--xos-ink);
+    }
+
+    /* Prominent But Minimal Continue Reading Button (Apple HIG >= 44px) */
+    .btn-continue-reading {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 210px;
+      height: var(--xos-touch-min);
+      background-color: var(--xos-ink);
+      color: var(--xos-paper);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      border: 1px solid var(--xos-ink);
+      border-radius: 2px;
+      font-family: var(--xos-font-sans);
+    }
+
+    .btn-continue-reading svg {
+      fill: var(--xos-paper);
+    }
+
+    .btn-continue-reading:active {
+      background-color: var(--xos-paper);
+      color: var(--xos-ink);
+    }
+    .btn-continue-reading:active svg {
+      fill: var(--xos-ink);
+    }
+
+    /* Section Transition Divider */
+    .section-divider {
+      width: 100%;
+      height: 1px;
+      background-color: var(--xos-rule-subtle);
+      margin: 14px 0 10px 0;
+    }
+
+    /* ==========================================================================
+       3. Carefully Composed Three-Book Shelf
+       ========================================================================== */
+    .shelf-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .shelf-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      height: 24px;
+    }
+
+    .shelf-title {
+      font-family: var(--xos-font-serif);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .shelf-view-all {
+      font-size: 10px;
+      color: var(--xos-ink-subtle);
+      text-decoration: underline;
+      cursor: pointer;
+      font-family: var(--xos-font-sans);
+      min-height: 24px;
+      display: flex;
+      align-items: center;
+      padding: 0 4px;
+    }
+
+    .shelf-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 84px);
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .shelf-card {
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      width: 84px;
+    }
+
+    .shelf-thumb-wrap {
+      width: 84px;
+      height: 126px; /* 2:3 aspect-fit */
+      border: 1px solid var(--xos-ink);
+      background: #FFFFFF;
+      position: relative;
+      margin-bottom: 5px;
+      overflow: hidden;
+    }
+
+    .shelf-badge {
+      position: absolute;
+      bottom: 3px;
+      right: 3px;
+      background: var(--xos-ink);
+      color: var(--xos-paper);
+      font-size: 7.5px;
+      font-weight: 700;
+      padding: 1.5px 3.5px;
+      border-radius: 1px;
+      font-family: var(--xos-font-sans);
+      line-height: 9px;
+    }
+
+    .shelf-book-title {
+      font-family: var(--xos-font-serif);
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+
+    .shelf-book-author {
+      font-family: var(--xos-font-serif);
+      font-size: 8.5px;
+      font-style: italic;
+      color: var(--xos-ink-subtle);
+      line-height: 11px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .whitespace-buffer {
+      flex: 1;
+    }
+
+    /* ==========================================================================
+       4. Minimal Footer & Secondary Navigation (56px)
+       ========================================================================== */
+    .minimal-footer {
+      border-top: 1px solid var(--xos-ink);
+      height: var(--xos-footer-h);
+      padding: 0 var(--xos-inset-h);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-items: center;
+      background-color: var(--xos-paper);
+      flex-shrink: 0;
+    }
+
+    .footer-nav-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: var(--xos-touch-min);
+      border: 1px solid var(--xos-ink);
+      background: #FFFFFF;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--xos-ink);
+      cursor: pointer;
+      border-radius: 2px;
+      font-family: var(--xos-font-sans);
+    }
+
+    .footer-nav-btn svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--xos-ink);
+      stroke-width: 1.8;
+      fill: none;
+    }
+
+    .footer-nav-btn:active {
+      background: var(--xos-ink);
+      color: var(--xos-paper);
+    }
+    .footer-nav-btn:active svg {
+      stroke: var(--xos-paper);
+    }
+
+    /* ==========================================================================
+       5. Content State Overlays (States A, B, F)
+       ========================================================================== */
+    .state-overlay {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      height: 100%;
+      padding: 32px 24px;
+    }
+
+    .overlay-glyph {
+      width: 44px;
+      height: 44px;
+      stroke: var(--xos-ink);
+      stroke-width: 1.5;
+      fill: none;
+      margin-bottom: 18px;
+    }
+
+    .overlay-title {
+      font-family: var(--xos-font-serif);
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .overlay-desc {
+      font-size: 11px;
+      line-height: 16px;
+      color: var(--xos-ink-subtle);
+      margin-bottom: 24px;
+      max-width: 320px;
+    }
+
+    .overlay-btn {
+      height: var(--xos-touch-min);
+      padding: 0 24px;
+      background-color: var(--xos-ink);
+      color: var(--xos-paper);
+      border: 1px solid var(--xos-ink);
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      font-family: var(--xos-font-sans);
+    }
+
+    /* ==========================================================================
+       Reviewer / QA State Switcher Bar
+       ========================================================================== */
+    .qa-bar {
+      margin-top: 20px;
+      background: #FFFFFF;
+      padding: 12px 18px;
+      border-radius: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      max-width: 820px;
+    }
+
+    .qa-bar label {
+      font-size: 12px;
+      font-weight: 700;
+      margin-right: 4px;
+    }
+
+    .qa-btn {
+      background: #F0F0F0;
+      border: 1px solid #CCC;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .qa-btn.active {
+      background: #000000;
+      color: #FFFFFF;
+      border-color: #000000;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Physical Device Chassis Simulator (480x800 Screen inside Bezel) -->
+  <div class="device-chassis">
+    <div class="screen" id="screen">
+      
+      <!-- 1. Quiet Editorial Masthead (42px) -->
+      <header class="masthead">
+        <div class="masthead-left">
+          <span class="masthead-brand">XTEINK</span>
+          <span class="masthead-clock">14:45</span>
+        </div>
+
+        <div class="masthead-actions">
+          <!-- Direct Search Shortcut (Routes to LibraryActivity Search) -->
+          <button class="touch-btn" title="Search Books" onclick="alert('Action: Open LibraryActivity with Search Focus')">
+            <svg viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </button>
+
+          <!-- Device Settings Shortcut -->
+          <button class="touch-btn" title="Device Settings" onclick="alert('Action: Open SettingsActivity')">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>
+
+          <!-- Status Indicators -->
+          <div class="status-indicators">
+            <svg width="13" height="10" viewBox="0 0 14 11" fill="none">
+              <path d="M1 2.5C4.5 -0.5 9.5 -0.5 13 2.5M3 5.5C5.5 3.5 8.5 3.5 11 5.5M5.5 8.5C6.3 7.8 7.7 7.8 8.5 8.5M7 10.5V10.51" stroke="black" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+            <span>86%</span>
+            <div class="battery-icon">
+              <div class="battery-fill"></div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- 2. Centered Editorial Canvas -->
+      <main class="content-area" id="main-content-canvas">
+        
+        <!-- Kicker -->
+        <div class="hero-kicker" id="hero-kicker">CURRENTLY READING</div>
+
+        <!-- Strong, Centered Editorial Hero (Visual North Star) -->
+        <section class="centered-hero" id="hero-section">
+          
+          <!-- Centered Cover: 116x174px (Aspect-fit with optical centering) -->
+          <div class="hero-cover-frame" id="hero-cover-frame" onclick="alert('Action: Open Book Details / Cover Preview')" title="Book Cover (Touch to view details)">
+            <!-- High-Fidelity 1-Bit Geometric Cover Art -->
+            <svg class="hero-cover-img" id="hero-cover-art" viewBox="0 0 116 174" preserveAspectRatio="none">
+              <rect width="116" height="174" fill="#FFFFFF"/>
+              <circle cx="58" cy="70" r="32" fill="#111111"/>
+              <path d="M18 126 L58 64 L98 126 Z" fill="#444444"/>
+              <path d="M40 144 L58 100 L76 144 Z" fill="#FFFFFF"/>
+              <rect x="10" y="10" width="96" height="154" fill="none" stroke="#000000" stroke-width="1"/>
+              <text x="58" y="32" font-family="'Merriweather', serif" font-size="7.5" font-weight="bold" fill="#000000" text-anchor="middle" letter-spacing="1">URSULA K. LE GUIN</text>
+              <text x="58" y="154" font-family="'Ubuntu', sans-serif" font-size="6" font-weight="bold" fill="#000000" text-anchor="middle" letter-spacing="1.5">SCIENCE FICTION CLASSIC</text>
+            </svg>
+
+            <!-- Typographic Fallback Jacket (State D: Missing Cover) -->
+            <div class="cover-fallback" id="hero-cover-fallback" style="display: none;">
+              <div class="fallback-inner-rule">
+                <div class="fallback-badge-top">XTEINK EDITION</div>
+                <div>
+                  <div class="fallback-title" id="fallback-title">The Left Hand of Darkness</div>
+                  <div class="fallback-rule"></div>
+                  <div class="fallback-author" id="fallback-author">Ursula K. Le Guin</div>
+                </div>
+                <div class="fallback-badge-bot" id="fallback-format">EPUB · COMPLETE</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dominant Focal Point: Centered Title in Expressive Serif -->
+          <div class="hero-title-wrap">
+            <h1 class="hero-title" id="hero-title">The Left Hand of Darkness</h1>
+          </div>
+
+          <!-- Author: Expressive Serif Italic -->
+          <div class="hero-author" id="hero-author">Ursula K. Le Guin</div>
+
+          <!-- Refined Reading Progress Indicator (Gracefully omitted if progress < 0) -->
+          <div class="hero-progress-unit" id="hero-progress-unit">
+            <span class="progress-stats-line" id="progress-stats-text">64% COMPLETED</span>
+            <div class="progress-track-hairline">
+              <div class="progress-fill-black" id="progress-fill-bar" style="width: 64%;"></div>
+            </div>
+          </div>
+
+          <!-- Prominent But Minimal Continue Reading Button (Apple HIG >= 44px) -->
+          <button class="btn-continue-reading" id="btn-continue-reading" onclick="alert('Action: Resume Reading in EpubReaderActivity')">
+            <span id="btn-continue-text">Continue Reading</span>
+            <svg width="11" height="11" viewBox="0 0 24 24">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+          </button>
+        </section>
+
+        <!-- Section Transition Divider -->
+        <div class="section-divider"></div>
+
+        <!-- Carefully Composed Three-Book Shelf -->
+        <section class="shelf-container" id="shelf-section">
+          <div class="shelf-header-row">
+            <span class="shelf-title">Recent Books</span>
+            <span class="shelf-view-all" onclick="alert('Action: Open LibraryActivity')">All Books (24) &rarr;</span>
+          </div>
+
+          <div class="shelf-grid">
+            <!-- Book 1 -->
+            <div class="shelf-card" onclick="alert('Action: Open Dune')">
+              <div class="shelf-thumb-wrap">
+                <svg viewBox="0 0 84 126" style="width:100%; height:100%;">
+                  <rect width="84" height="126" fill="#FFFFFF"/>
+                  <rect x="8" y="8" width="68" height="110" fill="none" stroke="#000" stroke-width="1"/>
+                  <circle cx="42" cy="52" r="22" fill="#000"/>
+                  <text x="42" y="88" fill="#000" font-family="'Merriweather', serif" font-size="7.5" font-weight="bold" text-anchor="middle">DUNE</text>
+                  <text x="42" y="100" fill="#444" font-family="'Merriweather', serif" font-size="5.5" font-style="italic" text-anchor="middle">F. Herbert</text>
+                </svg>
+                <div class="shelf-badge" id="badge-shelf-1">31%</div>
+              </div>
+              <div class="shelf-book-title">Dune</div>
+              <div class="shelf-book-author">Frank Herbert</div>
+            </div>
+
+            <!-- Book 2 -->
+            <div class="shelf-card" onclick="alert('Action: Open Neuromancer')">
+              <div class="shelf-thumb-wrap">
+                <svg viewBox="0 0 84 126" style="width:100%; height:100%;">
+                  <rect width="84" height="126" fill="#FFFFFF"/>
+                  <rect x="12" y="16" width="60" height="70" fill="none" stroke="#000" stroke-width="1"/>
+                  <text x="42" y="54" fill="#000" font-family="'Merriweather', serif" font-size="6.5" font-weight="bold" text-anchor="middle">NEUROMANCER</text>
+                  <text x="42" y="66" fill="#444" font-family="'Merriweather', serif" font-size="5.5" font-style="italic" text-anchor="middle">W. Gibson</text>
+                </svg>
+                <div class="shelf-badge" id="badge-shelf-2">88%</div>
+              </div>
+              <div class="shelf-book-title">Neuromancer</div>
+              <div class="shelf-book-author">William Gibson</div>
+            </div>
+
+            <!-- Book 3 -->
+            <div class="shelf-card" onclick="alert('Action: Open Foundation')">
+              <div class="shelf-thumb-wrap">
+                <svg viewBox="0 0 84 126" style="width:100%; height:100%;">
+                  <rect width="84" height="126" fill="#000"/>
+                  <line x1="8" y1="18" x2="76" y2="108" stroke="#FFF" stroke-width="1"/>
+                  <text x="42" y="58" fill="#FFF" font-family="'Merriweather', serif" font-size="6.5" font-weight="bold" text-anchor="middle">FOUNDATION</text>
+                  <text x="42" y="72" fill="#CCC" font-family="'Merriweather', serif" font-size="5.5" font-style="italic" text-anchor="middle">I. Asimov</text>
+                </svg>
+                <div class="shelf-badge" id="badge-shelf-3">DONE</div>
+              </div>
+              <div class="shelf-book-title">Foundation</div>
+              <div class="shelf-book-author">Isaac Asimov</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Whitespace Buffer -->
+        <div class="whitespace-buffer"></div>
+
+      </main>
+
+      <!-- State Overlay: State A (Empty Library) -->
+      <div class="state-overlay" id="overlay-empty">
+        <svg class="overlay-glyph" viewBox="0 0 24 24">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+        <h2 class="overlay-title">Your Library is Waiting</h2>
+        <p class="overlay-desc">No books found. Connect via USB or Wi-Fi to sync your EPUB or TXT collection, or insert a MicroSD card.</p>
+        <button class="overlay-btn" onclick="alert('Action: Open FileBrowserActivity')">Open File Browser</button>
+      </div>
+
+      <!-- State Overlay: State F (Storage / Index Unavailable) -->
+      <div class="state-overlay" id="overlay-error">
+        <svg class="overlay-glyph" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <h2 class="overlay-title">SD Card Unavailable</h2>
+        <p class="overlay-desc">Unable to read storage volume. Verify that your MicroSD card is formatted as FAT32 and securely seated.</p>
+        <button class="overlay-btn" onclick="alert('Action: Retry SD Mount and Index')">Retry Storage Mount</button>
+      </div>
+
+      <!-- 3. Minimal Footer & Secondary Navigation (56px) -->
+      <footer class="minimal-footer">
+        <button class="footer-nav-btn" title="Open Library" onclick="alert('Action: Open LibraryActivity')">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+          <span>Library (24)</span>
+        </button>
+
+        <button class="footer-nav-btn" title="Open MicroSD File Browser" onclick="alert('Action: Open FileBrowserActivity')">
+          <svg viewBox="0 0 24 24">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+          <span>Files (SD Card)</span>
+        </button>
+      </footer>
+
+    </div>
+
+    <!-- Bezel Capacitive Home Key Indicator -->
+    <div class="bezel-home-indicator" title="Capacitive Home Key (GT911)"></div>
+  </div>
+
+  <!-- Reviewer QA State Switcher Bar (All 6 States) -->
+  <div class="qa-bar">
+    <label>Preview States:</label>
+    <button class="qa-btn active" id="btn-state-c" onclick="switchState('C')">1. Currently Reading (Default)</button>
+    <button class="qa-btn" id="btn-state-d" onclick="switchState('D')">2. Missing Cover (Fallback)</button>
+    <button class="qa-btn" id="btn-state-e" onclick="switchState('E')">3. Long Vietnamese Title</button>
+    <button class="qa-btn" id="btn-state-b" onclick="switchState('B')">4. Books Present, No History</button>
+    <button class="qa-btn" id="btn-state-a" onclick="switchState('A')">5. Empty Library</button>
+    <button class="qa-btn" id="btn-state-f" onclick="switchState('F')">6. Storage Unavailable</button>
+    <button class="qa-btn" id="btn-1bit-mode" onclick="toggle1Bit()">Simulate 1-Bit Mode</button>
+  </div>
+
+  <script>
+    let is1Bit = false;
+
+    function switchState(state) {
+      document.querySelectorAll('.qa-btn').forEach(b => {
+        if (b.id !== 'btn-1bit-mode') b.classList.remove('active');
+      });
+
+      const mainCanvas = document.getElementById('main-content-canvas');
+      const overlayEmpty = document.getElementById('overlay-empty');
+      const overlayError = document.getElementById('overlay-error');
+      const kicker = document.getElementById('hero-kicker');
+      const coverArt = document.getElementById('hero-cover-art');
+      const coverFallback = document.getElementById('hero-cover-fallback');
+      const title = document.getElementById('hero-title');
+      const author = document.getElementById('hero-author');
+      const progressUnit = document.getElementById('hero-progress-unit');
+      const continueBtn = document.getElementById('btn-continue-reading');
+      const continueBtnText = document.getElementById('btn-continue-text');
+      const badges = [document.getElementById('badge-shelf-1'), document.getElementById('badge-shelf-2'), document.getElementById('badge-shelf-3')];
+
+      // Base visibility reset
+      mainCanvas.style.display = 'flex';
+      overlayEmpty.style.display = 'none';
+      overlayError.style.display = 'none';
+      coverArt.style.display = 'block';
+      coverFallback.style.display = 'none';
+      progressUnit.style.display = 'flex';
+      title.classList.remove('expanded-multiline');
+      badges.forEach(b => b.style.display = 'block');
+
+      if (state === 'C') {
+        // State C: Currently Reading (Visual North Star Default)
+        document.getElementById('btn-state-c').classList.add('active');
+        kicker.innerText = "CURRENTLY READING";
+        title.innerText = "The Left Hand of Darkness";
+        author.innerText = "Ursula K. Le Guin";
+        continueBtnText.innerText = "Continue Reading";
+      } else if (state === 'D') {
+        // State D: Missing Cover (Classic Typographic Jacket Fallback)
+        document.getElementById('btn-state-d').classList.add('active');
+        coverArt.style.display = 'none';
+        coverFallback.style.display = 'flex';
+        kicker.innerText = "CURRENTLY READING";
+        title.innerText = "The Left Hand of Darkness";
+        author.innerText = "Ursula K. Le Guin";
+        continueBtnText.innerText = "Continue Reading";
+      } else if (state === 'E') {
+        // State E: Long Vietnamese Title (Testing Stacked Diacritics ệ, ổ, ử, ỹ, ắ)
+        document.getElementById('btn-state-e').classList.add('active');
+        kicker.innerText = "CURRENTLY READING";
+        title.classList.add('expanded-multiline');
+        title.innerText = "Nỗi Buồn Chiến Tranh: Phiên Bản Kỷ Niệm với Các Tiểu Luận Phê Bình Mới";
+        author.innerText = "Bảo Ninh";
+        continueBtnText.innerText = "Continue Reading";
+      } else if (state === 'B') {
+        // State B: Books Available in Library, No Reading History
+        document.getElementById('btn-state-b').classList.add('active');
+        kicker.innerText = "WELCOME TO XTEINK OS";
+        title.innerText = "Begin Your Reading Journey";
+        author.innerText = "Explore 24 titles in your library";
+        progressUnit.style.display = 'none'; // Graceful omission
+        continueBtnText.innerText = "Browse Library (24)";
+        badges.forEach(b => b.style.display = 'none'); // No reading progress yet
+      } else if (state === 'A') {
+        // State A: Empty Library
+        document.getElementById('btn-state-a').classList.add('active');
+        mainCanvas.style.display = 'none';
+        overlayEmpty.style.display = 'flex';
+      } else if (state === 'F') {
+        // State F: Storage / Index Unavailable
+        document.getElementById('btn-state-f').classList.add('active');
+        mainCanvas.style.display = 'none';
+        overlayError.style.display = 'flex';
+      }
+    }
+
+    function toggle1Bit() {
+      is1Bit = !is1Bit;
+      document.getElementById('screen').classList.toggle('pure-1bit', is1Bit);
+      document.getElementById('btn-1bit-mode').classList.toggle('active', is1Bit);
+    }
+  </script>
+</body>
+</html>

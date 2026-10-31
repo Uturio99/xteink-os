@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XTEInk OS — Home v1.1 (High-Fidelity Visual Fidelity Correction)</title>
+  <style>
+    /* ==========================================================================
+       XTEInk OS Design Tokens v1.1 — High-Fidelity Editorial Foundations
+       Target: XTEINK X4 Pro ONLY (480x800 Portrait UI Canvas)
+       Visual Direction: Premium Editorial Minimalism × Apple HIG × Durobo Krono
+       ========================================================================== */
+    :root {
+      /* Pure 1-Bit Ink & Paper Palette */
+      --xos-ink: #000000;
+      --xos-paper: #FFFFFF;
+      --xos-ink-subtle: #444444;
+      --xos-ink-muted: #777777;
+      --xos-rule: #000000;
+      --xos-rule-hairline: #D0D0D0;
+
+      /* 480x800 Integer Pixel Geometry */
+      --xos-screen-w: 480px;
+      --xos-screen-h: 800px;
+      --xos-inset-h: 32px; /* Generous lateral literary margin */
+      --xos-masthead-h: 40px;
+      --xos-touch-min: 44px; /* Apple HIG ergonomic touch minimum */
+
+      /* Expressive Editorial Typography */
+      --xos-font-serif: 'Merriweather', 'Literata', 'Georgia', serif;
+      --xos-font-sans: 'Ubuntu', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: none; /* Authentic 1-bit e-paper sharpness */
+    }
+
+    body {
+      background-color: #E6E6EA;
+      font-family: var(--xos-font-sans);
+      color: var(--xos-ink);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+      min-height: 100vh;
+    }
+
+    /* Outer Device Chassis (Simulates XTEINK X4 Pro hardware bezel) */
+    .device-chassis {
+      width: calc(480px + 32px);
+      height: calc(800px + 36px);
+      background-color: #18181A;
+      border-radius: 20px;
+      box-shadow: 0 24px 54px rgba(0,0,0,0.32);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .bezel-home-indicator {
+      position: absolute;
+      bottom: 8px;
+      width: 32px;
+      height: 3px;
+      background-color: #3A3A3C;
+      border-radius: 2px;
+    }
+
+    /* Screen Canvas: EXACTLY 480x800 Portrait UI */
+    .screen {
+      width: 480px;
+      height: 800px;
+      background-color: var(--xos-paper);
+      color: var(--xos-ink);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* 1-Bit Pure Monochrome Contrast Mode */
+    .screen.pure-1bit {
+      filter: contrast(300%);
+    }
+
+    /* ==========================================================================
+       1. Quiet Minimal Masthead (40px)
+       Restrained top bar: Quiet time on left, battery & Menu on right
+       ========================================================================== */
+    .masthead {
+      height: var(--xos-masthead-h);
+      padding: 0 var(--xos-inset-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: var(--xos-paper);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .masthead-time {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .masthead-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .battery-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10.5px;
+      font-weight: 700;
+    }
+
+    .battery-glyph {
+      width: 17px;
+      height: 9px;
+      border: 1px solid var(--xos-ink);
+      padding: 1px;
+      position: relative;
+      border-radius: 1px;
+    }
+
+    .battery-glyph::after {
+      content: '';
+      position: absolute;
+      right: -3px;
+      top: 1.5px;
+      width: 2px;
+      height: 4px;
+      background: var(--xos-ink);
+      border-radius: 0 1px 1px 0;
+    }
+
+    .battery-fill {
+      height: 100%;
+      width: 86%;
+      background: var(--xos-ink);
+    }
+
+    .btn-masthead-menu {
+      background: none;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 8px;
+      min-height: 36px;
+      cursor: pointer;
+      font-family: var(--xos-font-sans);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--xos-ink);
+    }
+
+    .btn-masthead-menu svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--xos-ink);
+      stroke-width: 2;
+      stroke-linecap: round;
+      fill: none;
+    }
+
+    /* ==========================================================================
+       2. Main Editorial Stage
+       Generous literary whitespace, centered balance, zero visual noise
+       ========================================================================== */
+    .content-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 12px var(--xos-inset-h) 28px var(--xos-inset-h);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ==========================================================================
+       3. Centered Editorial Hero
+       Dominant book title in oversized serif type, subtle companion cover,
+       expressive italic accent, and minimal black pill CTA
+       ========================================================================== */
+    .hero-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .hero-kicker {
+      font-size: 8.5px;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--xos-ink-subtle);
+      margin-bottom: 16px;
+    }
+
+    /* Subtle companion cover frame: refined & subordinate to title */
+    .hero-cover-frame {
+      width: 76px;
+      height: 114px; /* 2:3 ratio, restrained scale */
+      border: 1px solid var(--xos-ink);
+      background-color: #FFFFFF;
+      overflow: hidden;
+      margin-bottom: 20px;
+      box-shadow: none;
+      cursor: pointer;
+    }
+
+    .hero-cover-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Typographic Fallback Jacket for missing covers */
+    .cover-fallback {
+      width: 100%;
+      height: 100%;
+      padding: 8px 6px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border: 1px solid var(--xos-ink);
+      background: #FFFFFF;
+      text-align: center;
+    }
+
+    .fallback-inner-frame {
+      height: 100%;
+      border: 1px solid #000;
+      padding: 8px 4px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .fallback-mini-title {
+      font-family: var(--xos-font-serif);
+      font-size: 8.5px;
+      font-weight: 700;
+      line-height: 11px;
+      text-transform: uppercase;
+    }
+
+    .fallback-divider {
+      width: 16px;
+      height: 1px;
+      background: #000;
+      margin: 4px auto;
+    }
+
+    .fallback-mini-author {
+      font-family: var(--xos-font-serif);
+      font-size: 7.5px;
+      font-style: italic;
+    }
+
+    .fallback-hallmark {
+      font-size: 6px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      border-top: 1px solid #000;
+      padding-top: 2px;
+    }
+
+    /* DOMINANT EDITORIAL HERO TITLE: Oversized serif typography */
+    .hero-title {
+      font-family: var(--xos-font-serif);
+      font-size: 30px;
+      font-weight: 700;
+      line-height: 36px;
+      letter-spacing: -0.015em;
+      color: var(--xos-ink);
+      max-width: 416px;
+      margin-bottom: 8px;
+    }
+
+    /* Expressive Italic Accent for Author Credit */
+    .hero-author {
+      font-family: var(--xos-font-serif);
+      font-size: 15px;
+      font-style: italic;
+      color: var(--xos-ink-subtle);
+      margin-bottom: 16px;
+    }
+
+    /* Refined Reading Progress Indicator */
+    .hero-progress-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 22px;
+    }
+
+    .hero-progress-label {
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--xos-ink-subtle);
+    }
+
+    .hero-progress-track {
+      width: 120px;
+      height: 2px;
+      background-color: var(--xos-rule-hairline);
+      position: relative;
+    }
+
+    .hero-progress-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      background-color: var(--xos-ink);
+    }
+
+    /* MINIMAL BLACK PILL CTA: Apple HIG ergonomic compliant */
+    .btn-pill-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: var(--xos-touch-min);
+      padding: 0 28px;
+      background-color: var(--xos-ink);
+      color: var(--xos-paper);
+      border: none;
+      border-radius: 9999px; /* Minimal black pill shape */
+      font-family: var(--xos-font-sans);
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .btn-pill-cta svg {
+      width: 13px;
+      height: 13px;
+      stroke: var(--xos-paper);
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+
+    /* ==========================================================================
+       4. Restrained Editorial Bookshelf
+       Lower screen portion: Clean covers, quiet title/author, NO noisy badges
+       ========================================================================== */
+    .bookshelf-container {
+      margin-top: auto;
+      padding-top: 18px;
+    }
+
+    .bookshelf-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 12px;
+    }
+
+    .bookshelf-title {
+      font-family: var(--xos-font-serif);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .bookshelf-link {
+      font-family: var(--xos-font-sans);
+      font-size: 10.5px;
+      color: var(--xos-ink-subtle);
+      text-decoration: none;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .bookshelf-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .shelf-item {
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+    }
+
+    .shelf-cover-frame {
+      width: 100%;
+      aspect-ratio: 2 / 3;
+      border: 1px solid var(--xos-ink);
+      background-color: #FFFFFF;
+      overflow: hidden;
+      margin-bottom: 6px;
+      position: relative;
+    }
+
+    .shelf-cover-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .shelf-meta-title {
+      font-family: var(--xos-font-serif);
+      font-size: 10.5px;
+      font-weight: 700;
+      line-height: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .shelf-meta-author {
+      font-family: var(--xos-font-serif);
+      font-size: 9.5px;
+      font-style: italic;
+      color: var(--xos-ink-subtle);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 1px;
+    }
+
+    /* ==========================================================================
+       5. Minimal Editorial Menu Drawer / Modal
+       Opens quietly on Menu tap; holds Search, Library, Files, Settings
+       ========================================================================== */
+    .menu-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.4);
+      z-index: 100;
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+    }
+
+    .menu-overlay.open {
+      display: flex;
+    }
+
+    .menu-sheet {
+      width: 100%;
+      background-color: var(--xos-paper);
+      border-bottom: 2px solid var(--xos-ink);
+      padding: 24px var(--xos-inset-h) 28px var(--xos-inset-h);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.25);
+    }
+
+    .menu-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--xos-ink);
+    }
+
+    .menu-header-title {
+      font-family: var(--xos-font-serif);
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .btn-close-menu {
+      background: none;
+      border: none;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 6px 10px;
+    }
+
+    .menu-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: var(--xos-touch-min);
+      padding: 0 14px;
+      border: 1px solid var(--xos-ink);
+      font-family: var(--xos-font-sans);
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      color: var(--xos-ink);
+      cursor: pointer;
+    }
+
+    .menu-item:hover, .menu-item:active {
+      background-color: var(--xos-ink);
+      color: var(--xos-paper);
+    }
+
+    .menu-item-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .menu-item-left svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+    }
+
+    /* ==========================================================================
+       6. Empty & Exception States (A, B, F)
+       ========================================================================== */
+    .empty-state-stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px 10px;
+    }
+
+    .emblem-icon {
+      width: 44px;
+      height: 44px;
+      margin-bottom: 20px;
+      stroke: var(--xos-ink);
+      stroke-width: 1.8;
+      fill: none;
+    }
+
+    .empty-title {
+      font-family: var(--xos-font-serif);
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 32px;
+      margin-bottom: 8px;
+    }
+
+    .empty-subtitle {
+      font-family: var(--xos-font-serif);
+      font-size: 14.5px;
+      font-style: italic;
+      color: var(--xos-ink-subtle);
+      margin-bottom: 14px;
+    }
+
+    .empty-copy {
+      font-size: 11px;
+      line-height: 17px;
+      color: var(--xos-ink-subtle);
+      max-width: 330px;
+      margin-bottom: 24px;
+    }
+
+    /* ==========================================================================
+       External QA Control Bar (Outside 480x800 canvas)
+       ========================================================================== */
+    .qa-controls {
+      margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      max-width: 680px;
+      text-align: center;
+    }
+
+    .qa-badge {
+      display: inline-block;
+      background: #000;
+      color: #FFF;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    .qa-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .qa-btn {
+      background: #FFFFFF;
+      border: 1px solid #B0B0B5;
+      padding: 7px 12px;
+      font-size: 11.5px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      color: #222;
+    }
+
+    .qa-btn.active {
+      background: #000000;
+      color: #FFFFFF;
+      border-color: #000000;
+    }
+
+    .qa-note {
+      font-size: 12px;
+      color: #666666;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Outer Hardware Chassis Simulator -->
+  <div class="device-chassis">
+
+    <!-- Screen Canvas: EXACTLY 480x800 Portrait UI -->
+    <div class="screen" id="deviceScreen">
+
+      <!-- 1. Quiet Minimal Masthead (40px) -->
+      <header class="masthead">
+        <div class="masthead-time" id="mastheadTime">14:45</div>
+        <div class="masthead-right">
+          <div class="battery-group">
+            <span id="batteryPct">86%</span>
+            <div class="battery-glyph">
+              <div class="battery-fill"></div>
+            </div>
+          </div>
+          <button class="btn-masthead-menu" id="btnOpenMenu" aria-label="Open Navigation Menu">
+            <svg viewBox="0 0 24 24">
+              <line x1="3" y1="7" x2="21" y2="7"></line>
+              <line x1="3" y1="17" x2="21" y2="17"></line>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- 2. Main Open Editorial Stage -->
+      <main class="content-area" id="contentArea">
+        
+        <!-- Currently Reading Editorial Hero -->
+        <section class="hero-container" id="heroContainer">
+          <div class="hero-kicker" id="heroKicker">Currently Reading</div>
+
+          <!-- Restrained Companion Cover -->
+          <div class="hero-cover-frame" id="heroCoverSlot" title="Tap to view book details">
+            <!-- Populated dynamically by active state -->
+            <img src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=240&q=80" alt="Book Cover" id="heroCoverImg">
+          </div>
+
+          <!-- Dominant Editorial Book Title in Oversized Serif -->
+          <h1 class="hero-title" id="heroTitle">The Left Hand of Darkness</h1>
+
+          <!-- Expressive Italic Accent for Author -->
+          <div class="hero-author" id="heroAuthor">Ursula K. Le Guin</div>
+
+          <!-- Refined Hairline Reading Progress -->
+          <div class="hero-progress-group" id="heroProgressGroup">
+            <span class="hero-progress-label" id="heroProgressLabel">64% Completed</span>
+            <div class="hero-progress-track">
+              <div class="hero-progress-fill" id="heroProgressFill" style="width: 64%;"></div>
+            </div>
+          </div>
+
+          <!-- Minimal Black Pill CTA (Apple HIG touch target compliant) -->
+          <button class="btn-pill-cta" id="heroBtnPill">
+            <span id="heroBtnText">Continue Reading</span>
+            <svg viewBox="0 0 24 24">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+        </section>
+
+        <!-- Restrained Editorial Bookshelf -->
+        <section class="bookshelf-container" id="bookshelfContainer">
+          <div class="bookshelf-header">
+            <div class="bookshelf-title">Recent Books</div>
+            <a href="javascript:void(0)" class="bookshelf-link" id="shelfAllLink">All Books (24) &rarr;</a>
+          </div>
+
+          <div class="bookshelf-grid">
+            <!-- Shelf Item 1 -->
+            <div class="shelf-item" id="shelfItem1">
+              <div class="shelf-cover-frame">
+                <img src="https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=200&q=80" alt="Dune Cover">
+              </div>
+              <div class="shelf-meta-title">Dune</div>
+              <div class="shelf-meta-author">Frank Herbert</div>
+            </div>
+
+            <!-- Shelf Item 2 -->
+            <div class="shelf-item" id="shelfItem2">
+              <div class="shelf-cover-frame">
+                <img src="https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=200&q=80" alt="Neuromancer Cover">
+              </div>
+              <div class="shelf-meta-title">Neuromancer</div>
+              <div class="shelf-meta-author">William Gibson</div>
+            </div>
+
+            <!-- Shelf Item 3 -->
+            <div class="shelf-item" id="shelfItem3">
+              <div class="shelf-cover-frame">
+                <img src="https://images.unsplash.com/photo-1495640388908-05fa85288e61?auto=format&fit=crop&w=200&q=80" alt="Foundation Cover">
+              </div>
+              <div class="shelf-meta-title">Foundation</div>
+              <div class="shelf-meta-author">Isaac Asimov</div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- 5. Minimal Editorial Menu Drawer / Modal -->
+      <div class="menu-overlay" id="menuOverlay">
+        <div class="menu-sheet">
+          <div class="menu-header">
+            <span class="menu-header-title">XTEInk Navigation</span>
+            <button class="btn-close-menu" id="btnCloseMenu" aria-label="Close menu">&times;</button>
+          </div>
+          <ul class="menu-list">
+            <li>
+              <a href="javascript:void(0)" class="menu-item" id="menuActionSearch">
+                <div class="menu-item-left">
+                  <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
+                  <span>Search Library</span>
+                </div>
+                <span>&rarr;</span>
+              </a>
+            </li>
+            <li>
+              <a href="javascript:void(0)" class="menu-item" id="menuActionLibrary">
+                <div class="menu-item-left">
+                  <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                  <span>Library (24 Titles)</span>
+                </div>
+                <span>&rarr;</span>
+              </a>
+            </li>
+            <li>
+              <a href="javascript:void(0)" class="menu-item" id="menuActionFiles">
+                <div class="menu-item-left">
+                  <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                  <span>Files (SD Card)</span>
+                </div>
+                <span>&rarr;</span>
+              </a>
+            </li>
+            <li>
+              <a href="javascript:void(0)" class="menu-item" id="menuActionSettings">
+                <div class="menu-item-left">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                  <span>Settings</span>
+                </div>
+                <span>&rarr;</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bezel hardware touch indicator -->
+    <div class="bezel-home-indicator"></div>
+  </div>
+
+  <!-- External Visual QA Switcher Bar -->
+  <div class="qa-controls">
+    <div class="qa-badge">Visual Fidelity QA Switcher v1.1</div>
+    <div class="qa-buttons">
+      <button class="qa-btn active" onclick="setState('C')">State C: Dominant Title (North Star)</button>
+      <button class="qa-btn" onclick="setState('D')">State D: Missing Cover Fallback</button>
+      <button class="qa-btn" onclick="setState('E')">State E: Long Title & Diacritics</button>
+      <button class="qa-btn" onclick="setState('B')">State B: No History (Welcome)</button>
+      <button class="qa-btn" onclick="setState('A')">State A: Empty Library</button>
+      <button class="qa-btn" onclick="setState('F')">State F: Storage Unavailable</button>
+      <button class="qa-btn" id="btnToggle1Bit" onclick="toggle1Bit()">Toggle 1-Bit Mode</button>
+    </div>
+    <div class="qa-note" id="qaNote">
+      Showing <strong>State C (Product Owner Approved Visual North Star)</strong>. The book title is the dominant editorial centerpiece set in oversized serif typography. Features a restrained companion cover, an expressive italic author accent, refined hairline progress gauge, minimal black pill CTA, and an unadorned 3-book shelf near the bottom.
+    </div>
+  </div>
+
+  <!-- Interactive State Engine -->
+  <script>
+    const contentArea = document.getElementById('contentArea');
+    const heroContainer = document.getElementById('heroContainer');
+    const heroKicker = document.getElementById('heroKicker');
+    const heroCoverSlot = document.getElementById('heroCoverSlot');
+    const heroTitle = document.getElementById('heroTitle');
+    const heroAuthor = document.getElementById('heroAuthor');
+    const heroProgressGroup = document.getElementById('heroProgressGroup');
+    const heroProgressLabel = document.getElementById('heroProgressLabel');
+    const heroProgressFill = document.getElementById('heroProgressFill');
+    const heroBtnText = document.getElementById('heroBtnText');
+    const bookshelfContainer = document.getElementById('bookshelfContainer');
+    const qaNote = document.getElementById('qaNote');
+    const deviceScreen = document.getElementById('deviceScreen');
+
+    // Menu Overlay interaction
+    const btnOpenMenu = document.getElementById('btnOpenMenu');
+    const btnCloseMenu = document.getElementById('btnCloseMenu');
+    const menuOverlay = document.getElementById('menuOverlay');
+
+    btnOpenMenu.addEventListener('click', () => {
+      menuOverlay.classList.add('open');
+    });
+
+    btnCloseMenu.addEventListener('click', () => {
+      menuOverlay.classList.remove('open');
+    });
+
+    menuOverlay.addEventListener('click', (e) => {
+      if (e.target === menuOverlay) {
+        menuOverlay.classList.remove('open');
+      }
+    });
+
+    // Content States A through F
+    function setState(state) {
+      // Update active button
+      document.querySelectorAll('.qa-buttons .qa-btn').forEach(btn => {
+        if (!btn.id.includes('1Bit')) btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+
+      if (state === 'C') {
+        // State C: Default Visual North Star
+        contentArea.innerHTML = `
+          <section class="hero-container" id="heroContainer">
+            <div class="hero-kicker">Currently Reading</div>
+            <div class="hero-cover-frame" id="heroCoverSlot">
+              <img src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=240&q=80" alt="Book Cover">
+            </div>
+            <h1 class="hero-title">The Left Hand of Darkness</h1>
+            <div class="hero-author">Ursula K. Le Guin</div>
+            <div class="hero-progress-group">
+              <span class="hero-progress-label">64% Completed</span>
+              <div class="hero-progress-track">
+                <div class="hero-progress-fill" style="width: 64%;"></div>
+              </div>
+            </div>
+            <button class="btn-pill-cta">
+              <span>Continue Reading</span>
+              <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </button>
+          </section>
+
+          <section class="bookshelf-container">
+            <div class="bookshelf-header">
+              <div class="bookshelf-title">Recent Books</div>
+              <a href="javascript:void(0)" class="bookshelf-link">All Books (24) &rarr;</a>
+            </div>
+            <div class="bookshelf-grid">
+              <div class="shelf-item">
+                <div class="shelf-cover-frame"><img src="https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=200&q=80" alt="Dune"></div>
+                <div class="shelf-meta-title">Dune</div>
+                <div class="shelf-meta-author">Frank Herbert</div>
+              </div>
+              <div class="shelf-item">
+                <div class="shelf-cover-frame"><img src="https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=200&q=80" alt="Neuromancer"></div>
+                <div class="shelf-meta-title">Neuromancer</div>
+                <div class="shelf-meta-author">William Gibson</div>
+              </div>
+              <div class="shelf-item">
+                <div class="shelf-cover-frame"><img src="https://images.unsplash.com/photo-1495640388908-05fa85288e61?auto=format&fit=crop&w=200&q=80" alt="Foundation"></div>
+                <div class="shelf-meta-title">Foundation</div>
+                <div class="shelf-meta-author">Isaac Asimov</div>
+              </div>
+            </div>
+          </section>
+        `;
+        qaNote.innerHTML = "Showing <strong>State C (Visual North Star)</strong>. The book title is the dominant editorial centerpiece in oversized serif type. Features restrained companion cover, italic author accent, minimal black pill CTA, and an unadorned 3-book shelf.";
+      } 
+      else if (state === 'D') {
+        // State D: Missing or Unavailable Cover Artwork
+        contentArea.innerHTML = `
+          <section class="hero-container" id="heroContainer">
+            <div class="hero-kicker">Currently Reading</div>
+            <div class="hero-cover-frame" id="heroCoverSlot">
+              <div class="cover-fallback">
+                <div class="fallback-inner-frame">
+                  <div class="fallback-mini-title">The Dispossessed</div>
+                  <div class="fallback-divider"></div>
+                  <div class="fallback-mini-author">Ursula K. Le Guin</div>
+                  <div class="fallback-hallmark">EPUB · COMPLETE</div>
+                </div>
+              </div>
+            </div>
+            <h1 class="hero-title">The Dispossessed</h1>
+            <div class="hero-author">Ursula K. Le Guin</div>
+            <div class="hero-progress-group">
+              <span class="hero-progress-label">42% Completed</span>
+              <div class="hero-progress-track">
+                <div class="hero-progress-fill" style="width: 42%;"></div>
+              </div>
+            </div>
+            <button class="btn-pill-cta">
+              <span>Continue Reading</span>
+              <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </button>
+          </section>
+
+          <section class="bookshelf-container">
+            <div class="bookshelf-header">
+              <div class="bookshelf-title">Recent Books</div>
+              <a href="javascript:void(0)" class="bookshelf-link">All Books (24) &rarr;</a>
+            </div>
+            <div class="bookshelf-grid">
+              <div class="shelf-item">
+                <div class="shelf-cover-frame"><img src="https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=200&q=80" alt="Dune"></div>
+                <div class="shelf-meta-title">Dune</div>
+                <div class="shelf-meta-author">Frank Herbert</div>
+              </div>
+              <div class="shelf-item">
+                <div class="shelf-cover-frame">
+                  <div class="cover-fallback">
+                    <div class="fallback-inner-frame">
+                      <div class="fallback-mini-title">Solaris</div>
+                      <div class="fallback-hallmark">TXT</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="shelf-meta-title">Solaris</div>
+                <div class="shelf-meta-author">Stanislaw Lem</div>
+              </div>
+              <div class="shelf-item">
+                <div class="shelf-cover-frame"><img src="https://images.unsplash.com/photo-1495640388908-05fa85288e61?auto=format&fit=crop&w=200&q=80" alt="Foundation"></div>
+                <div class="shelf-meta-title">Foundation</div>
+                <div class="shelf-meta-author">Isaac Asimov</div>
+              </div>
+            </div>
+          </section>
+        `;
+        qaNote.innerHTML = "Showing <strong>State D (Missing Cover Art)</strong>. Renders the classic typographic book jacket fallback with 1px inset rule and hallmark, preserving full editorial balance.";
+      }
+      else if (state === 'E') {
+        // State E: Long Vietnamese Title & Stacked Diacritics
+        contentArea.innerHTML = `
+          <section class="hero-container" id="heroContainer">
+            <div class="hero-kicker">Đang Đọc</div>
+            <div class="hero-cover-frame" id="heroCoverSlot">
+              <img src="https://images.unsplash.com/photo-1476275466078-4007374efbbe?auto=format&fit=crop&w=240&q=80" alt="Vietnamese Book Cover">
+            </div>
+            <h1 class="hero-title" style="font-size: 26px; line-height: 34px;">Nỗi Buồn Chiến Tranh</h1>
+            <div class="hero-author">Bảo Ninh</div>
+            <div class="hero-progress-group">
+              <span class="hero-progress-label">88% Hoàn Thành</span>
+              <div class="hero-progress-track">
+                <div class="hero-progress-fill" style="width: 88%;"></div>
+              </div>
+            </div>
+            <button class="btn-pill-cta">
+              <span>Tiếp Tục Đọc</span>
+              <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </button>
+          </section>
+
+          <section class="bookshelf-container">
+            <div class="bookshelf-header">
+              <div class="bookshelf-title">Sách Đọc Gần Đây</div>
+              <a href="javascript:void(0)" class="bookshelf-link">Tất Cả (24) &rarr;</a>
+            </div>
+            <div class="bookshelf-grid">
+              <div class="shelf-item">
+                <div class="shelf-cover-frame"><img src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=200&q=80" alt="Cover"></div>
+                <div class="shelf-meta-title">Số Đỏ</div>
+                <div class="shelf-meta-author">Vũ Trọng Phụng</div>
+              </div>
+              <div class="shelf-item">
+                <div class="shelf-cover-frame"><img src="https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=200&q=80" alt="Cover"></div>
+                <div class="shelf-meta-title">Dế Mèn Phiêu Lưu Ký</div>
+                <div class="shelf-meta-author">Tô Hoài</div>
+              </div>
+              <div class="shelf-item">
+                <div class="shelf-cover-frame"><img src="https://images.unsplash.com/photo-1495640388908-05fa85288e61?auto=format&fit=crop&w=200&q=80" alt="Cover"></div>
+                <div class="shelf-meta-title">Mắt Biếc</div>
+                <div class="shelf-meta-author">Nguyễn Nhật Ánh</div>
+              </div>
+            </div>
+          </section>
+        `;
+        qaNote.innerHTML = "Showing <strong>State E (Long Vietnamese Title)</strong>. Testing stacked diacritics (<code>ệ, ổ, ử, ỹ, ắ</code>). 34px line advance guarantees zero ascender/descender clipping.";
+      }
+      else if (state === 'B') {
+        // State B: Books Available in Library, No Reading History
+        contentArea.innerHTML = `
+          <div class="empty-state-stage">
+            <svg class="emblem-icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+            <h1 class="empty-title">Welcome to XTEInk OS</h1>
+            <div class="empty-subtitle">Begin your reading journey</div>
+            <p class="empty-copy">Your device contains 24 books ready to explore. Select any title below to begin reading.</p>
+            <button class="btn-pill-cta" style="margin-bottom: 24px;">
+              <span>Browse Library (24)</span>
+              <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </button>
+          </div>
+
+          <section class="bookshelf-container">
+            <div class="bookshelf-header">
+              <div class="bookshelf-title">Featured in Library</div>
+              <a href="javascript:void(0)" class="bookshelf-link">All Books (24) &rarr;</a>
+            </div>
+            <div class="bookshelf-grid">
+              <div class="shelf-item">
+                <div class="shelf-cover-frame"><img src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=200&q=80" alt="Book"></div>
+                <div class="shelf-meta-title">The Left Hand of Darkness</div>
+                <div class="shelf-meta-author">Ursula K. Le Guin</div>
+              </div>
+              <div class="shelf-item">
+                <div class="shelf-cover-frame"><img src="https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=200&q=80" alt="Book"></div>
+                <div class="shelf-meta-title">Dune</div>
+                <div class="shelf-meta-author">Frank Herbert</div>
+              </div>
+              <div class="shelf-item">
+                <div class="shelf-cover-frame"><img src="https://images.unsplash.com/photo-1495640388908-05fa85288e61?auto=format&fit=crop&w=200&q=80" alt="Book"></div>
+                <div class="shelf-meta-title">Foundation</div>
+                <div class="shelf-meta-author">Isaac Asimov</div>
+              </div>
+            </div>
+          </section>
+        `;
+        qaNote.innerHTML = "Showing <strong>State B (Books Present, No History)</strong>. Welcomes the reader with an invitation to browse, while populating the lower shelf with indexed books (no progress labels).";
+      }
+      else if (state === 'A') {
+        // State A: Empty Library
+        contentArea.innerHTML = `
+          <div class="empty-state-stage">
+            <svg class="emblem-icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+            <h1 class="empty-title">Your Library is Waiting</h1>
+            <div class="empty-subtitle">No books found in storage</div>
+            <p class="empty-copy">Transfer your EPUB or TXT books via USB or Wi-Fi, or insert a formatted MicroSD card.</p>
+            <button class="btn-pill-cta">
+              <span>Open File Browser</span>
+              <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </button>
+          </div>
+        `;
+        qaNote.innerHTML = "Showing <strong>State A (Empty Library)</strong>. Peaceful literary empty state with clear call to action (Open File Browser).";
+      }
+      else if (state === 'F') {
+        // State F: Storage / Index Unavailable
+        contentArea.innerHTML = `
+          <div class="empty-state-stage">
+            <svg class="emblem-icon" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            <h1 class="empty-title">Storage Unavailable</h1>
+            <div class="empty-subtitle">MicroSD card unmounted or unreadable</div>
+            <p class="empty-copy">Unable to read storage volume. Verify that your MicroSD card is securely inserted and formatted as FAT32.</p>
+            <button class="btn-pill-cta">
+              <span>Retry Mount</span>
+              <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+            </button>
+          </div>
+        `;
+        qaNote.innerHTML = "Showing <strong>State F (Storage Unavailable)</strong>. Graceful error handling with unambiguous recovery action.";
+      }
+    }
+
+    function toggle1Bit() {
+      deviceScreen.classList.toggle('pure-1bit');
+      const btn = document.getElementById('btnToggle1Bit');
+      btn.classList.toggle('active');
+    }
+  </script>
+</body>
+</html>

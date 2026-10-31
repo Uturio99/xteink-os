@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XTEInk OS — Home v0.5 (Reconciled Editorial Masthead)</title>
+  <style>
+    /* ==========================================================================
+       XTEInk OS Design Tokens v0.5 — Reconciled for XTEINK X4 Pro (480x800)
+       Based on authoritative 150 DPI compiled font metrics
+       ========================================================================== */
+    :root {
+      /* 1-Bit Binary Baseline */
+      --xos-ink: #000000;
+      --xos-paper: #FFFFFF;
+      --xos-ink-subtle: #444444; /* Contrast ratio 9.7:1 against white */
+      --xos-rule: #000000;
+      --xos-rule-quiet: #E2E2E2;
+
+      /* Fixed 480x800 Layout Coordinates */
+      --xos-screen-w: 480px;
+      --xos-screen-h: 800px;
+      --xos-inset-h: 24px;
+      --xos-masthead-h: 44px;
+      --xos-ribbon-h: 56px;
+      --xos-touch-min: 44px;
+
+      /* Authoritative Typography: 150 DPI Point Sizes & Line Advances */
+      --xos-u8-advance: 19px;    /* ubuntu_8_regular (advanceY: 19px, ascender: 16px, descender: -4px) */
+      --xos-u10-advance: 24px;   /* ubuntu_10_regular/bold (advanceY: 24px, ascender: 20px, descender: -4px) */
+      --xos-u12-advance: 29px;   /* ubuntu_12_regular/bold (advanceY: 29px, ascender: 24px, descender: -5px) */
+      --xos-disp-advance: 28px;  /* Proposed 22pt display (advanceY: 28px) */
+
+      --xos-font-sans: 'Ubuntu', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --xos-font-serif: 'Merriweather', 'Georgia', serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: none; /* Authentic 1-bit e-paper rendering */
+    }
+
+    body {
+      background-color: #E2E2E4;
+      font-family: var(--xos-font-sans);
+      color: var(--xos-ink);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+      min-height: 100vh;
+    }
+
+    /* Device Chassis Frame (Inspection Simulator) */
+    .device-chassis {
+      width: calc(480px + 32px);
+      height: calc(800px + 36px);
+      background-color: #1A1A1A;
+      border-radius: 18px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    /* Capacitive Home Key Indicator (GT911 touch key on lower bezel) */
+    .bezel-home-indicator {
+      position: absolute;
+      bottom: 8px;
+      width: 32px;
+      height: 3px;
+      background-color: #444444;
+      border-radius: 2px;
+    }
+
+    /* Screen Canvas: EXACTLY 480x800 */
+    .screen {
+      width: 480px;
+      height: 800px;
+      background-color: var(--xos-paper);
+      color: var(--xos-ink);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* E-paper 1-bit high contrast simulator */
+    .screen.pure-1bit {
+      filter: contrast(250%);
+    }
+
+    /* ==========================================================================
+       1. Editorial Masthead (44px, Y: 0..44)
+       ========================================================================== */
+    .masthead {
+      height: var(--xos-masthead-h);
+      padding: 0 var(--xos-inset-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--xos-ink);
+      background-color: var(--xos-paper);
+      flex-shrink: 0;
+    }
+
+    .masthead-left {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .masthead-brand {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      line-height: var(--xos-u10-advance);
+    }
+
+    .masthead-clock {
+      font-size: 10px;
+      color: var(--xos-ink-subtle);
+      font-weight: 700;
+      line-height: var(--xos-u10-advance);
+    }
+
+    .masthead-actions {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .touch-btn {
+      width: var(--xos-touch-min);
+      height: var(--xos-touch-min);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--xos-ink);
+      background: none;
+      border: none;
+      border-radius: 2px;
+    }
+
+    .touch-btn svg {
+      width: 19px;
+      height: 19px;
+      stroke: var(--xos-ink);
+      stroke-width: 1.7;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .touch-btn:active {
+      background-color: var(--xos-ink);
+      color: var(--xos-paper);
+    }
+    .touch-btn:active svg {
+      stroke: var(--xos-paper);
+    }
+
+    .status-indicators {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      font-weight: 700;
+      line-height: var(--xos-u10-advance);
+      margin-left: 6px;
+    }
+
+    .battery-icon {
+      width: 17px;
+      height: 9px;
+      border: 1px solid var(--xos-ink);
+      border-radius: 1px;
+      position: relative;
+      padding: 1px;
+    }
+
+    .battery-icon::after {
+      content: '';
+      position: absolute;
+      right: -3px;
+      top: 1.5px;
+      width: 2px;
+      height: 4px;
+      background: var(--xos-ink);
+    }
+
+    .battery-fill {
+      height: 100%;
+      width: 86%;
+      background: var(--xos-ink);
+    }
+
+    /* ==========================================================================
+       2. Content Stage (Y: 44..744, Height: 700px)
+       ========================================================================== */
+    .content-area {
+      flex: 1;
+      padding: 14px var(--xos-inset-h) 0 var(--xos-inset-h);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Kicker Row */
+    .section-kicker-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: var(--xos-u8-advance);
+      margin-bottom: 8px;
+    }
+
+    .section-kicker {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--xos-ink);
+      line-height: var(--xos-u8-advance);
+      white-space: nowrap;
+    }
+
+    .kicker-line {
+      flex: 1;
+      height: 1px;
+      background-color: var(--xos-rule-quiet);
+    }
+
+    /* Hero Block (Height: 248px, Y: 84..332) */
+    .hero-container {
+      display: flex;
+      gap: 16px;
+      height: 248px;
+    }
+
+    /* Hero Cover Slot: Exactly 132x198px (2:3 aspect-fit) */
+    .hero-cover-slot {
+      width: 132px;
+      height: 198px;
+      border: 1px solid var(--xos-ink);
+      flex-shrink: 0;
+      background: #FFFFFF;
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .cover-art-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Typographic Fallback Jacket */
+    .cover-fallback {
+      width: 100%;
+      height: 100%;
+      padding: 8px 6px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background-color: #FFFFFF;
+      text-align: center;
+    }
+
+    .fallback-inner-frame {
+      height: 100%;
+      border: 1px solid var(--xos-ink);
+      padding: 8px 6px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .fallback-badge-top {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      line-height: var(--xos-u8-advance);
+    }
+
+    .fallback-title-text {
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 0 4px;
+    }
+
+    .fallback-rule-line {
+      width: 24px;
+      height: 1px;
+      background: var(--xos-ink);
+      margin: 4px auto;
+    }
+
+    .fallback-author-text {
+      font-size: 9px;
+      font-style: italic;
+      line-height: 12px;
+      color: var(--xos-ink-subtle);
+    }
+
+    .fallback-badge-bot {
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      border-top: 1px solid var(--xos-rule-quiet);
+      padding-top: 2px;
+      line-height: 10px;
+    }
+
+    /* Right Stack (Width: 284px) */
+    .hero-right-stack {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 248px;
+    }
+
+    /* Title Slot with ample vertical space & Vietnamese diacritic clearance */
+    .hero-title-box {
+      max-height: 84px;
+      overflow: hidden;
+    }
+
+    .hero-title-text {
+      font-size: 22px;
+      font-weight: 700;
+      line-height: var(--xos-disp-advance);
+      letter-spacing: -0.015em;
+      color: var(--xos-ink);
+      display: -webkit-box;
+      -webkit-line-clamp: 2; /* 2 lines standard; 3 lines in long title mode */
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      word-break: break-word;
+    }
+
+    .hero-title-text.expanded-title {
+      -webkit-line-clamp: 3;
+    }
+
+    .hero-author-text {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--xos-ink-subtle);
+      line-height: var(--xos-u10-advance);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+
+    /* Reading Progress Meter (Graceful omission if progress < 0) */
+    .progress-box {
+      margin-top: 6px;
+      height: 38px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
+    .progress-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 10px;
+      font-weight: 700;
+      line-height: var(--xos-u10-advance);
+      margin-bottom: 4px;
+    }
+
+    .pct-val {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .progress-track-border {
+      height: 4px;
+      border: 1px solid var(--xos-ink);
+      background: #FFFFFF;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    .progress-fill-solid {
+      height: 100%;
+      background: var(--xos-ink);
+    }
+
+    /* Independent Resume Button (Apple HIG >= 44px, Non-overlapping) */
+    .btn-resume {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: var(--xos-touch-min);
+      background-color: var(--xos-ink);
+      color: var(--xos-paper);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      border: 1px solid var(--xos-ink);
+      border-radius: 2px;
+      line-height: var(--xos-u12-advance);
+    }
+
+    .btn-resume svg {
+      fill: var(--xos-paper);
+    }
+
+    .btn-resume:active {
+      background-color: var(--xos-paper);
+      color: var(--xos-ink);
+    }
+    .btn-resume:active svg {
+      fill: var(--xos-ink);
+    }
+
+    /* Divider Rule */
+    .hero-divider {
+      height: 1px;
+      background-color: var(--xos-rule-quiet);
+      margin: 8px 0 12px 0;
+    }
+
+    /* ==========================================================================
+       3. Recent Books Shelf (Y: 356..570)
+       ========================================================================== */
+    .shelf-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .shelf-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      height: 28px;
+    }
+
+    .shelf-header-title {
+      font-size: 13px;
+      font-weight: 700;
+      line-height: var(--xos-u12-advance);
+    }
+
+    .shelf-header-link {
+      font-size: 10px;
+      color: var(--xos-ink-subtle);
+      text-decoration: underline;
+      cursor: pointer;
+      min-height: 28px;
+      display: flex;
+      align-items: center;
+      padding: 0 4px;
+    }
+
+    .shelf-columns {
+      display: grid;
+      grid-template-columns: repeat(3, 84px);
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .shelf-item-card {
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      width: 84px;
+    }
+
+    .shelf-thumb-frame {
+      width: 84px;
+      height: 126px; /* 2:3 aspect-fit */
+      border: 1px solid var(--xos-ink);
+      background: #FFFFFF;
+      position: relative;
+      margin-bottom: 6px;
+      overflow: hidden;
+    }
+
+    .shelf-badge {
+      position: absolute;
+      bottom: 3px;
+      right: 3px;
+      background: var(--xos-ink);
+      color: var(--xos-paper);
+      font-size: 8px;
+      font-weight: 700;
+      padding: 2px 4px;
+      border-radius: 1px;
+      line-height: 10px;
+    }
+
+    .shelf-book-title {
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+
+    .shelf-book-author {
+      font-size: 8px;
+      color: var(--xos-ink-subtle);
+      line-height: 11px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Airy Whitespace Buffer (Height: ~174px) */
+    .whitespace-buffer {
+      flex: 1;
+    }
+
+    /* ==========================================================================
+       4. Bottom Action Ribbon (Y: 744..800, Height: 56px)
+       ========================================================================== */
+    .bottom-ribbon {
+      border-top: 1px solid var(--xos-ink);
+      height: var(--xos-ribbon-h);
+      padding: 0 var(--xos-inset-h);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-items: center;
+      background-color: var(--xos-paper);
+      flex-shrink: 0;
+    }
+
+    .ribbon-action-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: var(--xos-touch-min);
+      border: 1px solid var(--xos-ink);
+      background: #FFFFFF;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--xos-ink);
+      cursor: pointer;
+      border-radius: 2px;
+      line-height: var(--xos-u12-advance);
+    }
+
+    .ribbon-action-btn svg {
+      width: 17px;
+      height: 17px;
+      stroke: var(--xos-ink);
+      stroke-width: 1.8;
+      fill: none;
+    }
+
+    .ribbon-action-btn:active {
+      background: var(--xos-ink);
+      color: var(--xos-paper);
+    }
+    .ribbon-action-btn:active svg {
+      stroke: var(--xos-paper);
+    }
+
+    /* ==========================================================================
+       5. Content State Overlays (States A, B, F)
+       ========================================================================== */
+    .state-overlay {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      height: 100%;
+      padding: 32px 24px;
+    }
+
+    .overlay-glyph {
+      width: 48px;
+      height: 48px;
+      stroke: var(--xos-ink);
+      stroke-width: 1.5;
+      fill: none;
+      margin-bottom: 20px;
+    }
+
+    .overlay-heading {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      line-height: var(--xos-u12-advance);
+    }
+
+    .overlay-text {
+      font-size: 11px;
+      line-height: 16px;
+      color: var(--xos-ink-subtle);
+      margin-bottom: 24px;
+      max-width: 320px;
+    }
+
+    .overlay-btn {
+      height: var(--xos-touch-min);
+      padding: 0 24px;
+      background-color: var(--xos-ink);
+      color: var(--xos-paper);
+      border: 1px solid var(--xos-ink);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      line-height: var(--xos-u12-advance);
+    }
+
+    /* ==========================================================================
+       QA Reviewer State Switcher Bar
+       ========================================================================== */
+    .qa-bar {
+      margin-top: 20px;
+      background: #FFFFFF;
+      padding: 12px 18px;
+      border-radius: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      max-width: 800px;
+    }
+
+    .qa-bar label {
+      font-size: 12px;
+      font-weight: 700;
+      margin-right: 4px;
+    }
+
+    .qa-btn {
+      background: #F0F0F0;
+      border: 1px solid #CCC;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .qa-btn.active {
+      background: #000000;
+      color: #FFFFFF;
+      border-color: #000000;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Physical Device Chassis Simulator (480x800 Screen) -->
+  <div class="device-chassis">
+    <div class="screen" id="screen">
+      
+      <!-- 1. Editorial Masthead (44px) -->
+      <header class="masthead">
+        <div class="masthead-left">
+          <span class="masthead-brand">XTEINK</span>
+          <span class="masthead-clock">14:45</span>
+        </div>
+
+        <div class="masthead-actions">
+          <!-- Search Shortcut (Directly invokes LibraryActivity Search) -->
+          <button class="touch-btn" title="Search Books (Library)" onclick="alert('Action: Open LibraryActivity with Search focus')">
+            <svg viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </button>
+
+          <!-- Settings Shortcut -->
+          <button class="touch-btn" title="Device Settings" onclick="alert('Action: Open SettingsActivity')">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>
+
+          <!-- System Status: Wi-Fi & Battery -->
+          <div class="status-indicators">
+            <svg width="13" height="10" viewBox="0 0 14 11" fill="none">
+              <path d="M1 2.5C4.5 -0.5 9.5 -0.5 13 2.5M3 5.5C5.5 3.5 8.5 3.5 11 5.5M5.5 8.5C6.3 7.8 7.7 7.8 8.5 8.5M7 10.5V10.51" stroke="black" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+            <span>86%</span>
+            <div class="battery-icon">
+              <div class="battery-fill"></div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- 2. Main Content Stage -->
+      <main class="content-area" id="main-content-stage">
+        
+        <!-- Section Kicker Row -->
+        <div class="section-kicker-row">
+          <span class="section-kicker" id="kicker-label">Currently Reading</span>
+          <div class="kicker-line"></div>
+        </div>
+
+        <!-- Currently Reading Hero Block -->
+        <section class="hero-container" id="hero-container">
+          
+          <!-- Hero Cover Slot: Exactly 132x198px (Aspect-fit with optical centering) -->
+          <div class="hero-cover-slot" id="hero-cover-slot" onclick="alert('Action: Open Book Details / Cover Preview')" title="Cover Slot (Independent Touch Target)">
+            <!-- Vector Art Cover -->
+            <svg class="cover-art-img" id="hero-art-img" viewBox="0 0 132 198" preserveAspectRatio="none">
+              <rect width="132" height="198" fill="#FFFFFF"/>
+              <circle cx="66" cy="80" r="38" fill="#111111"/>
+              <path d="M22 142 L66 72 L110 142 Z" fill="#444444"/>
+              <path d="M46 162 L66 112 L86 162 Z" fill="#FFFFFF"/>
+              <rect x="12" y="12" width="108" height="174" fill="none" stroke="#000000" stroke-width="1"/>
+              <text x="66" y="38" font-family="'Merriweather', serif" font-size="8.5" font-weight="bold" fill="#000000" text-anchor="middle" letter-spacing="1">URSULA K. LE GUIN</text>
+              <text x="66" y="174" font-family="'Ubuntu', sans-serif" font-size="7" font-weight="bold" fill="#000000" text-anchor="middle" letter-spacing="1.5">SCIENCE FICTION CLASSIC</text>
+            </svg>
+
+            <!-- Typographic Fallback Jacket (State D: Missing Cover) -->
+            <div class="cover-fallback" id="hero-fallback-jacket" style="display: none;">
+              <div class="fallback-inner-frame">
+                <div class="fallback-badge-top">XTEINK EDITION</div>
+                <div>
+                  <div class="fallback-title-text" id="fallback-title">The Left Hand of Darkness</div>
+                  <div class="fallback-rule-line"></div>
+                  <div class="fallback-author-text" id="fallback-author">Ursula K. Le Guin</div>
+                </div>
+                <div class="fallback-badge-bot" id="fallback-format">EPUB · COMPLETE</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hero Right Metadata Stack -->
+          <div class="hero-right-stack">
+            <div>
+              <div class="hero-title-box">
+                <h1 class="hero-title-text" id="hero-title-text">The Left Hand of Darkness</h1>
+              </div>
+              <div class="hero-author-text" id="hero-author-text">Ursula K. Le Guin</div>
+            </div>
+
+            <!-- Reading Progress Meter -->
+            <div class="progress-box" id="hero-progress-box">
+              <div class="progress-label-row">
+                <span class="pct-val" id="progress-val-text">64%</span>
+                <span id="progress-format-tag" style="font-size:9px; color:#444;">EPUB</span>
+              </div>
+              <div class="progress-track-border">
+                <div class="progress-fill-solid" id="progress-bar-fill" style="width: 64%;"></div>
+              </div>
+            </div>
+
+            <!-- Independent Resume Button (Apple HIG >= 44px) -->
+            <button class="btn-resume" id="hero-resume-btn" onclick="alert('Action: Launch EpubReaderActivity')">
+              <span id="resume-btn-label">Resume Reading</span>
+              <svg width="12" height="12" viewBox="0 0 24 24">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+            </button>
+          </div>
+        </section>
+
+        <!-- Divider Rule -->
+        <div class="hero-divider"></div>
+
+        <!-- Recent Books Shelf (Max 3 books) -->
+        <section class="shelf-container" id="shelf-container">
+          <div class="shelf-header">
+            <span class="shelf-header-title">Recent on Shelf</span>
+            <span class="shelf-header-link" onclick="alert('Action: Open LibraryActivity')">All Books (24) &rarr;</span>
+          </div>
+
+          <div class="shelf-columns">
+            <!-- Book 1 -->
+            <div class="shelf-item-card" onclick="alert('Action: Open Dune')">
+              <div class="shelf-thumb-frame">
+                <svg viewBox="0 0 84 126" style="width:100%; height:100%;">
+                  <rect width="84" height="126" fill="#FFFFFF"/>
+                  <rect x="8" y="8" width="68" height="110" fill="none" stroke="#000" stroke-width="1"/>
+                  <circle cx="42" cy="52" r="22" fill="#000"/>
+                  <text x="42" y="88" fill="#000" font-size="8" font-weight="bold" text-anchor="middle">DUNE</text>
+                  <text x="42" y="100" fill="#444" font-size="6" text-anchor="middle">F. HERBERT</text>
+                </svg>
+                <div class="shelf-badge" id="badge-book-1">31%</div>
+              </div>
+              <div class="shelf-book-title">Dune</div>
+              <div class="shelf-book-author">Frank Herbert</div>
+            </div>
+
+            <!-- Book 2 -->
+            <div class="shelf-item-card" onclick="alert('Action: Open Neuromancer')">
+              <div class="shelf-thumb-frame">
+                <svg viewBox="0 0 84 126" style="width:100%; height:100%;">
+                  <rect width="84" height="126" fill="#FFFFFF"/>
+                  <rect x="12" y="16" width="60" height="70" fill="none" stroke="#000" stroke-width="1"/>
+                  <text x="42" y="54" fill="#000" font-size="7" font-weight="bold" text-anchor="middle">NEUROMANCER</text>
+                  <text x="42" y="66" fill="#444" font-size="6" text-anchor="middle">W. GIBSON</text>
+                </svg>
+                <div class="shelf-badge" id="badge-book-2">88%</div>
+              </div>
+              <div class="shelf-book-title">Neuromancer</div>
+              <div class="shelf-book-author">William Gibson</div>
+            </div>
+
+            <!-- Book 3 -->
+            <div class="shelf-item-card" onclick="alert('Action: Open Foundation')">
+              <div class="shelf-thumb-frame">
+                <svg viewBox="0 0 84 126" style="width:100%; height:100%;">
+                  <rect width="84" height="126" fill="#000"/>
+                  <line x1="8" y1="18" x2="76" y2="108" stroke="#FFF" stroke-width="1"/>
+                  <text x="42" y="58" fill="#FFF" font-size="7" font-weight="bold" text-anchor="middle">FOUNDATION</text>
+                  <text x="42" y="72" fill="#CCC" font-size="6" text-anchor="middle">I. ASIMOV</text>
+                </svg>
+                <div class="shelf-badge" id="badge-book-3">DONE</div>
+              </div>
+              <div class="shelf-book-title">Foundation</div>
+              <div class="shelf-book-author">Isaac Asimov</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Airy Whitespace Buffer -->
+        <div class="whitespace-buffer"></div>
+
+      </main>
+
+      <!-- State Overlay: State A (Empty Library) -->
+      <div class="state-overlay" id="overlay-empty">
+        <svg class="overlay-glyph" viewBox="0 0 24 24">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+        <h2 class="overlay-heading">Your Library is Waiting</h2>
+        <p class="overlay-text">No books found. Connect via USB or Wi-Fi to transfer your EPUB or TXT books, or insert a MicroSD card.</p>
+        <button class="overlay-btn" onclick="alert('Action: Open FileBrowserActivity')">Open File Browser</button>
+      </div>
+
+      <!-- State Overlay: State F (Storage / Index Unavailable) -->
+      <div class="state-overlay" id="overlay-error">
+        <svg class="overlay-glyph" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <h2 class="overlay-heading">SD Card Unavailable</h2>
+        <p class="overlay-text">Unable to read storage volume. Verify that your MicroSD card is securely inserted and formatted as FAT32.</p>
+        <button class="overlay-btn" onclick="alert('Action: Retry SD Mount and Index')">Retry Storage Mount</button>
+      </div>
+
+      <!-- 3. Bottom Action Ribbon (56px) -->
+      <nav class="bottom-ribbon">
+        <button class="ribbon-action-btn" title="Open Library" onclick="alert('Action: Open LibraryActivity')">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+          <span>Library (24)</span>
+        </button>
+
+        <button class="ribbon-action-btn" title="Open MicroSD File Browser" onclick="alert('Action: Open FileBrowserActivity')">
+          <svg viewBox="0 0 24 24">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+          <span>Files (SD Card)</span>
+        </button>
+      </nav>
+
+    </div>
+
+    <!-- Bezel Capacitive Home Key Indicator -->
+    <div class="bezel-home-indicator" title="Capacitive Home Key (GT911)"></div>
+  </div>
+
+  <!-- QA Reviewer State Switcher Bar (All 6 Reconciled States) -->
+  <div class="qa-bar">
+    <label>Preview Reconciled Content States:</label>
+    <button class="qa-btn active" id="btn-state-c" onclick="selectState('C')">C. Currently Reading (Default)</button>
+    <button class="qa-btn" id="btn-state-d" onclick="selectState('D')">D. Missing Cover (Fallback)</button>
+    <button class="qa-btn" id="btn-state-e" onclick="selectState('E')">E. Long Title (Multi-line)</button>
+    <button class="qa-btn" id="btn-state-b" onclick="selectState('B')">B. Books Present, No History</button>
+    <button class="qa-btn" id="btn-state-a" onclick="selectState('A')">A. Empty Library</button>
+    <button class="qa-btn" id="btn-state-f" onclick="selectState('F')">F. Storage Unavailable</button>
+    <button class="qa-btn" id="btn-1bit-toggle" onclick="toggle1Bit()">Simulate 1-Bit Mode</button>
+  </div>
+
+  <script>
+    let is1Bit = false;
+
+    function selectState(state) {
+      document.querySelectorAll('.qa-btn').forEach(b => {
+        if (b.id !== 'btn-1bit-toggle') b.classList.remove('active');
+      });
+
+      const mainStage = document.getElementById('main-content-stage');
+      const overlayEmpty = document.getElementById('overlay-empty');
+      const overlayError = document.getElementById('overlay-error');
+      const kicker = document.getElementById('kicker-label');
+      const heroArt = document.getElementById('hero-art-img');
+      const heroFallback = document.getElementById('hero-fallback-jacket');
+      const heroTitle = document.getElementById('hero-title-text');
+      const heroAuthor = document.getElementById('hero-author-text');
+      const progressBox = document.getElementById('hero-progress-box');
+      const resumeBtn = document.getElementById('hero-resume-btn');
+      const resumeBtnLabel = document.getElementById('resume-btn-label');
+      const badges = [document.getElementById('badge-book-1'), document.getElementById('badge-book-2'), document.getElementById('badge-book-3')];
+
+      // Reset base visibility
+      mainStage.style.display = 'flex';
+      overlayEmpty.style.display = 'none';
+      overlayError.style.display = 'none';
+      heroArt.style.display = 'block';
+      heroFallback.style.display = 'none';
+      progressBox.style.display = 'flex';
+      heroTitle.classList.remove('expanded-title');
+      badges.forEach(b => b.style.display = 'block');
+
+      if (state === 'C') {
+        // State C: Currently Reading (Active Default)
+        document.getElementById('btn-state-c').classList.add('active');
+        kicker.innerText = "CURRENTLY READING";
+        heroTitle.innerText = "The Left Hand of Darkness";
+        heroAuthor.innerText = "Ursula K. Le Guin";
+        resumeBtnLabel.innerText = "Resume Reading";
+      } else if (state === 'D') {
+        // State D: Missing or Unavailable Cover Artwork (Typographic Fallback)
+        document.getElementById('btn-state-d').classList.add('active');
+        heroArt.style.display = 'none';
+        heroFallback.style.display = 'flex';
+        kicker.innerText = "CURRENTLY READING";
+        heroTitle.innerText = "The Left Hand of Darkness";
+        heroAuthor.innerText = "Ursula K. Le Guin";
+        resumeBtnLabel.innerText = "Resume Reading";
+      } else if (state === 'E') {
+        // State E: Long Book Title (3-line wrap + diacritic clearance)
+        document.getElementById('btn-state-e').classList.add('active');
+        kicker.innerText = "CURRENTLY READING";
+        heroTitle.classList.add('expanded-title');
+        heroTitle.innerText = "The Left Hand of Darkness: 50th Anniversary Commemorative Expanded Edition with Critical Essays";
+        heroAuthor.innerText = "Ursula K. Le Guin";
+        resumeBtnLabel.innerText = "Resume Reading";
+      } else if (state === 'B') {
+        // State B: Books present in library, but no reading history
+        document.getElementById('btn-state-b').classList.add('active');
+        kicker.innerText = "WELCOME TO XTEINK OS";
+        heroTitle.innerText = "Start Your Next Journey";
+        heroAuthor.innerText = "Choose a book from your collection";
+        progressBox.style.display = 'none'; // Gracefully omitted
+        resumeBtnLabel.innerText = "Browse Library (24)";
+        badges.forEach(b => b.style.display = 'none'); // No reading history
+      } else if (state === 'A') {
+        // State A: Empty Library
+        document.getElementById('btn-state-a').classList.add('active');
+        mainStage.style.display = 'none';
+        overlayEmpty.style.display = 'flex';
+      } else if (state === 'F') {
+        // State F: Storage / Index Unavailable
+        document.getElementById('btn-state-f').classList.add('active');
+        mainStage.style.display = 'none';
+        overlayError.style.display = 'flex';
+      }
+    }
+
+    function toggle1Bit() {
+      is1Bit = !is1Bit;
+      document.getElementById('screen').classList.toggle('pure-1bit', is1Bit);
+      document.getElementById('btn-1bit-toggle').classList.toggle('active', is1Bit);
+    }
+  </script>
+</body>
+</html>

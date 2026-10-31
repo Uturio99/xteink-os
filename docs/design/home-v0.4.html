@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XTEInk OS — Home v0.4 (Production Editorial Masthead)</title>
+  <style>
+    /* ==========================================================================
+       XTEInk OS Design Tokens v0.4 — XTEINK X4 Pro (480x800 Portrait UI)
+       ========================================================================== */
+    :root {
+      /* Pure 1-Bit Ink & Paper */
+      --xos-ink: #000000;
+      --xos-paper: #FFFFFF;
+      --xos-ink-subtle: #444444; /* Contrast ratio 9.7:1 against white */
+      --xos-rule: #000000;
+      --xos-rule-quiet: #E2E2E2;
+
+      /* Fixed 480x800 Coordinates */
+      --xos-screen-w: 480px;
+      --xos-screen-h: 800px;
+      --xos-inset-h: 24px;
+      --xos-masthead-h: 44px;
+      --xos-ribbon-h: 56px;
+      --xos-touch-min: 44px;
+
+      /* Typography Scale (Documented: sizes >12px require firmware FreeType validation) */
+      --xos-font-micro: 8px;     /* Verified in-tree: Ubuntu 8 */
+      --xos-font-caption: 10px;  /* Verified in-tree: Ubuntu 10 */
+      --xos-font-nav: 12px;      /* Verified in-tree: Ubuntu 12 */
+      --xos-font-body: 14px;     /* Proposed display token */
+      --xos-font-subhead: 18px;  /* Proposed display token */
+      --xos-font-display: 22px;  /* Proposed display token */
+
+      --xos-font-sans: 'Ubuntu', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --xos-font-serif: 'Merriweather', 'Georgia', serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: none; /* Authentic e-paper 1-bit crispness */
+    }
+
+    body {
+      background-color: #E2E2E4;
+      font-family: var(--xos-font-sans);
+      color: var(--xos-ink);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+      min-height: 100vh;
+    }
+
+    /* Device Chassis Frame (Browser inspection simulator) */
+    .device-chassis {
+      width: calc(480px + 32px);
+      height: calc(800px + 36px);
+      background-color: #1A1A1A;
+      border-radius: 18px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    /* Capacitive Home Key Indicator (GT911 capacitive touch key on bezel) */
+    .bezel-home-indicator {
+      position: absolute;
+      bottom: 8px;
+      width: 32px;
+      height: 3px;
+      background-color: #444444;
+      border-radius: 2px;
+    }
+
+    /* Screen Canvas: EXACTLY 480x800 */
+    .screen {
+      width: 480px;
+      height: 800px;
+      background-color: var(--xos-paper);
+      color: var(--xos-ink);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* E-paper 1-bit contrast mode */
+    .screen.pure-1bit {
+      filter: contrast(250%);
+    }
+
+    /* ==========================================================================
+       1. Editorial Masthead (44px) — Top Navigation & Status
+       ========================================================================== */
+    .masthead {
+      height: var(--xos-masthead-h);
+      padding: 0 var(--xos-inset-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--xos-ink);
+      background-color: var(--xos-paper);
+      flex-shrink: 0;
+    }
+
+    .masthead-left {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .masthead-brand {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .masthead-clock {
+      font-size: var(--xos-font-caption);
+      color: var(--xos-ink-subtle);
+      font-weight: 700;
+    }
+
+    .masthead-actions {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    /* Touch target strictly >= 44x44px */
+    .touch-btn {
+      width: var(--xos-touch-min);
+      height: var(--xos-touch-min);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--xos-ink);
+      background: none;
+      border: none;
+      border-radius: 2px;
+    }
+
+    .touch-btn svg {
+      width: 19px;
+      height: 19px;
+      stroke: var(--xos-ink);
+      stroke-width: 1.7;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .touch-btn:active {
+      background-color: var(--xos-ink);
+      color: var(--xos-paper);
+    }
+    .touch-btn:active svg {
+      stroke: var(--xos-paper);
+    }
+
+    .status-indicators {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: var(--xos-font-caption);
+      font-weight: 700;
+      margin-left: 6px;
+    }
+
+    .battery-icon {
+      width: 17px;
+      height: 9px;
+      border: 1px solid var(--xos-ink);
+      border-radius: 1px;
+      position: relative;
+      padding: 1px;
+    }
+
+    .battery-icon::after {
+      content: '';
+      position: absolute;
+      right: -3px;
+      top: 1.5px;
+      width: 2px;
+      height: 4px;
+      background: var(--xos-ink);
+    }
+
+    .battery-fill {
+      height: 100%;
+      width: 86%;
+      background: var(--xos-ink);
+    }
+
+    /* ==========================================================================
+       2. Content Stage (Airy Editorial Canvas)
+       ========================================================================== */
+    .content-area {
+      flex: 1;
+      padding: 18px var(--xos-inset-h) 10px var(--xos-inset-h);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+
+    /* Currently Reading Hero Block */
+    .hero-block {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .section-kicker {
+      font-size: var(--xos-font-micro);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--xos-ink);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-kicker::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background-color: var(--xos-rule-quiet);
+    }
+
+    .hero-layout {
+      display: flex;
+      gap: 16px;
+      cursor: pointer;
+    }
+
+    /* Honest 2:3 Cover Box (No drop shadows, no fake spine, 1px solid black) */
+    .cover-frame {
+      width: 132px;
+      height: 198px; /* 2:3 ratio */
+      border: 1px solid var(--xos-ink);
+      flex-shrink: 0;
+      background: #FFFFFF;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .cover-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Typographic Jacket Fallback (Missing Cover State) */
+    .cover-fallback {
+      width: 100%;
+      height: 100%;
+      padding: 10px 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background-color: #FFFFFF;
+      text-align: center;
+    }
+
+    .fallback-inner-frame {
+      height: 100%;
+      border: 1px solid var(--xos-ink);
+      padding: 10px 6px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .fallback-badge-top {
+      font-size: var(--xos-font-micro);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+    }
+
+    .fallback-title-text {
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .fallback-rule-line {
+      width: 24px;
+      height: 1px;
+      background: var(--xos-ink);
+      margin: 6px auto;
+    }
+
+    .fallback-author-text {
+      font-size: 9px;
+      font-style: italic;
+      color: var(--xos-ink-subtle);
+    }
+
+    .fallback-badge-bot {
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      border-top: 1px solid var(--xos-rule-quiet);
+      padding-top: 4px;
+    }
+
+    /* Hero Metadata Stack */
+    .hero-metadata {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .hero-title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .hero-book-title {
+      font-size: var(--xos-font-display);
+      font-weight: 700;
+      line-height: 26px;
+      letter-spacing: -0.015em;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      color: var(--xos-ink);
+    }
+
+    .hero-book-author {
+      font-size: var(--xos-font-nav);
+      color: var(--xos-ink-subtle);
+    }
+
+    /* Progress Block */
+    .progress-block {
+      margin-top: 10px;
+    }
+
+    .progress-stats-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: var(--xos-font-caption);
+      margin-bottom: 5px;
+    }
+
+    .pct-emphasis {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .progress-track-frame {
+      height: 4px;
+      border: 1px solid var(--xos-ink);
+      background: #FFFFFF;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    .progress-fill-bar {
+      height: 100%;
+      background: var(--xos-ink);
+    }
+
+    .chapter-indicator {
+      font-size: var(--xos-font-caption);
+      color: var(--xos-ink-subtle);
+      margin-top: 5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Resume Reading Hit Target (Apple HIG >= 44px) */
+    .btn-resume {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: var(--xos-touch-min);
+      background-color: var(--xos-ink);
+      color: var(--xos-paper);
+      font-size: var(--xos-font-nav);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      margin-top: 8px;
+      border: 1px solid var(--xos-ink);
+      border-radius: 2px;
+    }
+
+    .btn-resume svg {
+      fill: var(--xos-paper);
+    }
+
+    .btn-resume:active {
+      background-color: var(--xos-paper);
+      color: var(--xos-ink);
+    }
+    .btn-resume:active svg {
+      fill: var(--xos-ink);
+    }
+
+    /* ==========================================================================
+       3. Recent Books Shelf (Maximum 2-3 books)
+       ========================================================================== */
+    .shelf-block {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .shelf-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--xos-rule-quiet);
+    }
+
+    .shelf-title {
+      font-size: var(--xos-font-body);
+      font-weight: 700;
+    }
+
+    .shelf-view-all {
+      font-size: var(--xos-font-caption);
+      color: var(--xos-ink-subtle);
+      text-decoration: underline;
+      cursor: pointer;
+      min-height: 24px;
+      display: flex;
+      align-items: center;
+    }
+
+    .shelf-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .shelf-item {
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+    }
+
+    .shelf-cover-box {
+      width: 100%;
+      aspect-ratio: 2 / 3;
+      border: 1px solid var(--xos-ink);
+      background: #FFFFFF;
+      position: relative;
+      margin-bottom: 6px;
+      overflow: hidden;
+    }
+
+    .shelf-progress-badge {
+      position: absolute;
+      bottom: 3px;
+      right: 3px;
+      background: var(--xos-ink);
+      color: var(--xos-paper);
+      font-size: var(--xos-font-micro);
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 1px;
+    }
+
+    .shelf-book-title {
+      font-size: var(--xos-font-caption);
+      font-weight: 700;
+      line-height: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+
+    .shelf-book-author {
+      font-size: var(--xos-font-micro);
+      color: var(--xos-ink-subtle);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ==========================================================================
+       4. Bottom Action Ribbon (Replaces 5-Item Dock)
+       ========================================================================== */
+    .bottom-ribbon {
+      border-top: 1px solid var(--xos-ink);
+      height: var(--xos-ribbon-h);
+      padding: 0 var(--xos-inset-h);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-items: center;
+      background-color: var(--xos-paper);
+      flex-shrink: 0;
+    }
+
+    .ribbon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: var(--xos-touch-min);
+      border: 1px solid var(--xos-ink);
+      background: #FFFFFF;
+      font-size: var(--xos-font-nav);
+      font-weight: 700;
+      color: var(--xos-ink);
+      cursor: pointer;
+      border-radius: 2px;
+    }
+
+    .ribbon-btn svg {
+      width: 17px;
+      height: 17px;
+      stroke: var(--xos-ink);
+      stroke-width: 1.8;
+      fill: none;
+    }
+
+    .ribbon-btn:active {
+      background: var(--xos-ink);
+      color: var(--xos-paper);
+    }
+    .ribbon-btn:active svg {
+      stroke: var(--xos-paper);
+    }
+
+    /* ==========================================================================
+       5. State Overlays (Empty, Error/Loading)
+       ========================================================================== */
+    .overlay-view {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      height: 100%;
+      padding: 32px 24px;
+    }
+
+    .overlay-icon {
+      width: 48px;
+      height: 48px;
+      stroke: var(--xos-ink);
+      stroke-width: 1.5;
+      fill: none;
+      margin-bottom: 20px;
+    }
+
+    .overlay-title {
+      font-size: var(--xos-font-subhead);
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .overlay-description {
+      font-size: var(--xos-font-nav);
+      line-height: 18px;
+      color: var(--xos-ink-subtle);
+      margin-bottom: 24px;
+      max-width: 300px;
+    }
+
+    .btn-overlay-action {
+      min-height: var(--xos-touch-min);
+      padding: 0 24px;
+      background-color: var(--xos-ink);
+      color: var(--xos-paper);
+      border: 1px solid var(--xos-ink);
+      font-size: var(--xos-font-nav);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+    }
+
+    /* ==========================================================================
+       Reviewer / Product Owner State Switcher Bar
+       ========================================================================== */
+    .state-switcher-bar {
+      margin-top: 20px;
+      background: #FFFFFF;
+      padding: 12px 18px;
+      border-radius: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      max-width: 680px;
+    }
+
+    .state-switcher-bar label {
+      font-size: 12px;
+      font-weight: 700;
+      margin-right: 4px;
+    }
+
+    .state-btn {
+      background: #F0F0F0;
+      border: 1px solid #CCC;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .state-btn.active {
+      background: #000000;
+      color: #FFFFFF;
+      border-color: #000000;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Physical Device Chassis Simulator (480x800 Screen inside Bezel) -->
+  <div class="device-chassis">
+    <div class="screen" id="screen">
+      
+      <!-- 1. Editorial Masthead (44px) -->
+      <header class="masthead">
+        <div class="masthead-left">
+          <span class="masthead-brand">XTEINK</span>
+          <span class="masthead-clock" id="masthead-clock">14:45</span>
+        </div>
+
+        <div class="masthead-actions">
+          <!-- Search Shortcut (Preserved: Discoverable) -->
+          <button class="touch-btn" title="Search Books" onclick="alert('Action: Open Search Activity')">
+            <svg viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </button>
+
+          <!-- Settings Shortcut (Preserved: Discoverable) -->
+          <button class="touch-btn" title="Device Settings" onclick="alert('Action: Open Settings Activity')">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>
+
+          <!-- System Status: Wi-Fi & Battery -->
+          <div class="status-indicators">
+            <svg width="13" height="10" viewBox="0 0 14 11" fill="none">
+              <path d="M1 2.5C4.5 -0.5 9.5 -0.5 13 2.5M3 5.5C5.5 3.5 8.5 3.5 11 5.5M5.5 8.5C6.3 7.8 7.7 7.8 8.5 8.5M7 10.5V10.51" stroke="black" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+            <span>86%</span>
+            <div class="battery-icon">
+              <div class="battery-fill"></div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- 2. Main Editorial Stage -->
+      <main class="content-area" id="main-content">
+        
+        <!-- Hero: Currently Reading (Dominant Focal Point) -->
+        <section class="hero-block">
+          <div class="section-kicker">Currently Reading</div>
+
+          <div class="hero-layout" onclick="alert('Action: Open Continue Reading')">
+            <!-- Cover Frame (Supports Artwork or Typographic Fallback) -->
+            <div class="cover-frame" id="hero-cover-container">
+              <!-- Geometric 1-Bit Vector Art -->
+              <svg class="cover-image" id="cover-art" viewBox="0 0 132 198" preserveAspectRatio="none">
+                <rect width="132" height="198" fill="#FFFFFF"/>
+                <circle cx="66" cy="80" r="38" fill="#111111"/>
+                <path d="M22 142 L66 72 L110 142 Z" fill="#444444"/>
+                <path d="M46 162 L66 112 L86 162 Z" fill="#FFFFFF"/>
+                <rect x="12" y="12" width="108" height="174" fill="none" stroke="#000000" stroke-width="1"/>
+                <text x="66" y="38" font-family="'Merriweather', serif" font-size="8.5" font-weight="bold" fill="#000000" text-anchor="middle" letter-spacing="1">URSULA K. LE GUIN</text>
+                <text x="66" y="174" font-family="'Ubuntu', sans-serif" font-size="7" font-weight="bold" fill="#000000" text-anchor="middle" letter-spacing="1.5">SCIENCE FICTION CLASSIC</text>
+              </svg>
+
+              <!-- Typographic Fallback (Missing Cover State) -->
+              <div class="cover-fallback" id="cover-fallback" style="display: none;">
+                <div class="fallback-inner-frame">
+                  <div class="fallback-badge-top">XTEINK EDITION</div>
+                  <div>
+                    <div class="fallback-title-text" id="fallback-title">The Left Hand of Darkness</div>
+                    <div class="fallback-rule-line"></div>
+                    <div class="fallback-author-text">Ursula K. Le Guin</div>
+                  </div>
+                  <div class="fallback-badge-bot">EPUB · COMPLETE</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Metadata Stack -->
+            <div class="hero-metadata">
+              <div class="hero-title-group">
+                <h1 class="hero-book-title" id="hero-title">The Left Hand of Darkness</h1>
+                <div class="hero-book-author" id="hero-author">Ursula K. Le Guin</div>
+              </div>
+
+              <div>
+                <div class="progress-block">
+                  <div class="progress-stats-row">
+                    <span class="pct-emphasis">64%</span>
+                    <span>114 pages left</span>
+                  </div>
+                  <div class="progress-track-frame">
+                    <div class="progress-fill-bar" style="width: 64%;"></div>
+                  </div>
+                  <div class="chapter-indicator">Chapter 14: The Escape to the Ice</div>
+                </div>
+
+                <div class="btn-resume">
+                  <span>Resume Reading</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Shelf Section: Recent Books (Max 2-3 books) -->
+        <section class="shelf-block">
+          <div class="shelf-header-row">
+            <span class="shelf-title">Recent on Shelf</span>
+            <span class="shelf-view-all" onclick="alert('Action: Open Library view')">All Books (24) &rarr;</span>
+          </div>
+
+          <div class="shelf-grid">
+            <!-- Book 1 -->
+            <div class="shelf-item" onclick="alert('Action: Open Dune')">
+              <div class="shelf-cover-box">
+                <svg viewBox="0 0 80 120" style="width:100%; height:100%;">
+                  <rect width="80" height="120" fill="#FFFFFF"/>
+                  <rect x="8" y="8" width="64" height="104" fill="none" stroke="#000" stroke-width="1"/>
+                  <circle cx="40" cy="50" r="22" fill="#000"/>
+                  <text x="40" y="85" fill="#000" font-size="8" font-weight="bold" text-anchor="middle">DUNE</text>
+                  <text x="40" y="96" fill="#444" font-size="6" text-anchor="middle">F. HERBERT</text>
+                </svg>
+                <div class="shelf-progress-badge">31%</div>
+              </div>
+              <div class="shelf-book-title">Dune</div>
+              <div class="shelf-book-author">Frank Herbert</div>
+            </div>
+
+            <!-- Book 2 -->
+            <div class="shelf-item" onclick="alert('Action: Open Neuromancer')">
+              <div class="shelf-cover-box">
+                <svg viewBox="0 0 80 120" style="width:100%; height:100%;">
+                  <rect width="80" height="120" fill="#FFFFFF"/>
+                  <rect x="12" y="16" width="56" height="66" fill="none" stroke="#000" stroke-width="1"/>
+                  <text x="40" y="52" fill="#000" font-size="7" font-weight="bold" text-anchor="middle">NEUROMANCER</text>
+                  <text x="40" y="64" fill="#444" font-size="6" text-anchor="middle">W. GIBSON</text>
+                </svg>
+                <div class="shelf-progress-badge">88%</div>
+              </div>
+              <div class="shelf-book-title">Neuromancer</div>
+              <div class="shelf-book-author">William Gibson</div>
+            </div>
+
+            <!-- Book 3 -->
+            <div class="shelf-item" onclick="alert('Action: Open Foundation')">
+              <div class="shelf-cover-box">
+                <svg viewBox="0 0 80 120" style="width:100%; height:100%;">
+                  <rect width="80" height="120" fill="#000"/>
+                  <line x1="8" y1="18" x2="72" y2="102" stroke="#FFF" stroke-width="1"/>
+                  <text x="40" y="56" fill="#FFF" font-size="7" font-weight="bold" text-anchor="middle">FOUNDATION</text>
+                  <text x="40" y="68" fill="#CCC" font-size="6" text-anchor="middle">I. ASIMOV</text>
+                </svg>
+                <div class="shelf-progress-badge">DONE</div>
+              </div>
+              <div class="shelf-book-title">Foundation</div>
+              <div class="shelf-book-author">Isaac Asimov</div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- 3. State: Empty Library Overlay -->
+      <div class="overlay-view" id="empty-state">
+        <svg class="overlay-icon" viewBox="0 0 24 24">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+        <h2 class="overlay-title">Your Library is Waiting</h2>
+        <p class="overlay-description">No books have been opened yet. Connect via USB or Wi-Fi to sync your EPUB collection, or browse files on the MicroSD card.</p>
+        <button class="btn-overlay-action" onclick="alert('Action: Open File Browser')">Open File Browser</button>
+      </div>
+
+      <!-- 4. State: Storage Error Overlay -->
+      <div class="overlay-view" id="error-state">
+        <svg class="overlay-icon" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <h2 class="overlay-title">SD Card Unavailable</h2>
+        <p class="overlay-description">Unable to read storage volume. Please verify that your MicroSD card is formatted as FAT32 and securely seated in the slot.</p>
+        <button class="btn-overlay-action" onclick="alert('Action: Retry SD mount')">Retry Storage Mount</button>
+      </div>
+
+      <!-- 5. Bottom Action Ribbon (Library & Files Direct Access) -->
+      <nav class="bottom-ribbon">
+        <button class="ribbon-btn" title="Open Library" onclick="alert('Action: Open Library (24 titles)')">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+          <span>Library (24)</span>
+        </button>
+
+        <button class="ribbon-btn" title="Open SD File Browser" onclick="alert('Action: Open MicroSD File Browser')">
+          <svg viewBox="0 0 24 24">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+          <span>Files (SD Card)</span>
+        </button>
+      </nav>
+
+    </div>
+
+    <!-- Bezel Capacitive Home Key Indicator -->
+    <div class="bezel-home-indicator" title="Capacitive Home Key (GT911)"></div>
+  </div>
+
+  <!-- Reviewer / Product Owner State Switcher -->
+  <div class="state-switcher-bar">
+    <label>Preview UI State:</label>
+    <button class="state-btn active" id="btn-state-default" onclick="setState('default')">1. Default State</button>
+    <button class="state-btn" id="btn-state-missing" onclick="setState('missing')">2. Missing Cover</button>
+    <button class="state-btn" id="btn-state-long" onclick="setState('long')">3. Long Book Title</button>
+    <button class="state-btn" id="btn-state-empty" onclick="setState('empty')">4. Empty Library</button>
+    <button class="state-btn" id="btn-state-error" onclick="setState('error')">5. Storage / Error</button>
+    <button class="state-btn" id="btn-state-1bit" onclick="toggle1Bit()">Simulate 1-Bit Mode</button>
+  </div>
+
+  <script>
+    let is1Bit = false;
+
+    function setState(state) {
+      // Buttons styling
+      document.querySelectorAll('.state-btn').forEach(b => {
+        if (b.id !== 'btn-state-1bit') b.classList.remove('active');
+      });
+
+      const main = document.getElementById('main-content');
+      const empty = document.getElementById('empty-state');
+      const error = document.getElementById('error-state');
+      const coverArt = document.getElementById('cover-art');
+      const coverFallback = document.getElementById('cover-fallback');
+      const title = document.getElementById('hero-title');
+      const fallbackTitle = document.getElementById('fallback-title');
+
+      // Reset base visibility
+      main.style.display = 'flex';
+      empty.style.display = 'none';
+      error.style.display = 'none';
+      coverArt.style.display = 'block';
+      coverFallback.style.display = 'none';
+
+      if (state === 'default') {
+        document.getElementById('btn-state-default').classList.add('active');
+        title.innerText = "The Left Hand of Darkness";
+        fallbackTitle.innerText = "The Left Hand of Darkness";
+      } else if (state === 'missing') {
+        document.getElementById('btn-state-missing').classList.add('active');
+        coverArt.style.display = 'none';
+        coverFallback.style.display = 'flex';
+        title.innerText = "The Left Hand of Darkness";
+        fallbackTitle.innerText = "The Left Hand of Darkness";
+      } else if (state === 'long') {
+        document.getElementById('btn-state-long').classList.add('active');
+        const longText = "The Left Hand of Darkness: 50th Anniversary Commemorative Expanded Edition with Critical Essays";
+        title.innerText = longText;
+        fallbackTitle.innerText = longText;
+      } else if (state === 'empty') {
+        document.getElementById('btn-state-empty').classList.add('active');
+        main.style.display = 'none';
+        empty.style.display = 'flex';
+      } else if (state === 'error') {
+        document.getElementById('btn-state-error').classList.add('active');
+        main.style.display = 'none';
+        error.style.display = 'flex';
+      }
+    }
+
+    function toggle1Bit() {
+      is1Bit = !is1Bit;
+      document.getElementById('screen').classList.toggle('pure-1bit', is1Bit);
+      document.getElementById('btn-state-1bit').classList.toggle('active', is1Bit);
+    }
+  </script>
+</body>
+</html>

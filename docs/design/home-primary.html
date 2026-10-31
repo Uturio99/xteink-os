@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XTEInk OS — Primary Home (Editorial Focus v0.3)</title>
+  <style>
+    /* ==========================================================================
+       XTEInk OS Design Tokens v0.3 — Scoped to XTEINK X4 Pro (480x800)
+       ========================================================================== */
+    :root {
+      --xos-ink: #000000;
+      --xos-paper: #FFFFFF;
+      --xos-ink-subtle: #444444;
+      --xos-rule: #000000;
+      --xos-rule-quiet: #E2E2E2;
+
+      --xos-screen-w: 480px;
+      --xos-screen-h: 800px;
+      --xos-inset-h: 24px;
+      --xos-header-h: 36px;
+      --xos-dock-h: 52px;
+      --xos-touch-min: 44px;
+
+      --xos-font-micro: 8px;
+      --xos-font-caption: 10px;
+      --xos-font-nav: 12px;
+      --xos-font-body: 14px;
+      --xos-font-subhead: 18px;
+      --xos-font-display: 22px;
+
+      --xos-font-sans: 'Ubuntu', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --xos-font-serif: 'Merriweather', 'Georgia', serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: none;
+    }
+
+    body {
+      background-color: #E8E8E8;
+      font-family: var(--xos-font-sans);
+      color: var(--xos-ink);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    /* Device Bezel Simulator */
+    .device-chassis {
+      width: calc(480px + 32px);
+      height: calc(800px + 36px);
+      background-color: #1F1F1F;
+      border-radius: 16px;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.22);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* E-Paper Screen Canvas: EXACTLY 480x800 */
+    .screen {
+      width: 480px;
+      height: 800px;
+      background-color: var(--xos-paper);
+      color: var(--xos-ink);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .screen.pure-1bit {
+      filter: contrast(220%);
+    }
+
+    /* Status Bar (36px) — Minimal & Quiet */
+    .status-bar {
+      height: var(--xos-header-h);
+      padding: 0 var(--xos-inset-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--xos-rule-quiet);
+      font-size: var(--xos-font-caption);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      flex-shrink: 0;
+    }
+
+    .status-bar .brand {
+      font-size: var(--xos-font-micro);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .status-bar .clock {
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .status-bar .indicators {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .battery-icon {
+      width: 18px;
+      height: 10px;
+      border: 1px solid var(--xos-ink);
+      border-radius: 1px;
+      position: relative;
+      padding: 1px;
+    }
+
+    .battery-icon::after {
+      content: '';
+      position: absolute;
+      right: -3px;
+      top: 2px;
+      width: 2px;
+      height: 4px;
+      background: var(--xos-ink);
+    }
+
+    .battery-level {
+      height: 100%;
+      width: 86%;
+      background: var(--xos-ink);
+    }
+
+    /* Screen Content Area */
+    .content-area {
+      flex: 1;
+      padding: 18px var(--xos-inset-h) 8px var(--xos-inset-h);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Section Kicker */
+    .section-kicker {
+      font-size: var(--xos-font-micro);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--xos-ink);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-kicker::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background-color: var(--xos-rule-quiet);
+    }
+
+    /* Hero Section: Currently Reading */
+    .hero-card {
+      display: flex;
+      gap: 16px;
+      cursor: pointer;
+      padding: 4px 0 16px 0;
+      border-bottom: 1px solid var(--xos-rule-quiet);
+      margin-bottom: 16px;
+    }
+
+    /* Honest 2:3 Cover (No drop shadows, no fake spine, no gray container) */
+    .cover-frame {
+      width: 130px;
+      height: 195px; /* Exact 2:3 ratio */
+      border: 1px solid var(--xos-ink);
+      flex-shrink: 0;
+      position: relative;
+      background-color: #FFFFFF;
+      overflow: hidden;
+    }
+
+    .cover-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Typographic Fallback Jacket (Missing Artwork) */
+    .cover-fallback {
+      width: 100%;
+      height: 100%;
+      padding: 12px 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background-color: #FFFFFF;
+      text-align: center;
+    }
+
+    .fallback-inner {
+      height: 100%;
+      border: 1px solid var(--xos-ink);
+      padding: 10px 6px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .fallback-top-badge {
+      font-size: var(--xos-font-micro);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+    }
+
+    .fallback-title {
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .fallback-rule {
+      width: 24px;
+      height: 1px;
+      background: var(--xos-ink);
+      margin: 8px auto;
+    }
+
+    .fallback-author {
+      font-size: 9px;
+      font-style: italic;
+      line-height: 12px;
+      color: var(--xos-ink-subtle);
+    }
+
+    .fallback-bot-badge {
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      border-top: 1px solid var(--xos-rule-quiet);
+      padding-top: 4px;
+    }
+
+    /* Hero Metadata Stack */
+    .hero-meta {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .hero-title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .hero-title {
+      font-size: var(--xos-font-display);
+      font-weight: 700;
+      line-height: 26px;
+      letter-spacing: -0.015em;
+      color: var(--xos-ink);
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .hero-author {
+      font-size: var(--xos-font-nav);
+      font-weight: 400;
+      color: var(--xos-ink-subtle);
+    }
+
+    /* Reading Progress Block */
+    .progress-block {
+      margin-top: 10px;
+    }
+
+    .progress-stats-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .progress-percentage {
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .progress-remaining {
+      font-size: var(--xos-font-caption);
+      color: var(--xos-ink-subtle);
+    }
+
+    .progress-track {
+      height: 4px;
+      background-color: #FFFFFF;
+      border: 1px solid var(--xos-ink);
+      overflow: hidden;
+      width: 100%;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background-color: var(--xos-ink);
+    }
+
+    .progress-chapter {
+      font-size: var(--xos-font-caption);
+      color: var(--xos-ink-subtle);
+      margin-top: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Resume Hit Target (Min 44px Touch Height) */
+    .btn-resume {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: var(--xos-touch-min);
+      background-color: var(--xos-ink);
+      color: var(--xos-paper);
+      border: 1px solid var(--xos-ink);
+      border-radius: 2px;
+      font-size: var(--xos-font-nav);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      margin-top: 10px;
+      width: 100%;
+      text-decoration: none;
+    }
+
+    .btn-resume svg {
+      fill: var(--xos-paper);
+    }
+
+    /* Shelf Section: Recent Books */
+    .shelf-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .shelf-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .shelf-title {
+      font-size: var(--xos-font-body);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .shelf-count {
+      font-size: var(--xos-font-caption);
+      color: var(--xos-ink-subtle);
+      cursor: pointer;
+      text-decoration: underline;
+      min-height: 24px;
+      display: flex;
+      align-items: center;
+    }
+
+    .shelf-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .shelf-item {
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      text-decoration: none;
+      color: var(--xos-ink);
+    }
+
+    .shelf-cover-frame {
+      width: 100%;
+      aspect-ratio: 2 / 3;
+      border: 1px solid var(--xos-ink);
+      background: #FFFFFF;
+      position: relative;
+      margin-bottom: 6px;
+      overflow: hidden;
+    }
+
+    .shelf-progress-badge {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      background: var(--xos-ink);
+      color: var(--xos-paper);
+      font-size: var(--xos-font-micro);
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 1px;
+    }
+
+    .shelf-item-title {
+      font-size: var(--xos-font-caption);
+      font-weight: 700;
+      line-height: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+
+    .shelf-item-author {
+      font-size: var(--xos-font-micro);
+      color: var(--xos-ink-subtle);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Refined Quiet Navigation Dock (Apple HIG Deference) */
+    .quiet-dock {
+      height: var(--xos-dock-h);
+      border-top: 1px solid var(--xos-rule-quiet);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      background-color: var(--xos-paper);
+      flex-shrink: 0;
+      padding: 0 4px;
+    }
+
+    .quiet-tab {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      cursor: pointer;
+      position: relative;
+      color: var(--xos-ink);
+      text-decoration: none;
+      min-height: var(--xos-touch-min);
+    }
+
+    .quiet-tab svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: var(--xos-ink);
+      stroke-width: 1.6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .quiet-tab.active svg {
+      stroke-width: 2.2;
+    }
+
+    .quiet-tab .label {
+      font-size: 9px;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+    }
+
+    .quiet-tab.active .label {
+      font-weight: 700;
+    }
+
+    .quiet-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: 2px;
+      width: 24px;
+      height: 2px;
+      background-color: var(--xos-ink);
+    }
+
+    /* Empty State */
+    .empty-state {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      height: 100%;
+      padding: 32px 24px;
+    }
+
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      stroke: var(--xos-ink);
+      stroke-width: 1.5;
+      fill: none;
+      margin-bottom: 20px;
+    }
+
+    .empty-title {
+      font-size: var(--xos-font-subhead);
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .empty-description {
+      font-size: var(--xos-font-nav);
+      line-height: 18px;
+      color: var(--xos-ink-subtle);
+      margin-bottom: 24px;
+      max-width: 300px;
+    }
+
+    .btn-empty-action {
+      min-height: var(--xos-touch-min);
+      padding: 0 24px;
+      background-color: var(--xos-ink);
+      color: var(--xos-paper);
+      border: none;
+      font-size: var(--xos-font-nav);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+    }
+
+    /* Reviewer Testbench Toolbar */
+    .testbench-bar {
+      margin-top: 18px;
+      background: #FFFFFF;
+      padding: 10px 18px;
+      border-radius: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      font-size: 11px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      max-width: 600px;
+    }
+
+    .testbench-bar label {
+      font-weight: 700;
+    }
+
+    .btn-toggle {
+      background: #F0F0F0;
+      border: 1px solid #CCC;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .btn-toggle.active {
+      background: #000;
+      color: #FFF;
+      border-color: #000;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="device-chassis">
+    <div class="screen" id="screen">
+      
+      <!-- System Status Bar -->
+      <header class="status-bar">
+        <div class="brand">XTEINK</div>
+        <div class="clock">14:45</div>
+        <div class="indicators">
+          <!-- Wi-Fi Icon -->
+          <svg width="14" height="11" viewBox="0 0 14 11" fill="none">
+            <path d="M1 2.5C4.5 -0.5 9.5 -0.5 13 2.5M3 5.5C5.5 3.5 8.5 3.5 11 5.5M5.5 8.5C6.3 7.8 7.7 7.8 8.5 8.5M7 10.5V10.51" stroke="black" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+          <span>86%</span>
+          <div class="battery-icon">
+            <div class="battery-level"></div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content View -->
+      <main class="content-area" id="content-view">
+        
+        <!-- Currently Reading Section -->
+        <section>
+          <div class="section-kicker">Currently Reading</div>
+          
+          <div class="hero-card" id="hero-card" onclick="alert('Action: Resume reading The Left Hand of Darkness')">
+            <div class="cover-frame" id="hero-cover-container">
+              <!-- Geometric Monochrome Book Art -->
+              <svg class="cover-image" id="hero-cover-art" viewBox="0 0 130 195" preserveAspectRatio="none">
+                <rect width="130" height="195" fill="#FFFFFF"/>
+                <circle cx="65" cy="80" r="38" fill="#111111"/>
+                <path d="M20 140 L65 70 L110 140 Z" fill="#444444"/>
+                <path d="M45 160 L65 110 L85 160 Z" fill="#FFFFFF"/>
+                <rect x="12" y="12" width="106" height="171" fill="none" stroke="#000000" stroke-width="1"/>
+                <text x="65" y="38" font-family="'Merriweather', serif" font-size="8.5" font-weight="bold" fill="#000000" text-anchor="middle" letter-spacing="1">URSULA K. LE GUIN</text>
+                <text x="65" y="172" font-family="'Ubuntu', sans-serif" font-size="7" font-weight="bold" fill="#000000" text-anchor="middle" letter-spacing="1.5">SCIENCE FICTION CLASSIC</text>
+              </svg>
+
+              <!-- Typographic Fallback Jacket -->
+              <div class="cover-fallback" id="hero-cover-fallback" style="display: none;">
+                <div class="fallback-inner">
+                  <div class="fallback-top-badge">XTEINK EDITION</div>
+                  <div>
+                    <div class="fallback-title">The Left Hand of Darkness</div>
+                    <div class="fallback-rule"></div>
+                    <div class="fallback-author">Ursula K. Le Guin</div>
+                  </div>
+                  <div class="fallback-bot-badge">EPUB · COMPLETE</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Metadata -->
+            <div class="hero-meta">
+              <div class="hero-title-group">
+                <h1 class="hero-title">The Left Hand of Darkness</h1>
+                <div class="hero-author">Ursula K. Le Guin</div>
+              </div>
+
+              <div class="progress-block">
+                <div class="progress-stats-row">
+                  <span class="progress-percentage">64%</span>
+                  <span class="progress-remaining">114 pages left</span>
+                </div>
+                <div class="progress-track">
+                  <div class="progress-fill" style="width: 64%;"></div>
+                </div>
+                <div class="progress-chapter">Chapter 14: The Escape to the Ice</div>
+              </div>
+
+              <div class="btn-resume">
+                <span>Resume Reading</span>
+                <svg width="12" height="12" viewBox="0 0 24 24">
+                  <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Shelf Section: Recent Books -->
+        <section class="shelf-section">
+          <div class="shelf-header">
+            <div class="shelf-title">Recent Books</div>
+            <div class="shelf-count" onclick="alert('Action: Open Library view')">View Library (24) &rarr;</div>
+          </div>
+
+          <div class="shelf-grid">
+            <!-- Book 1 -->
+            <div class="shelf-item" onclick="alert('Action: Open Dune')">
+              <div class="shelf-cover-frame">
+                <svg viewBox="0 0 80 120" style="width:100%; height:100%;">
+                  <rect width="80" height="120" fill="#FFFFFF"/>
+                  <rect x="8" y="8" width="64" height="104" fill="none" stroke="#000" stroke-width="1"/>
+                  <circle cx="40" cy="50" r="22" fill="#000"/>
+                  <text x="40" y="85" fill="#000" font-size="8" font-weight="bold" text-anchor="middle">DUNE</text>
+                  <text x="40" y="96" fill="#444" font-size="6" text-anchor="middle">F. HERBERT</text>
+                </svg>
+                <div class="shelf-progress-badge">31%</div>
+              </div>
+              <div class="shelf-item-title">Dune</div>
+              <div class="shelf-item-author">Frank Herbert</div>
+            </div>
+
+            <!-- Book 2 -->
+            <div class="shelf-item" onclick="alert('Action: Open Neuromancer')">
+              <div class="shelf-cover-frame">
+                <svg viewBox="0 0 80 120" style="width:100%; height:100%;">
+                  <rect width="80" height="120" fill="#FFFFFF"/>
+                  <rect x="12" y="16" width="56" height="66" fill="none" stroke="#000" stroke-width="1"/>
+                  <text x="40" y="52" fill="#000" font-size="7" font-weight="bold" text-anchor="middle">NEUROMANCER</text>
+                  <text x="40" y="64" fill="#444" font-size="6" text-anchor="middle">W. GIBSON</text>
+                </svg>
+                <div class="shelf-progress-badge">88%</div>
+              </div>
+              <div class="shelf-item-title">Neuromancer</div>
+              <div class="shelf-item-author">William Gibson</div>
+            </div>
+
+            <!-- Book 3 -->
+            <div class="shelf-item" onclick="alert('Action: Open Foundation')">
+              <div class="shelf-cover-frame">
+                <svg viewBox="0 0 80 120" style="width:100%; height:100%;">
+                  <rect width="80" height="120" fill="#000"/>
+                  <line x1="8" y1="18" x2="72" y2="102" stroke="#FFF" stroke-width="1"/>
+                  <text x="40" y="56" fill="#FFF" font-size="7" font-weight="bold" text-anchor="middle">FOUNDATION</text>
+                  <text x="40" y="68" fill="#CCC" font-size="6" text-anchor="middle">I. ASIMOV</text>
+                </svg>
+                <div class="shelf-progress-badge">DONE</div>
+              </div>
+              <div class="shelf-item-title">Foundation</div>
+              <div class="shelf-item-author">Isaac Asimov</div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- Empty State View -->
+      <div class="empty-state" id="empty-view">
+        <svg viewBox="0 0 24 24">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+        <h2 class="empty-title">Your Library is Waiting</h2>
+        <p class="empty-description">No active books found. Connect via USB or Wi-Fi to sync your EPUB collection, or browse files on the MicroSD card.</p>
+        <button class="btn-empty-action" onclick="toggleEmptyState()">Open File Browser</button>
+      </div>
+
+      <!-- Refined Quiet Navigation Dock -->
+      <nav class="quiet-dock">
+        <!-- 1. Home / Continue Reading -->
+        <a class="quiet-tab active" title="Continue Reading" onclick="alert('Nav: Home')">
+          <svg viewBox="0 0 24 24">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+          <span class="label">Home</span>
+        </a>
+
+        <!-- 2. Library -->
+        <a class="quiet-tab" title="Library" onclick="alert('Nav: Library')">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+          <span class="label">Library</span>
+        </a>
+
+        <!-- 3. Files -->
+        <a class="quiet-tab" title="File Browser" onclick="alert('Nav: Files')">
+          <svg viewBox="0 0 24 24">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+          <span class="label">Files</span>
+        </a>
+
+        <!-- 4. Search -->
+        <a class="quiet-tab" title="Search Books" onclick="alert('Nav: Search')">
+          <svg viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <span class="label">Search</span>
+        </a>
+
+        <!-- 5. Settings -->
+        <a class="quiet-tab" title="Device Settings" onclick="alert('Nav: Settings')">
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          <span class="label">Settings</span>
+        </a>
+      </nav>
+
+    </div>
+  </div>
+
+  <!-- Reviewer QA Controls -->
+  <div class="testbench-bar">
+    <label>QA Controls:</label>
+    <button class="btn-toggle" id="btn-toggle-cover" onclick="toggleMissingCover()">Toggle Missing Cover</button>
+    <button class="btn-toggle" id="btn-toggle-empty" onclick="toggleEmptyState()">Toggle Empty State</button>
+    <button class="btn-toggle" id="btn-toggle-1bit" onclick="toggle1BitMode()">Simulate 1-Bit Mode</button>
+  </div>
+
+  <script>
+    let isMissingCover = false;
+    let isEmpty = false;
+    let is1Bit = false;
+
+    function toggleMissingCover() {
+      isMissingCover = !isMissingCover;
+      document.getElementById('hero-cover-art').style.display = isMissingCover ? 'none' : 'block';
+      document.getElementById('hero-cover-fallback').style.display = isMissingCover ? 'block' : 'none';
+      document.getElementById('btn-toggle-cover').classList.toggle('active', isMissingCover);
+    }
+
+    function toggleEmptyState() {
+      isEmpty = !isEmpty;
+      document.getElementById('content-view').style.display = isEmpty ? 'none' : 'flex';
+      document.getElementById('empty-view').style.display = isEmpty ? 'flex' : 'none';
+      document.getElementById('btn-toggle-empty').classList.toggle('active', isEmpty);
+    }
+
+    function toggle1BitMode() {
+      is1Bit = !is1Bit;
+      document.getElementById('screen').classList.toggle('pure-1bit', is1Bit);
+      document.getElementById('btn-toggle-1bit').classList.toggle('active', is1Bit);
+    }
+  </script>
+</body>
+</html>

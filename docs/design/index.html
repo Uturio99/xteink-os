@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XTEInk OS — Home Screen v1.0 (Visual North Star)</title>
+  <style>
+    :root {
+      --bg: #F4F4F6;
+      --card-bg: #FFFFFF;
+      --text-main: #1D1D1F;
+      --text-sub: #6E6E73;
+      --border-color: #D2D2D7;
+      --accent: #0066CC;
+      --font-stack: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      font-family: var(--font-stack);
+      color: var(--text-main);
+      line-height: 1.5;
+      padding: 32px 24px;
+    }
+
+    .container {
+      max-width: 1480px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 20px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #000;
+      color: #FFF;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 15px;
+      color: var(--text-sub);
+      max-width: 960px;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 14px;
+      font-size: 13px;
+    }
+
+    .nav-links a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .nav-links a:hover {
+      text-decoration: underline;
+    }
+
+    /* Showcase Layout */
+    .showcase-layout {
+      display: grid;
+      grid-template-columns: 530px 1fr;
+      gap: 36px;
+      margin-top: 24px;
+    }
+
+    @media (max-width: 1160px) {
+      .showcase-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .prototype-frame-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+    }
+
+    .frame-wrapper {
+      width: 512px;
+      height: 836px;
+      overflow: hidden;
+      border-radius: 16px;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    .doc-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+    }
+
+    .doc-section-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      background: #F9F9FA;
+      font-weight: 700;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .pill-green { background: #E6F4EA; color: #137333; }
+    .pill-amber { background: #FEF7E0; color: #B06000; }
+    .pill-blue  { background: #E8F0FE; color: #1A73E8; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="badge">HOME-007 · Visual Fidelity Corrected v1.1</div>
+      <h1>XTEInk OS — Home Screen Design v1.1</h1>
+      <p class="subtitle">Production-oriented design contract embodying the Product Owner approved <strong>Visual North Star</strong>: <em>Premium Editorial Minimalism × Apple HIG × Durobo Krono</em> for the <strong>XTEINK X4 Pro</strong> (480×800 portrait UI canvas). Standardized on the <strong>Dominant Serif Title Hero</strong>, an expressive italic author accent, restrained companion cover, minimal black pill CTA, unadorned lower bookshelf, and a quiet masthead with editorial menu drawer.</p>
+      
+      <div class="nav-links">
+        <a href="home-v1.1.html" target="_blank">Open Prototype (home-v1.1.html) &nearr;</a>
+        <a href="VISUAL_DIFFERENCE_REPORT_v1.1.md" target="_blank">Visual Difference Report (v1.0 vs v1.1) &nearr;</a>
+        <a href="DESIGN_SYSTEM_v1.0.md" target="_blank">Design System v1.0 &nearr;</a>
+        <a href="HOME_SPEC_v1.0.md" target="_blank">Master Coordinate Map (HOME_SPEC_v1.0.md) &nearr;</a>
+        <a href="IMPLEMENTATION_HANDOFF.md" target="_blank">Engineering Handoff & Classification (IMPLEMENTATION_HANDOFF.md) &nearr;</a>
+      </div>
+    </header>
+
+    <div class="showcase-layout">
+      <!-- Live Prototype Frame -->
+      <div class="prototype-frame-card">
+        <div style="width: 100%; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: baseline;">
+          <span style="font-weight: 700; font-size: 15px;">Live 480×800 Prototype (v1.1)</span>
+          <a href="home-v1.1.html" target="_blank" style="font-size: 12px; color: var(--accent); text-decoration: none;">Full Screen &rarr;</a>
+        </div>
+        <div class="frame-wrapper">
+          <iframe src="home-v1.1.html"></iframe>
+        </div>
+      </div>
+
+      <!-- Documentation & Audit Reconciliation Summary -->
+      <div class="doc-card">
+        <div>
+          <h2 class="doc-section-title">Visual North Star Architecture</h2>
+          <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 12px;">The v1.0 specification supersedes earlier wireframes with a commanding literary aesthetic:</p>
+          <ul style="font-size: 13px; color: var(--text-main); margin-left: 20px; line-height: 1.8;">
+            <li><strong>Centered Editorial Hero:</strong> Centered 116×174px cover artwork positioned directly above dominant 21pt serif title and 13pt italic author credit.</li>
+            <li><strong>Refined Hairline Progress:</strong> Slender 3px progress track (140×3px) with high-contrast completion stats. Omitted gracefully if progress &lt; 0.</li>
+            <li><strong>Apple HIG Action Button:</strong> Centered 210×44px <code>Continue Reading &rarr;</code> button guaranteeing ergonomic one-handed touch activation.</li>
+            <li><strong>3-Book Secondary Shelf:</strong> Maximum 3 books (84×126px thumbnails) with distinct progress pills and truncated titles.</li>
+            <li><strong>Quiet Masthead & Minimal Footer:</strong> 42px top bar with search/settings; 56px bottom ribbon with <code>Library (24)</code> and <code>Files (SD Card)</code>. Zero 5-item mobile docks.</li>
+            <li><strong>Pure 1-Bit Supremacy:</strong> Solid black ink on white paper. No fake shadows, gradients, or skeletal card frames.</li>
+          </ul>
+        </div>
+
+        <div>
+          <h2 class="doc-section-title">Typography & Assets Strategy for Codex</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Role</th>
+                <th>Font Family & Metrics</th>
+                <th>Line Advance</th>
+                <th>Engineering Asset Classification</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Masthead & Clock</strong></td>
+                <td>Ubuntu 10 Regular / Bold</td>
+                <td>24 px</td>
+                <td><span class="pill pill-green">Directly Supported</span> in-tree bitmap</td>
+              </tr>
+              <tr>
+                <td><strong>Hero Title</strong></td>
+                <td>Serif Bold 21pt (Literata / Merriweather)</td>
+                <td>26 px</td>
+                <td><span class="pill pill-amber">Requires Serif Asset</span> (FreeType or bitmap)</td>
+              </tr>
+              <tr>
+                <td><strong>Hero Author</strong></td>
+                <td>Serif Italic 13pt</td>
+                <td>20 px</td>
+                <td><span class="pill pill-amber">Requires Serif Asset</span> (Italic table)</td>
+              </tr>
+              <tr>
+                <td><strong>Continue Action</strong></td>
+                <td>Ubuntu 12 Bold</td>
+                <td>29 px</td>
+                <td><span class="pill pill-green">Directly Supported</span> in-tree bitmap</td>
+              </tr>
+              <tr>
+                <td><strong>Shelf Headings</strong></td>
+                <td>Serif Bold 13pt / 10pt</td>
+                <td>22 px / 14 px</td>
+                <td><span class="pill pill-amber">Requires Serif Asset</span> (FreeType or bitmap)</td>
+              </tr>
+              <tr>
+                <td><strong>Footer Buttons</strong></td>
+                <td>Ubuntu 12 Bold</td>
+                <td>29 px</td>
+                <td><span class="pill pill-green">Directly Supported</span> in-tree bitmap</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <h2 class="doc-section-title">Reconciled Content States (A through F)</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>State ID</th>
+                <th>Trigger Condition</th>
+                <th>Visual Representation & Interactive Fallback</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>State A</strong></td>
+                <td>Empty Library (0 books indexed)</td>
+                <td>1-bit Book Emblem + "Your Library is Waiting" + "Open File Browser" (44px)</td>
+              </tr>
+              <tr>
+                <td><strong>State B</strong></td>
+                <td>Books Available, No History</td>
+                <td>Welcome Hero + "Browse Library (24 Titles)" + 3 shelf books without progress badges</td>
+              </tr>
+              <tr>
+                <td><strong>State C</strong></td>
+                <td>Currently Reading (Default)</td>
+                <td>Centered 116×174px Cover + 21pt Serif Title + 64% hairline progress + Continue Reading</td>
+              </tr>
+              <tr>
+                <td><strong>State D</strong></td>
+                <td>Missing / Unavailable Cover</td>
+                <td>Typographic Fallback Book Jacket with 1px inset rule, centered title/author, format hallmark</td>
+              </tr>
+              <tr>
+                <td><strong>State E</strong></td>
+                <td>Long Title / Stacked Diacritics</td>
+                <td>Title wraps to 3 lines (76px) with stacked Vietnamese diacritic clearance (26px line-height)</td>
+              </tr>
+              <tr>
+                <td><strong>State F</strong></td>
+                <td>Storage / Index Unavailable</td>
+                <td>1-bit Warning Emblem + "Storage Unavailable" + "Retry Mount" button</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <h2 class="doc-section-title">Hardware Validation Checklist (X4 Pro Bench Units)</h2>
+          <ul style="font-size: 13px; color: var(--text-main); margin-left: 20px; line-height: 1.8;">
+            <li><span class="pill pill-blue">Touch</span> <strong>GT911 Edge Sensitivity:</strong> Validate top masthead (Search/Settings) and bottom footer buttons register cleanly without edge deadzones.</li>
+            <li><span class="pill pill-blue">Display</span> <strong>1-Bit Controller Waveforms:</strong> Validate 1px hairline rules and partial refresh updates across SSD1677 / UC8179 controller batches.</li>
+            <li><span class="pill pill-blue">Hardware Key</span> <strong>Home Button Policy:</strong> Governed by <code>HomeButtonSettings.h</code>. Does NOT force automatic full refresh.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

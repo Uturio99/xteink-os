@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XTEInk OS — Alternative Exploration (Editorial Masthead v0.3)</title>
+  <style>
+    /* ==========================================================================
+       XTEInk OS Design Tokens v0.3 — Scoped to XTEINK X4 Pro (480x800)
+       Alternative Navigation & Composition Exploration
+       ========================================================================== */
+    :root {
+      --xos-ink: #000000;
+      --xos-paper: #FFFFFF;
+      --xos-ink-subtle: #444444;
+      --xos-rule-quiet: #E2E2E2;
+
+      --xos-screen-w: 480px;
+      --xos-screen-h: 800px;
+      --xos-inset-h: 24px;
+      --xos-touch-min: 44px;
+
+      --xos-font-micro: 8px;
+      --xos-font-caption: 10px;
+      --xos-font-nav: 12px;
+      --xos-font-body: 14px;
+      --xos-font-subhead: 18px;
+      --xos-font-display: 24px;
+
+      --xos-font-sans: 'Ubuntu', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --xos-font-serif: 'Merriweather', 'Georgia', serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: none;
+    }
+
+    body {
+      background-color: #E8E8E8;
+      font-family: var(--xos-font-sans);
+      color: var(--xos-ink);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    /* Device Chassis Frame */
+    .device-chassis {
+      width: calc(480px + 32px);
+      height: calc(800px + 36px);
+      background-color: #1F1F1F;
+      border-radius: 16px;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.22);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Screen Canvas: EXACTLY 480x800 */
+    .screen {
+      width: 480px;
+      height: 800px;
+      background-color: var(--xos-paper);
+      color: var(--xos-ink);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .screen.pure-1bit {
+      filter: contrast(220%);
+    }
+
+    /* Editorial Masthead (44px) — Combines Brand, Status, and Quiet Utility Icons */
+    .masthead {
+      height: 44px;
+      padding: 0 var(--xos-inset-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--xos-ink);
+      flex-shrink: 0;
+    }
+
+    .masthead-left {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .masthead-brand {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .masthead-time {
+      font-size: var(--xos-font-caption);
+      color: var(--xos-ink-subtle);
+      font-weight: 700;
+    }
+
+    .masthead-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .masthead-btn {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--xos-ink);
+      border-radius: 2px;
+    }
+
+    .masthead-btn svg {
+      width: 18px;
+      height: 18px;
+      stroke: var(--xos-ink);
+      stroke-width: 1.7;
+      fill: none;
+    }
+
+    .battery-group {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: var(--xos-font-caption);
+      font-weight: 700;
+      margin-left: 6px;
+    }
+
+    .battery-icon {
+      width: 16px;
+      height: 9px;
+      border: 1px solid var(--xos-ink);
+      position: relative;
+      padding: 1px;
+    }
+
+    .battery-icon::after {
+      content: '';
+      position: absolute;
+      right: -3px;
+      top: 1.5px;
+      width: 2px;
+      height: 4px;
+      background: var(--xos-ink);
+    }
+
+    .battery-level {
+      height: 100%;
+      width: 86%;
+      background: var(--xos-ink);
+    }
+
+    /* Main Open Stage */
+    .content-area {
+      flex: 1;
+      padding: 20px var(--xos-inset-h) 12px var(--xos-inset-h);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+
+    /* Hero Block: Asymmetric Literary Stage */
+    .hero-block {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .hero-stage {
+      display: flex;
+      gap: 18px;
+      cursor: pointer;
+    }
+
+    .cover-frame {
+      width: 136px;
+      height: 204px; /* 2:3 aspect ratio */
+      border: 1px solid var(--xos-ink);
+      flex-shrink: 0;
+      background: #FFFFFF;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .cover-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Typographic Jacket Fallback */
+    .cover-fallback {
+      width: 100%;
+      height: 100%;
+      padding: 12px 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background-color: #FFFFFF;
+      text-align: center;
+    }
+
+    .fallback-inner {
+      height: 100%;
+      border: 1px solid var(--xos-ink);
+      padding: 12px 6px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .fallback-top-badge {
+      font-size: var(--xos-font-micro);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+    }
+
+    .fallback-title {
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .fallback-rule {
+      width: 24px;
+      height: 1px;
+      background: var(--xos-ink);
+      margin: 8px auto;
+    }
+
+    .fallback-author {
+      font-size: 9px;
+      font-style: italic;
+      color: var(--xos-ink-subtle);
+    }
+
+    .fallback-bot-badge {
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      border-top: 1px solid var(--xos-rule-quiet);
+      padding-top: 4px;
+    }
+
+    /* Editorial Meta Stack */
+    .hero-details {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .kicker {
+      font-size: var(--xos-font-micro);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--xos-ink-subtle);
+    }
+
+    .hero-title {
+      font-size: var(--xos-font-display);
+      font-weight: 700;
+      line-height: 28px;
+      letter-spacing: -0.015em;
+      margin-top: 4px;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .hero-author {
+      font-size: var(--xos-font-nav);
+      color: var(--xos-ink-subtle);
+      margin-top: 2px;
+    }
+
+    .progress-section {
+      margin-top: 12px;
+    }
+
+    .progress-data-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: var(--xos-font-caption);
+      margin-bottom: 4px;
+    }
+
+    .pct-bold {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .progress-bar-box {
+      height: 4px;
+      border: 1px solid var(--xos-ink);
+      background: #FFFFFF;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--xos-ink);
+    }
+
+    .chapter-label {
+      font-size: var(--xos-font-caption);
+      color: var(--xos-ink-subtle);
+      margin-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .btn-read-now {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: var(--xos-touch-min);
+      background-color: var(--xos-ink);
+      color: var(--xos-paper);
+      font-size: var(--xos-font-nav);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    /* Shelf Section */
+    .shelf-block {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .shelf-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--xos-rule-quiet);
+    }
+
+    .shelf-heading {
+      font-size: var(--xos-font-body);
+      font-weight: 700;
+    }
+
+    .shelf-link {
+      font-size: var(--xos-font-caption);
+      color: var(--xos-ink-subtle);
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .shelf-items-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .shelf-card {
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+    }
+
+    .shelf-thumb-wrap {
+      width: 100%;
+      aspect-ratio: 2 / 3;
+      border: 1px solid var(--xos-ink);
+      background: #FFFFFF;
+      position: relative;
+      margin-bottom: 6px;
+      overflow: hidden;
+    }
+
+    .badge-pct {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      background: var(--xos-ink);
+      color: var(--xos-paper);
+      font-size: var(--xos-font-micro);
+      font-weight: 700;
+      padding: 1px 4px;
+    }
+
+    .shelf-book-title {
+      font-size: var(--xos-font-caption);
+      font-weight: 700;
+      line-height: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .shelf-book-author {
+      font-size: var(--xos-font-micro);
+      color: var(--xos-ink-subtle);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Bottom Action Ribbon (Replaces Persistent Dock) */
+    .action-ribbon {
+      border-top: 1px solid var(--xos-ink);
+      padding-top: 10px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .ribbon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: var(--xos-touch-min);
+      border: 1px solid var(--xos-ink);
+      background: #FFFFFF;
+      font-size: var(--xos-font-nav);
+      font-weight: 700;
+      text-decoration: none;
+      color: var(--xos-ink);
+      cursor: pointer;
+    }
+
+    .ribbon-btn svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--xos-ink);
+      stroke-width: 1.8;
+      fill: none;
+    }
+
+    /* Empty State View */
+    .empty-state {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      height: 100%;
+      padding: 32px 24px;
+    }
+
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      stroke: var(--xos-ink);
+      stroke-width: 1.5;
+      fill: none;
+      margin-bottom: 20px;
+    }
+
+    .empty-title {
+      font-size: var(--xos-font-subhead);
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .empty-description {
+      font-size: var(--xos-font-nav);
+      line-height: 18px;
+      color: var(--xos-ink-subtle);
+      margin-bottom: 24px;
+      max-width: 300px;
+    }
+
+    .btn-empty-action {
+      min-height: var(--xos-touch-min);
+      padding: 0 24px;
+      background-color: var(--xos-ink);
+      color: var(--xos-paper);
+      border: none;
+      font-size: var(--xos-font-nav);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+    }
+
+    /* Testbench Controls */
+    .testbench-bar {
+      margin-top: 18px;
+      background: #FFFFFF;
+      padding: 10px 18px;
+      border-radius: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      font-size: 11px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      max-width: 600px;
+    }
+
+    .testbench-bar label {
+      font-weight: 700;
+    }
+
+    .btn-toggle {
+      background: #F0F0F0;
+      border: 1px solid #CCC;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .btn-toggle.active {
+      background: #000;
+      color: #FFF;
+      border-color: #000;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="device-chassis">
+    <div class="screen" id="screen">
+      
+      <!-- Editorial Masthead (44px) -->
+      <header class="masthead">
+        <div class="masthead-left">
+          <span class="masthead-brand">XTEINK</span>
+          <span class="masthead-time">14:45</span>
+        </div>
+
+        <div class="masthead-actions">
+          <!-- Direct Search Shortcut (Preserves access) -->
+          <button class="masthead-btn" title="Search Books" onclick="alert('Nav: Search books')">
+            <svg viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </button>
+
+          <!-- Direct Settings Shortcut (Preserves access) -->
+          <button class="masthead-btn" title="System Settings" onclick="alert('Nav: Open Settings')">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>
+
+          <!-- Battery & Wi-Fi Context -->
+          <div class="battery-group">
+            <svg width="13" height="10" viewBox="0 0 14 11" fill="none">
+              <path d="M1 2.5C4.5 -0.5 9.5 -0.5 13 2.5M3 5.5C5.5 3.5 8.5 3.5 11 5.5M5.5 8.5C6.3 7.8 7.7 7.8 8.5 8.5M7 10.5V10.51" stroke="black" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+            <span>86%</span>
+            <div class="battery-icon">
+              <div class="battery-level"></div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Open Stage Content -->
+      <main class="content-area" id="content-view">
+        
+        <!-- Hero Section -->
+        <section class="hero-block">
+          <div class="kicker">Currently Reading</div>
+
+          <div class="hero-stage" onclick="alert('Action: Resume reading The Left Hand of Darkness')">
+            <div class="cover-frame" id="hero-cover-container">
+              <!-- Geometric SVG Art -->
+              <svg class="cover-image" id="hero-cover-art" viewBox="0 0 136 204" preserveAspectRatio="none">
+                <rect width="136" height="204" fill="#FFFFFF"/>
+                <circle cx="68" cy="85" r="40" fill="#111111"/>
+                <path d="M22 145 L68 75 L114 145 Z" fill="#444444"/>
+                <path d="M48 165 L68 115 L88 165 Z" fill="#FFFFFF"/>
+                <rect x="12" y="12" width="112" height="180" fill="none" stroke="#000000" stroke-width="1"/>
+                <text x="68" y="40" font-family="'Merriweather', serif" font-size="9" font-weight="bold" fill="#000000" text-anchor="middle" letter-spacing="1">URSULA K. LE GUIN</text>
+                <text x="68" y="180" font-family="'Ubuntu', sans-serif" font-size="7" font-weight="bold" fill="#000000" text-anchor="middle" letter-spacing="1.5">SCIENCE FICTION CLASSIC</text>
+              </svg>
+
+              <!-- Typographic Fallback Jacket -->
+              <div class="cover-fallback" id="hero-cover-fallback" style="display: none;">
+                <div class="fallback-inner">
+                  <div class="fallback-top-badge">XTEINK EDITION</div>
+                  <div>
+                    <div class="fallback-title">The Left Hand of Darkness</div>
+                    <div class="fallback-rule"></div>
+                    <div class="fallback-author">Ursula K. Le Guin</div>
+                  </div>
+                  <div class="fallback-bot-badge">EPUB · COMPLETE</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="hero-details">
+              <div>
+                <h1 class="hero-title">The Left Hand of Darkness</h1>
+                <div class="hero-author">Ursula K. Le Guin</div>
+              </div>
+
+              <div>
+                <div class="progress-section">
+                  <div class="progress-data-row">
+                    <span class="pct-bold">64%</span>
+                    <span>114 pages left</span>
+                  </div>
+                  <div class="progress-bar-box">
+                    <div class="progress-bar-fill" style="width: 64%;"></div>
+                  </div>
+                  <div class="chapter-label">Chapter 14: The Escape to the Ice</div>
+                </div>
+
+                <div class="btn-read-now">
+                  <span>Resume Reading</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="#FFF">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Shelf Section -->
+        <section class="shelf-block">
+          <div class="shelf-label-row">
+            <span class="shelf-heading">Recent on Shelf</span>
+            <span class="shelf-link" onclick="alert('Action: Open Library view')">All Books (24) &rarr;</span>
+          </div>
+
+          <div class="shelf-items-row">
+            <!-- Book 1 -->
+            <div class="shelf-card" onclick="alert('Action: Open Dune')">
+              <div class="shelf-thumb-wrap">
+                <svg viewBox="0 0 80 120" style="width:100%; height:100%;">
+                  <rect width="80" height="120" fill="#FFFFFF"/>
+                  <rect x="8" y="8" width="64" height="104" fill="none" stroke="#000" stroke-width="1"/>
+                  <circle cx="40" cy="50" r="22" fill="#000"/>
+                  <text x="40" y="85" fill="#000" font-size="8" font-weight="bold" text-anchor="middle">DUNE</text>
+                  <text x="40" y="96" fill="#444" font-size="6" text-anchor="middle">F. HERBERT</text>
+                </svg>
+                <div class="badge-pct">31%</div>
+              </div>
+              <div class="shelf-book-title">Dune</div>
+              <div class="shelf-book-author">Frank Herbert</div>
+            </div>
+
+            <!-- Book 2 -->
+            <div class="shelf-card" onclick="alert('Action: Open Neuromancer')">
+              <div class="shelf-thumb-wrap">
+                <svg viewBox="0 0 80 120" style="width:100%; height:100%;">
+                  <rect width="80" height="120" fill="#FFFFFF"/>
+                  <rect x="12" y="16" width="56" height="66" fill="none" stroke="#000" stroke-width="1"/>
+                  <text x="40" y="52" fill="#000" font-size="7" font-weight="bold" text-anchor="middle">NEUROMANCER</text>
+                  <text x="40" y="64" fill="#444" font-size="6" text-anchor="middle">W. GIBSON</text>
+                </svg>
+                <div class="badge-pct">88%</div>
+              </div>
+              <div class="shelf-book-title">Neuromancer</div>
+              <div class="shelf-book-author">William Gibson</div>
+            </div>
+
+            <!-- Book 3 -->
+            <div class="shelf-card" onclick="alert('Action: Open Foundation')">
+              <div class="shelf-thumb-wrap">
+                <svg viewBox="0 0 80 120" style="width:100%; height:100%;">
+                  <rect width="80" height="120" fill="#000"/>
+                  <line x1="8" y1="18" x2="72" y2="102" stroke="#FFF" stroke-width="1"/>
+                  <text x="40" y="56" fill="#FFF" font-size="7" font-weight="bold" text-anchor="middle">FOUNDATION</text>
+                  <text x="40" y="68" fill="#CCC" font-size="6" text-anchor="middle">I. ASIMOV</text>
+                </svg>
+                <div class="badge-pct">DONE</div>
+              </div>
+              <div class="shelf-book-title">Foundation</div>
+              <div class="shelf-book-author">Isaac Asimov</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Bottom Action Ribbon: Library & Files (SD) -->
+        <nav class="action-ribbon">
+          <button class="ribbon-btn" onclick="alert('Nav: Library (24 titles)')">
+            <svg viewBox="0 0 24 24">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+            <span>Library (24)</span>
+          </button>
+
+          <button class="ribbon-btn" onclick="alert('Nav: SD File Browser')">
+            <svg viewBox="0 0 24 24">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span>Files (SD Card)</span>
+          </button>
+        </nav>
+
+      </main>
+
+      <!-- Empty State View -->
+      <div class="empty-state" id="empty-view">
+        <svg viewBox="0 0 24 24">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+        <h2 class="empty-title">Your Library is Waiting</h2>
+        <p class="empty-description">No active books found. Connect via USB or Wi-Fi to sync your EPUB collection, or browse files on the MicroSD card.</p>
+        <button class="btn-empty-action" onclick="toggleEmptyState()">Open File Browser</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Reviewer QA Controls -->
+  <div class="testbench-bar">
+    <label>QA Controls:</label>
+    <button class="btn-toggle" id="btn-toggle-cover" onclick="toggleMissingCover()">Toggle Missing Cover</button>
+    <button class="btn-toggle" id="btn-toggle-empty" onclick="toggleEmptyState()">Toggle Empty State</button>
+    <button class="btn-toggle" id="btn-toggle-1bit" onclick="toggle1BitMode()">Simulate 1-Bit Mode</button>
+  </div>
+
+  <script>
+    let isMissingCover = false;
+    let isEmpty = false;
+    let is1Bit = false;
+
+    function toggleMissingCover() {
+      isMissingCover = !isMissingCover;
+      document.getElementById('hero-cover-art').style.display = isMissingCover ? 'none' : 'block';
+      document.getElementById('hero-cover-fallback').style.display = isMissingCover ? 'block' : 'none';
+      document.getElementById('btn-toggle-cover').classList.toggle('active', isMissingCover);
+    }
+
+    function toggleEmptyState() {
+      isEmpty = !isEmpty;
+      document.getElementById('content-view').style.display = isEmpty ? 'none' : 'flex';
+      document.getElementById('empty-view').style.display = isEmpty ? 'flex' : 'none';
+      document.getElementById('btn-toggle-empty').classList.toggle('active', isEmpty);
+    }
+
+    function toggle1BitMode() {
+      is1Bit = !is1Bit;
+      document.getElementById('screen').classList.toggle('pure-1bit', is1Bit);
+      document.getElementById('btn-toggle-1bit').classList.toggle('active', is1Bit);
+    }
+  </script>
+</body>
+</html>

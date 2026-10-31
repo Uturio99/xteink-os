@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XTEInk OS — Home: Editorial Focus (480x800)</title>
+  <style>
+    /* ==========================================================================
+       XTEInk OS Design Tokens v0.2
+       ========================================================================== */
+    :root {
+      --xos-ink-black: #000000;
+      --xos-ink-white: #FFFFFF;
+      --xos-ink-dark-gray: #555555;
+      --xos-ink-light-gray: #AAAAAA;
+
+      --xos-screen-width: 480px;
+      --xos-screen-height: 800px;
+      --xos-screen-inset-h: 24px;
+      --xos-header-height: 32px;
+      --xos-dock-height: 56px;
+
+      --xos-space-2: 2px;
+      --xos-space-4: 4px;
+      --xos-space-8: 8px;
+      --xos-space-12: 12px;
+      --xos-space-16: 16px;
+      --xos-space-20: 20px;
+      --xos-space-24: 24px;
+      --xos-space-32: 32px;
+
+      --xos-font-ui: 'Ubuntu', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --xos-font-serif: 'Merriweather', 'Georgia', serif;
+
+      --xos-border-hairline: 1px solid var(--xos-ink-black);
+      --xos-border-light: 1px solid var(--xos-ink-light-gray);
+      --xos-border-focus: 2px solid var(--xos-ink-black);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: none; /* E-paper bitmap crispness */
+    }
+
+    body {
+      background-color: #E6E6E6;
+      font-family: var(--xos-font-ui);
+      color: var(--xos-ink-black);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    /* Outer Device Bezel for Browser Viewability */
+    .device-chassis {
+      width: calc(480px + 32px);
+      height: calc(800px + 40px);
+      background-color: #262626;
+      border-radius: 20px;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    /* Screen Canvas: EXACTLY 480x800 */
+    .screen {
+      width: 480px;
+      height: 800px;
+      background-color: var(--xos-ink-white);
+      color: var(--xos-ink-black);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* E-paper 1-bit mode simulation */
+    .screen.pure-1bit {
+      filter: contrast(200%);
+    }
+
+    /* Status Bar (32px) */
+    .status-bar {
+      height: var(--xos-header-height);
+      padding: 0 var(--xos-screen-inset-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #ECECEC;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      flex-shrink: 0;
+    }
+
+    .status-bar .brand {
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .status-bar .clock {
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .status-bar .system-indicators {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .battery-icon {
+      width: 18px;
+      height: 10px;
+      border: 1px solid var(--xos-ink-black);
+      border-radius: 1px;
+      position: relative;
+      padding: 1px;
+    }
+
+    .battery-icon::after {
+      content: '';
+      position: absolute;
+      right: -3px;
+      top: 2px;
+      width: 2px;
+      height: 4px;
+      background: var(--xos-ink-black);
+    }
+
+    .battery-level {
+      height: 100%;
+      width: 86%;
+      background: var(--xos-ink-black);
+    }
+
+    /* Screen Content Area */
+    .content-area {
+      flex: 1;
+      padding: 16px var(--xos-screen-inset-h) 8px var(--xos-screen-inset-h);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Hero Section: Currently Reading */
+    .hero-container {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 20px;
+    }
+
+    .section-kicker {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--xos-ink-black);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .section-kicker::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background-color: #E2E2E2;
+    }
+
+    .hero-card {
+      display: flex;
+      gap: 16px;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 4px;
+      transition: background 0.1s;
+    }
+
+    .hero-card.button-focused {
+      outline: 2px solid var(--xos-ink-black);
+      outline-offset: 3px;
+    }
+
+    .hero-card:active {
+      background-color: #F0F0F0;
+    }
+
+    /* Cover Styling */
+    .cover-frame {
+      width: 130px;
+      height: 195px; /* Exact 2:3 ratio */
+      border: 1px solid var(--xos-ink-black);
+      flex-shrink: 0;
+      position: relative;
+      background: #FAFAFA;
+      box-shadow: 2px 2px 0px var(--xos-ink-black);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Faux Book Spine effect */
+    .cover-frame::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background-color: rgba(0,0,0,0.18);
+      border-right: 1px solid rgba(0,0,0,0.3);
+      z-index: 2;
+    }
+
+    .cover-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Typographic Fallback Cover (Missing Artwork) */
+    .cover-fallback {
+      width: 100%;
+      height: 100%;
+      padding: 12px 10px 10px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background-color: #FFFFFF;
+      border: 1px solid #111;
+      text-align: center;
+    }
+
+    .fallback-inner-frame {
+      height: 100%;
+      border: 1px solid #000;
+      padding: 8px 6px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .fallback-title {
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 14px;
+      margin-top: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .fallback-rule {
+      width: 32px;
+      height: 1px;
+      background: #000;
+      margin: 8px auto;
+    }
+
+    .fallback-author {
+      font-size: 9px;
+      font-style: italic;
+      line-height: 12px;
+      color: #333;
+    }
+
+    .fallback-badge {
+      font-size: 7px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      padding-top: 6px;
+      border-top: 1px solid #EEE;
+    }
+
+    /* Hero Metadata Stack */
+    .hero-meta {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding-top: 4px;
+    }
+
+    .hero-title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .hero-title {
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 24px;
+      letter-spacing: -0.02em;
+      color: var(--xos-ink-black);
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .hero-author {
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--xos-ink-dark-gray);
+      margin-top: 2px;
+    }
+
+    /* Reading Progress Block */
+    .progress-block {
+      margin-top: 12px;
+    }
+
+    .progress-stats-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .progress-percentage {
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .progress-remaining {
+      font-size: 10px;
+      color: var(--xos-ink-dark-gray);
+    }
+
+    .progress-track {
+      height: 4px;
+      background-color: #E2E2E2;
+      border-radius: 1px;
+      overflow: hidden;
+      width: 100%;
+      border: 1px solid #000000;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background-color: var(--xos-ink-black);
+    }
+
+    .progress-chapter {
+      font-size: 10px;
+      color: var(--xos-ink-dark-gray);
+      margin-top: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Resume Action Button */
+    .btn-resume {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 36px;
+      background-color: var(--xos-ink-black);
+      color: var(--xos-ink-white);
+      border: 1px solid var(--xos-ink-black);
+      border-radius: 2px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      margin-top: 10px;
+      width: 100%;
+    }
+
+    .btn-resume svg {
+      fill: var(--xos-ink-white);
+    }
+
+    /* Shelf Section: Recent Books */
+    .shelf-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      margin-top: 6px;
+    }
+
+    .shelf-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .shelf-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .shelf-count {
+      font-size: 10px;
+      color: var(--xos-ink-dark-gray);
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .shelf-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .shelf-item {
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 2px;
+    }
+
+    .shelf-item.button-focused {
+      outline: 2px solid var(--xos-ink-black);
+      outline-offset: 2px;
+    }
+
+    .shelf-cover-frame {
+      width: 100%;
+      aspect-ratio: 2 / 3;
+      border: 1px solid var(--xos-ink-black);
+      background: #FAFAFA;
+      box-shadow: 1px 1px 0px var(--xos-ink-black);
+      position: relative;
+      margin-bottom: 6px;
+      overflow: hidden;
+    }
+
+    .shelf-progress-badge {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      background: var(--xos-ink-black);
+      color: var(--xos-ink-white);
+      font-size: 8px;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 1px;
+    }
+
+    .shelf-item-title {
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+
+    .shelf-item-author {
+      font-size: 9px;
+      color: var(--xos-ink-dark-gray);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Fixed Navigation Dock (56px) */
+    .dock {
+      height: var(--xos-dock-height);
+      border-top: 1px solid var(--xos-ink-black);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      background-color: var(--xos-ink-white);
+      flex-shrink: 0;
+    }
+
+    .dock-tab {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      cursor: pointer;
+      position: relative;
+      color: var(--xos-ink-black);
+      text-decoration: none;
+    }
+
+    .dock-tab.button-focused {
+      outline: 2px solid var(--xos-ink-black);
+      outline-offset: -2px;
+    }
+
+    .dock-tab svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: var(--xos-ink-black);
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .dock-tab.active svg {
+      stroke-width: 2.3;
+    }
+
+    .dock-tab .label {
+      font-size: 9px;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+    }
+
+    .dock-tab.active .label {
+      font-weight: 700;
+    }
+
+    .dock-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 20%;
+      right: 20%;
+      height: 3px;
+      background-color: var(--xos-ink-black);
+    }
+
+    /* Empty State Container */
+    .empty-state {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      height: 100%;
+      padding: 32px 24px;
+    }
+
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      stroke: var(--xos-ink-black);
+      stroke-width: 1.5;
+      fill: none;
+      margin-bottom: 20px;
+    }
+
+    .empty-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .empty-description {
+      font-size: 12px;
+      line-height: 18px;
+      color: var(--xos-ink-dark-gray);
+      margin-bottom: 24px;
+      max-width: 320px;
+    }
+
+    .btn-empty-action {
+      height: 40px;
+      padding: 0 20px;
+      background-color: var(--xos-ink-black);
+      color: var(--xos-ink-white);
+      border: none;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+    }
+
+    /* Testbench Controls Bar (Outside Prototype) */
+    .testbench-bar {
+      margin-top: 20px;
+      background: #FFFFFF;
+      padding: 12px 20px;
+      border-radius: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      font-size: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      max-width: 600px;
+    }
+
+    .testbench-bar label {
+      font-weight: 700;
+      color: #333;
+    }
+
+    .btn-toggle {
+      background: #F0F0F0;
+      border: 1px solid #CCC;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .btn-toggle.active {
+      background: #000;
+      color: #FFF;
+      border-color: #000;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Testbench Hardware Simulator Frame -->
+  <div class="device-chassis">
+    <div class="screen" id="screen">
+      
+      <!-- System Status Bar -->
+      <header class="status-bar">
+        <div class="brand">XTEINK OS</div>
+        <div class="clock" id="clock-display">14:45</div>
+        <div class="system-indicators">
+          <!-- Wi-Fi Icon (Monochrome SVG) -->
+          <svg width="14" height="11" viewBox="0 0 14 11" fill="none">
+            <path d="M1 2.5C4.5 -0.5 9.5 -0.5 13 2.5M3 5.5C5.5 3.5 8.5 3.5 11 5.5M5.5 8.5C6.3 7.8 7.7 7.8 8.5 8.5M7 10.5V10.51" stroke="black" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+          <span>86%</span>
+          <div class="battery-icon">
+            <div class="battery-level"></div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Normal Content View -->
+      <main class="content-area" id="content-view">
+        
+        <!-- Hero: Currently Reading (Editorial Dominant Focal Point) -->
+        <section class="hero-container">
+          <div class="section-kicker">Currently Reading</div>
+          
+          <div class="hero-card" id="hero-card" tabindex="0">
+            <!-- Cover Frame (Can switch between Cover Art and Typographic Fallback) -->
+            <div class="cover-frame" id="hero-cover-container">
+              <!-- Illustrated Cover SVG (Sharp Monochrome/Grayscale) -->
+              <svg class="cover-image" id="hero-cover-art" viewBox="0 0 130 195" preserveAspectRatio="none">
+                <rect width="130" height="195" fill="#EAEAEA"/>
+                <!-- Geometric book illustration -->
+                <circle cx="65" cy="80" r="38" fill="#111111"/>
+                <path d="M20 140 L65 70 L110 140 Z" fill="#555555"/>
+                <path d="M45 160 L65 110 L85 160 Z" fill="#FFFFFF"/>
+                <rect x="15" y="15" width="100" height="165" fill="none" stroke="#FFFFFF" stroke-width="1"/>
+                <text x="65" y="45" font-family="'Merriweather', serif" font-size="9" font-weight="bold" fill="#FFFFFF" text-anchor="middle" letter-spacing="1">URSULA K. LE GUIN</text>
+                <text x="65" y="175" font-family="'Ubuntu', sans-serif" font-size="7" font-weight="bold" fill="#FFFFFF" text-anchor="middle" letter-spacing="2">SCIENCE FICTION CLASSIC</text>
+              </svg>
+
+              <!-- Typographic Fallback (Rendered when no cover image exists) -->
+              <div class="cover-fallback" id="hero-cover-fallback" style="display: none;">
+                <div class="fallback-inner-frame">
+                  <div class="fallback-badge">XTEINK EDITION</div>
+                  <div>
+                    <div class="fallback-title">The Left Hand of Darkness</div>
+                    <div class="fallback-rule"></div>
+                    <div class="fallback-author">Ursula K. Le Guin</div>
+                  </div>
+                  <div class="fallback-badge">EPUB · COMPLETE</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Hero Book Metadata -->
+            <div class="hero-meta">
+              <div class="hero-title-group">
+                <h1 class="hero-title">The Left Hand of Darkness</h1>
+                <div class="hero-author">Ursula K. Le Guin</div>
+              </div>
+
+              <div class="progress-block">
+                <div class="progress-stats-row">
+                  <span class="progress-percentage">64%</span>
+                  <span class="progress-remaining">114 pages left</span>
+                </div>
+                <div class="progress-track">
+                  <div class="progress-fill" style="width: 64%;"></div>
+                </div>
+                <div class="progress-chapter">Chapter 14: The Escape to the Ice</div>
+              </div>
+
+              <button class="btn-resume">
+                <span>Continue Reading</span>
+                <svg width="12" height="12" viewBox="0 0 24 24">
+                  <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Shelf Section: Recent Books -->
+        <section class="shelf-section">
+          <div class="shelf-header">
+            <div class="shelf-title">Recent Books</div>
+            <div class="shelf-count">View Library (24) &rarr;</div>
+          </div>
+
+          <div class="shelf-grid">
+            <!-- Book 1 -->
+            <div class="shelf-item" tabindex="0">
+              <div class="shelf-cover-frame">
+                <svg viewBox="0 0 84 126" style="width:100%; height:100%;">
+                  <rect width="84" height="126" fill="#222"/>
+                  <circle cx="42" cy="50" r="24" fill="#666"/>
+                  <text x="42" y="90" fill="#FFF" font-size="8" font-weight="bold" text-anchor="middle">DUNE</text>
+                  <text x="42" y="100" fill="#AAA" font-size="6" text-anchor="middle">F. HERBERT</text>
+                </svg>
+                <div class="shelf-progress-badge">31%</div>
+              </div>
+              <div class="shelf-item-title">Dune</div>
+              <div class="shelf-item-author">Frank Herbert</div>
+            </div>
+
+            <!-- Book 2 -->
+            <div class="shelf-item" tabindex="0">
+              <div class="shelf-cover-frame">
+                <svg viewBox="0 0 84 126" style="width:100%; height:100%;">
+                  <rect width="84" height="126" fill="#E0E0E0"/>
+                  <rect x="15" y="20" width="54" height="70" fill="none" stroke="#000" stroke-width="1"/>
+                  <text x="42" y="55" fill="#000" font-size="7" font-weight="bold" text-anchor="middle">NEUROMANCER</text>
+                  <text x="42" y="68" fill="#555" font-size="6" text-anchor="middle">W. GIBSON</text>
+                </svg>
+                <div class="shelf-progress-badge">88%</div>
+              </div>
+              <div class="shelf-item-title">Neuromancer</div>
+              <div class="shelf-item-author">William Gibson</div>
+            </div>
+
+            <!-- Book 3 -->
+            <div class="shelf-item" tabindex="0">
+              <div class="shelf-cover-frame">
+                <svg viewBox="0 0 84 126" style="width:100%; height:100%;">
+                  <rect width="84" height="126" fill="#444"/>
+                  <line x1="10" y1="20" x2="74" y2="106" stroke="#FFF" stroke-width="1"/>
+                  <text x="42" y="60" fill="#FFF" font-size="7" font-weight="bold" text-anchor="middle">FOUNDATION</text>
+                  <text x="42" y="72" fill="#CCC" font-size="6" text-anchor="middle">I. ASIMOV</text>
+                </svg>
+                <div class="shelf-progress-badge">100%</div>
+              </div>
+              <div class="shelf-item-title">Foundation</div>
+              <div class="shelf-item-author">Isaac Asimov</div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- Empty State View (Toggled via testbench) -->
+      <div class="empty-state" id="empty-view">
+        <svg viewBox="0 0 24 24">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+        <h2 class="empty-title">Your Library is Waiting</h2>
+        <p class="empty-description">No active books found. Connect via USB or Wi-Fi to transfer your EPUB collection, or browse files on the MicroSD card.</p>
+        <button class="btn-empty-action" onclick="toggleEmptyState()">Open File Browser</button>
+      </div>
+
+      <!-- Navigation Dock (Preserves complete CrossPoint functional access) -->
+      <nav class="dock">
+        <!-- 1. Home / Continue -->
+        <a class="dock-tab active" tabindex="0" title="Continue Reading">
+          <svg viewBox="0 0 24 24">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+          <span class="label">Home</span>
+        </a>
+
+        <!-- 2. Library -->
+        <a class="dock-tab" tabindex="0" title="Library">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+          <span class="label">Library</span>
+        </a>
+
+        <!-- 3. Files -->
+        <a class="dock-tab" tabindex="0" title="File Browser">
+          <svg viewBox="0 0 24 24">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+          <span class="label">Files</span>
+        </a>
+
+        <!-- 4. Search -->
+        <a class="dock-tab" tabindex="0" title="Search">
+          <svg viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <span class="label">Search</span>
+        </a>
+
+        <!-- 5. Settings -->
+        <a class="dock-tab" tabindex="0" title="Settings">
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          <span class="label">Settings</span>
+        </a>
+      </nav>
+
+    </div>
+  </div>
+
+  <!-- Interactive Testbench Controls (Allows PO to test states) -->
+  <div class="testbench-bar">
+    <label>Interactive State Simulator:</label>
+    <button class="btn-toggle" id="btn-toggle-cover" onclick="toggleMissingCover()">Toggle Missing Cover</button>
+    <button class="btn-toggle" id="btn-toggle-empty" onclick="toggleEmptyState()">Toggle Empty State</button>
+    <button class="btn-toggle" id="btn-toggle-focus" onclick="toggleButtonFocus()">Simulate Button Cursor (X3/X4)</button>
+    <button class="btn-toggle" id="btn-toggle-1bit" onclick="toggle1BitMode()">Simulate 1-Bit Mode</button>
+  </div>
+
+  <script>
+    let isMissingCover = false;
+    let isEmpty = false;
+    let isButtonFocus = false;
+    let is1Bit = false;
+
+    function toggleMissingCover() {
+      isMissingCover = !isMissingCover;
+      document.getElementById('hero-cover-art').style.display = isMissingCover ? 'none' : 'block';
+      document.getElementById('hero-cover-fallback').style.display = isMissingCover ? 'block' : 'none';
+      document.getElementById('btn-toggle-cover').classList.toggle('active', isMissingCover);
+    }
+
+    function toggleEmptyState() {
+      isEmpty = !isEmpty;
+      document.getElementById('content-view').style.display = isEmpty ? 'none' : 'flex';
+      document.getElementById('empty-view').style.display = isEmpty ? 'flex' : 'none';
+      document.getElementById('btn-toggle-empty').classList.toggle('active', isEmpty);
+    }
+
+    function toggleButtonFocus() {
+      isButtonFocus = !isButtonFocus;
+      document.getElementById('hero-card').classList.toggle('button-focused', isButtonFocus);
+      document.getElementById('btn-toggle-focus').classList.toggle('active', isButtonFocus);
+    }
+
+    function toggle1BitMode() {
+      is1Bit = !is1Bit;
+      document.getElementById('screen').classList.toggle('pure-1bit', is1Bit);
+      document.getElementById('btn-toggle-1bit').classList.toggle('active', is1Bit);
+    }
+  </script>
+</body>
+</html>
