@@ -1,0 +1,2583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XTEInk OS — EXP-001 Quiet Modular Prototype</title>
+  <style>
+    /* ==========================================================================
+       XTEInk OS Design Tokens — Concept B: Quiet Modular
+       Canvas: 480x800 Portrait E-Paper Display (XTEINK X4 Pro)
+       Discipline: 1-Bit Ink Supremacy, Whitespace Structure, High-Affordance Touch
+       ========================================================================== */
+    :root {
+      --ink: #000000;
+      --ink-subtle: #444444;
+      --ink-muted: #666666;
+      --paper: #FFFFFF;
+      --paper-dim: #F5F5F7;
+      --line: #000000;
+      --line-quiet: #DCDCDC;
+      --line-hairline: #E8E8E8;
+
+      /* Target Display Geometry */
+      --screen-w: 480px;
+      --screen-h: 800px;
+      --pad-x: 24px;
+      --masthead-h: 42px;
+      --bottom-hub-h: 56px;
+
+      /* Ergonomics: touch target minimums */
+      --hit-min: 44px;
+      --hit-primary: 56px;
+
+      /* Typography Scale */
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Ubuntu", sans-serif;
+      --font-serif: "Merriweather", "Georgia", "Literata", serif;
+      --font-mono: "SF Mono", "Consolas", monospace;
+
+      --fs-micro: 10px;
+      --fs-caption: 12px;
+      --fs-body: 14px;
+      --fs-subhead: 16px;
+      --fs-title: 20px;
+      --fs-hero: 24px;
+
+      --lh-tight: 1.25;
+      --lh-normal: 1.45;
+      --lh-read: 1.65;
+    }
+
+    /* 1-Bit Invert Mode */
+    .screen.inverted {
+      --ink: #FFFFFF;
+      --ink-subtle: #CCCCCC;
+      --ink-muted: #AAAAAA;
+      --paper: #000000;
+      --paper-dim: #18181A;
+      --line: #FFFFFF;
+      --line-quiet: #444444;
+      --line-hairline: #2A2A2A;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: none;
+      user-select: none;
+    }
+
+    body {
+      background-color: #E6E6EA;
+      font-family: var(--font-sans);
+      color: #111;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 60px;
+      min-height: 100vh;
+    }
+
+    /* Workbench Layout */
+    .workbench-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      max-width: 1280px;
+      width: 100%;
+    }
+
+    .workbench-header {
+      width: 100%;
+      background: #FFFFFF;
+      border: 1px solid #D0D0D5;
+      border-radius: 12px;
+      padding: 16px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .title-area h1 {
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge-tag {
+      background: #000;
+      color: #FFF;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-sub {
+      background: #EAEAEA;
+      color: #333;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid #CCC;
+    }
+
+    .title-desc {
+      font-size: 13px;
+      color: #555;
+      margin-top: 4px;
+    }
+
+    .top-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .ctrl-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #F4F4F6;
+      border: 1px solid #DDD;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+    }
+    .ctrl-pill label {
+      font-weight: 600;
+      color: #333;
+    }
+
+    .action-btn {
+      background: #FFF;
+      border: 1px solid #BBB;
+      border-radius: 4px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #222;
+      transition: none;
+    }
+    .action-btn:hover {
+      background: #F0F0F2;
+    }
+    .action-btn.active {
+      background: #000;
+      color: #FFF;
+      border-color: #000;
+    }
+
+    /* Workspace 2-Column Grid */
+    .prototype-grid {
+      display: grid;
+      grid-template-columns: 504px 1fr;
+      gap: 28px;
+      width: 100%;
+      align-items: start;
+    }
+
+    @media (max-width: 1100px) {
+      .prototype-grid {
+        grid-template-columns: 1fr;
+        justify-items: center;
+      }
+    }
+
+    /* Physical Device Chassis Simulator */
+    .device-chassis {
+      width: 504px;
+      height: 828px;
+      background: #18181A;
+      border-radius: 20px;
+      padding: 14px 12px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .device-viewport {
+      width: 480px;
+      height: 800px;
+      background: var(--paper);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #222;
+    }
+
+    /* E-Paper Binary Flash Simulation */
+    .epaper-flash {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 99999;
+    }
+    .epaper-flash.active {
+      opacity: 0.95;
+    }
+
+    /* ==========================================================================
+       SCREEN ARCHITECTURE
+       ========================================================================== */
+    .screen {
+      width: 480px;
+      height: 800px;
+      background: var(--paper);
+      color: var(--ink);
+      display: none;
+      flex-direction: column;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    .screen.active {
+      display: flex;
+    }
+
+    /* 1. Global Masthead */
+    .masthead {
+      height: var(--masthead-h);
+      padding: 0 var(--pad-x);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      background: var(--paper);
+      flex-shrink: 0;
+    }
+    .masthead-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: var(--fs-caption);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .icon-mono {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: square;
+      stroke-linejoin: miter;
+      vertical-align: middle;
+      display: inline-block;
+    }
+    .icon-mono-filled {
+      fill: currentColor;
+      stroke: none;
+    }
+
+    /* 2. Global Persistent Bottom Hub */
+    .bottom-hub {
+      height: var(--bottom-hub-h);
+      border-top: 1px solid var(--line);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      background: var(--paper);
+      flex-shrink: 0;
+    }
+    .hub-tab {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 3px;
+      border: none;
+      background: transparent;
+      color: var(--ink);
+      cursor: pointer;
+      border-right: 1px solid var(--line-quiet);
+      height: 100%;
+      min-height: var(--hit-primary);
+    }
+    .hub-tab:last-child {
+      border-right: none;
+    }
+    .hub-tab.active {
+      background: var(--ink);
+      color: var(--paper);
+    }
+    .hub-label {
+      font-size: var(--fs-micro);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: var(--hit-min);
+      padding: 0 16px;
+      background: var(--paper);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      font-family: var(--font-sans);
+      font-size: var(--fs-body);
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .btn:active {
+      background: var(--ink);
+      color: var(--paper);
+    }
+    .btn.solid {
+      background: var(--ink);
+      color: var(--paper);
+      border: 1px solid var(--line);
+    }
+    .btn.solid:active {
+      background: var(--paper);
+      color: var(--ink);
+    }
+    .btn.compact {
+      min-height: 44px;
+      padding: 0 12px;
+      font-size: var(--fs-caption);
+    }
+    .btn.primary-action {
+      min-height: var(--hit-primary);
+      font-size: var(--fs-subhead);
+      letter-spacing: 0.02em;
+    }
+
+    /* Vietnamese typography protection */
+    .vi-text {
+      line-height: 1.4;
+      text-rendering: optimizeLegibility;
+      word-break: break-word;
+      overflow-wrap: break-word;
+    }
+
+    /* ==========================================================================
+       SCREEN 1: HOME SCREEN
+       ========================================================================== */
+    .home-body {
+      flex: 1;
+      padding: 22px var(--pad-x) 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      overflow: hidden;
+    }
+
+    /* Reading Continuity Hero */
+    .hero-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line-quiet);
+    }
+    .hero-meta-strip {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .hero-eyebrow {
+      font-size: var(--fs-micro);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-subtle);
+    }
+    .hero-badge {
+      font-size: var(--fs-micro);
+      font-weight: 700;
+      border: 1px solid var(--line);
+      padding: 2px 6px;
+    }
+
+    .hero-content-grid {
+      display: grid;
+      grid-template-columns: 82px 1fr;
+      gap: 18px;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .book-cover-frame {
+      width: 82px;
+      height: 120px;
+      border: 1px solid var(--line);
+      background: var(--paper-dim);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 6px;
+      position: relative;
+    }
+    .cover-title-text {
+      font-family: var(--font-serif);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.2;
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .cover-author-text {
+      font-size: 9px;
+      color: var(--ink-muted);
+      margin-top: 4px;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .hero-info-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .hero-title {
+      font-family: var(--font-serif);
+      font-size: var(--fs-hero);
+      font-weight: 700;
+      line-height: 1.25;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .hero-author {
+      font-size: var(--fs-body);
+      font-style: italic;
+      color: var(--ink-subtle);
+      margin-bottom: 4px;
+    }
+    .hero-progress-stats {
+      font-size: var(--fs-caption);
+      font-weight: 600;
+      color: var(--ink-subtle);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .progress-bar-rail {
+      width: 100%;
+      height: 4px;
+      background: var(--line-quiet);
+      margin-top: 5px;
+      position: relative;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--ink);
+    }
+
+    /* Shelf Section */
+    .shelf-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .shelf-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .shelf-title {
+      font-size: var(--fs-subhead);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .shelf-link {
+      font-size: var(--fs-caption);
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 8px 0;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .shelf-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .shelf-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      cursor: pointer;
+    }
+    .shelf-jacket {
+      width: 100%;
+      height: 136px;
+      border: 1px solid var(--line);
+      background: var(--paper-dim);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 8px;
+      position: relative;
+    }
+    .shelf-jacket-title {
+      font-family: var(--font-serif);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.25;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .shelf-jacket-author {
+      font-size: 9px;
+      color: var(--ink-muted);
+      margin-top: 4px;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .shelf-tag {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      background: var(--ink);
+      color: var(--paper);
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 4px;
+    }
+    .shelf-caption-title {
+      font-size: var(--fs-caption);
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .shelf-caption-author {
+      font-size: var(--fs-micro);
+      color: var(--ink-subtle);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Home Empty State */
+    .empty-canvas {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 100%;
+      gap: 16px;
+    }
+    .empty-card {
+      border: 1px solid var(--line);
+      padding: 20px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .empty-eyebrow {
+      font-size: var(--fs-micro);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 4px;
+      align-self: flex-start;
+    }
+    .empty-heading {
+      font-family: var(--font-serif);
+      font-size: var(--fs-title);
+      font-weight: 700;
+      line-height: 1.3;
+    }
+    .empty-paragraph {
+      font-size: var(--fs-body);
+      color: var(--ink-subtle);
+      line-height: var(--lh-normal);
+    }
+    .method-tile {
+      border: 1px solid var(--line);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      cursor: pointer;
+      min-height: var(--hit-min);
+    }
+    .method-tile:active {
+      background: var(--paper-dim);
+    }
+
+    /* ==========================================================================
+       SCREEN 2: LIBRARY SCREEN
+       ========================================================================== */
+    .lib-header {
+      padding: 12px var(--pad-x) 10px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .lib-header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .lib-title-text {
+      font-size: var(--fs-title);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .lib-controls-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .sort-group {
+      display: flex;
+      border: 1px solid var(--line);
+    }
+    .sort-tab {
+      background: transparent;
+      border: none;
+      border-right: 1px solid var(--line);
+      padding: 0 10px;
+      font-size: var(--fs-caption);
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--ink);
+      height: 38px;
+      min-height: 38px;
+    }
+    .sort-tab:last-child {
+      border-right: none;
+    }
+    .sort-tab.active {
+      background: var(--ink);
+      color: var(--paper);
+    }
+    .search-input-frame {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--line);
+      padding: 0 10px;
+      background: var(--paper);
+      flex: 1;
+      height: 38px;
+    }
+    .search-input-frame input {
+      border: none;
+      outline: none;
+      width: 100%;
+      font-size: var(--fs-caption);
+      font-family: var(--font-sans);
+      background: transparent;
+      color: var(--ink);
+    }
+
+    .lib-list-viewport {
+      flex: 1;
+      overflow-y: hidden;
+      padding: 4px var(--pad-x);
+      display: flex;
+      flex-direction: column;
+    }
+    .lib-book-row {
+      display: grid;
+      grid-template-columns: 44px 1fr 64px;
+      gap: 14px;
+      align-items: center;
+      padding: 10px 4px;
+      border-bottom: 1px solid var(--line-hairline);
+      cursor: pointer;
+      min-height: 56px;
+    }
+    .lib-book-row:last-child {
+      border-bottom: none;
+    }
+    .lib-book-row:active {
+      background: var(--paper-dim);
+    }
+    .lib-thumb {
+      width: 44px;
+      height: 60px;
+      border: 1px solid var(--line);
+      background: var(--paper-dim);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-size: 8px;
+      text-align: center;
+      padding: 2px;
+    }
+    .lib-item-title {
+      font-size: var(--fs-body);
+      font-weight: 700;
+      line-height: 1.25;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .lib-item-author {
+      font-size: var(--fs-caption);
+      color: var(--ink-subtle);
+      font-style: italic;
+      margin-top: 1px;
+    }
+    .lib-item-meta {
+      font-size: var(--fs-micro);
+      color: var(--ink-muted);
+      margin-top: 2px;
+    }
+    .lib-item-progress {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 3px;
+    }
+
+    .pagination-bar {
+      height: var(--hit-primary);
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 var(--pad-x);
+      font-size: var(--fs-caption);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* ==========================================================================
+       SCREEN 3: READER SCREEN
+       ========================================================================== */
+    .reader-canvas {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 14px 28px 10px;
+      position: relative;
+      cursor: default;
+    }
+    .reader-top-status {
+      display: flex;
+      justify-content: space-between;
+      font-size: var(--fs-micro);
+      color: var(--ink-muted);
+      border-bottom: 1px solid var(--line-hairline);
+      padding-bottom: 6px;
+      margin-bottom: 18px;
+    }
+    .reader-prose-stream {
+      flex: 1;
+      font-family: var(--font-serif);
+      font-size: 15px;
+      line-height: var(--lh-read);
+      text-align: justify;
+      color: var(--ink);
+      overflow: hidden;
+    }
+    .reader-prose-stream p {
+      margin-bottom: 14px;
+      text-indent: 1.5em;
+    }
+    .reader-prose-stream p:first-of-type {
+      text-indent: 0;
+    }
+    .reader-prose-stream p:first-of-type::first-letter {
+      font-size: 34px;
+      font-weight: 700;
+      float: left;
+      line-height: 1;
+      padding-right: 6px;
+      padding-top: 2px;
+    }
+    .reader-bottom-status {
+      display: flex;
+      justify-content: space-between;
+      font-size: var(--fs-micro);
+      color: var(--ink-muted);
+      border-top: 1px solid var(--line-hairline);
+      padding-top: 6px;
+      margin-top: 14px;
+    }
+
+    /* Reader Tap Zones (3 Functional Touch Columns) */
+    .reader-tap-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: 28% 44% 28%;
+      z-index: 10;
+    }
+    .tap-zone {
+      cursor: pointer;
+      position: relative;
+    }
+    .tap-zone.middle {
+      border-left: 1px dashed rgba(0,0,0,0.06);
+      border-right: 1px dashed rgba(0,0,0,0.06);
+    }
+    .tap-zone-hint {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--ink-muted);
+      opacity: 0.35;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      pointer-events: none;
+    }
+
+    /* Reader HUD */
+    .reader-hud-top {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 52px;
+      background: var(--paper);
+      border-bottom: 1px solid var(--line);
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      z-index: 30;
+    }
+    .reader-hud-bottom {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: var(--paper);
+      border-top: 1px solid var(--line);
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      padding: 14px 20px;
+      z-index: 30;
+    }
+    .reader-hud-active .reader-hud-top,
+    .reader-hud-active .reader-hud-bottom {
+      display: flex;
+    }
+
+    .scrubber-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: var(--fs-caption);
+      font-weight: 700;
+    }
+    .scrubber-slider {
+      flex: 1;
+      height: 28px;
+      accent-color: #000;
+      cursor: pointer;
+    }
+
+    .hud-button-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    /* Table of Contents Sheet */
+    .toc-drawer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--paper);
+      z-index: 50;
+      display: none;
+      flex-direction: column;
+    }
+    .toc-drawer.open {
+      display: flex;
+    }
+    .toc-title-bar {
+      height: 52px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 var(--pad-x);
+    }
+    .toc-scroll-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px var(--pad-x);
+      display: flex;
+      flex-direction: column;
+    }
+    .toc-row {
+      padding: 14px 4px;
+      border-bottom: 1px solid var(--line-hairline);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: var(--fs-body);
+      font-weight: 600;
+      cursor: pointer;
+      min-height: var(--hit-min);
+    }
+    .toc-row:active {
+      background: var(--paper-dim);
+    }
+    .toc-row.active {
+      font-weight: 700;
+      text-decoration: underline;
+    }
+
+    /* ==========================================================================
+       SCREEN 4: FILES SCREEN
+       ========================================================================== */
+    .files-header {
+      padding: 12px var(--pad-x) 10px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .files-header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .breadcrumb-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: var(--fs-caption);
+      font-family: var(--font-mono);
+      background: var(--paper-dim);
+      border: 1px solid var(--line);
+      padding: 6px 10px;
+    }
+    .files-list-viewport {
+      flex: 1;
+      overflow-y: hidden;
+      padding: 6px var(--pad-x);
+      display: flex;
+      flex-direction: column;
+    }
+    .file-item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 4px;
+      border-bottom: 1px solid var(--line-hairline);
+      cursor: pointer;
+      min-height: var(--hit-min);
+    }
+    .file-item-row:active {
+      background: var(--paper-dim);
+    }
+    .file-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .file-tag {
+      font-size: 9px;
+      font-weight: 700;
+      border: 1px solid var(--line);
+      padding: 2px 5px;
+      font-family: var(--font-mono);
+    }
+    .file-tag.dir {
+      background: var(--ink);
+      color: var(--paper);
+    }
+    .file-label {
+      font-size: var(--fs-body);
+      font-weight: 600;
+    }
+    .file-meta-right {
+      font-size: var(--fs-micro);
+      color: var(--ink-muted);
+      font-family: var(--font-mono);
+    }
+    .files-footer-strip {
+      height: var(--hit-primary);
+      border-top: 1px solid var(--line);
+      padding: 0 var(--pad-x);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: var(--fs-caption);
+      background: var(--paper-dim);
+    }
+
+    /* ==========================================================================
+       SCREEN 5: SETTINGS SCREEN
+       ========================================================================== */
+    .settings-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px var(--pad-x);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .settings-section-card {
+      border: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+    }
+    .settings-section-title {
+      background: var(--paper-dim);
+      border-bottom: 1px solid var(--line);
+      padding: 8px 14px;
+      font-size: var(--fs-caption);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .settings-item-row {
+      padding: 14px 14px;
+      border-bottom: 1px solid var(--line-hairline);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      min-height: 56px;
+    }
+    .settings-item-row:last-child {
+      border-bottom: none;
+    }
+    .settings-item-row:active {
+      background: var(--paper-dim);
+    }
+    .settings-left-col h4 {
+      font-size: var(--fs-body);
+      font-weight: 600;
+    }
+    .settings-left-col p {
+      font-size: var(--fs-micro);
+      color: var(--ink-subtle);
+      margin-top: 3px;
+    }
+    .settings-val-chip {
+      font-size: var(--fs-caption);
+      font-weight: 700;
+      border: 1px solid var(--line);
+      padding: 4px 10px;
+      min-height: 32px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    /* Settings Dialog Modal */
+    .dialog-backdrop {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 80;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .dialog-backdrop.open {
+      display: flex;
+    }
+    .dialog-panel {
+      width: 100%;
+      background: var(--paper);
+      border: 2px solid var(--line);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .dialog-options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .dialog-option-btn {
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      color: var(--ink);
+      font-size: var(--fs-body);
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      min-height: 48px;
+    }
+    .dialog-option-btn.selected {
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    /* Simulated Feedback Toast */
+    .toast-overlay {
+      position: absolute;
+      bottom: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--ink);
+      color: var(--paper);
+      border: 1px solid var(--line);
+      padding: 8px 16px;
+      font-size: var(--fs-caption);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      display: none;
+      z-index: 999;
+      white-space: nowrap;
+    }
+    .toast-overlay.active {
+      display: block;
+    }
+
+    /* ==========================================================================
+       SIDEBAR EVALUATION PANEL
+       ========================================================================== */
+    .evaluation-panel {
+      background: #FFFFFF;
+      border: 1px solid #D0D0D5;
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .eval-header {
+      font-size: 17px;
+      font-weight: 700;
+      border-bottom: 2px solid #000;
+      padding-bottom: 8px;
+    }
+
+    .task-card {
+      background: #F8F9FA;
+      border-left: 4px solid #000;
+      padding: 12px 14px;
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .eval-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 6px;
+    }
+    .eval-table th, .eval-table td {
+      border: 1px solid #D2D2D7;
+      padding: 8px 10px;
+      text-align: left;
+    }
+    .eval-table th {
+      background: #F2F2F4;
+      font-weight: 700;
+    }
+
+    .tag-a {
+      display: inline-block;
+      background: #EAEAEA;
+      color: #555;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 10px;
+    }
+    .tag-b {
+      display: inline-block;
+      background: #000000;
+      color: #FFFFFF;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="workbench-container">
+
+  <!-- TOP TOOLBAR -->
+  <header class="workbench-header">
+    <div class="title-area">
+      <h1>
+        <span class="badge-tag">EXP-001</span>
+        Concept B · Quiet Modular
+        <span class="badge-sub">Refinement Pass 1</span>
+      </h1>
+      <p class="title-desc">
+        Function-Led, Composition-Driven Architecture for XTEINK X4 Pro (480×800 e-paper).
+      </p>
+    </div>
+
+    <div class="top-controls">
+      <!-- Screen Switcher -->
+      <div class="ctrl-pill">
+        <label>Screen:</label>
+        <button class="action-btn active" data-screen="home">1. Home</button>
+        <button class="action-btn" data-screen="library">2. Library</button>
+        <button class="action-btn" data-screen="reader">3. Reader</button>
+        <button class="action-btn" data-screen="files">4. Files</button>
+        <button class="action-btn" data-screen="settings">5. Settings</button>
+      </div>
+
+      <!-- State Switcher -->
+      <div class="ctrl-pill">
+        <label>State:</label>
+        <button class="action-btn active" id="btnPopulated">Populated</button>
+        <button class="action-btn" id="btnEmpty">Empty / Initial</button>
+      </div>
+
+      <!-- Controls -->
+      <div class="ctrl-pill">
+        <button class="action-btn" id="btnWaveformFlash">⚡ Waveform Pulse</button>
+        <button class="action-btn" id="btnInvertMode">🌓 Invert 1-Bit</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- WORKSPACE: SIMULATOR + EVALUATION -->
+  <div class="prototype-grid">
+
+    <!-- DEVICE CHASSIS (480x800) -->
+    <div class="device-chassis">
+      <div class="device-viewport" id="deviceViewport">
+
+        <!-- E-Paper Binary Flash Simulation Layer -->
+        <div class="epaper-flash" id="flashLayer"></div>
+
+        <!-- Simulated Toast Notification -->
+        <div class="toast-overlay" id="toastBox">Notification</div>
+
+        <!-- =================================================================
+             SCREEN 1: HOME SCREEN
+             ================================================================= -->
+        <div class="screen active" id="screen-home">
+          <!-- Masthead -->
+          <div class="masthead">
+            <div class="masthead-group">
+              <span id="homeClock" style="font-variant-numeric: tabular-nums;">14:45</span>
+              <span>·</span>
+              <span style="font-size: var(--fs-micro); font-weight:700;">SD 32GB</span>
+            </div>
+            <div class="masthead-group">
+              <svg class="icon-mono" viewBox="0 0 24 24" id="homeWifiIcon">
+                <path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/>
+              </svg>
+              <span id="homeBatteryText">86%</span>
+              <svg class="icon-mono" viewBox="0 0 24 24" style="width: 18px; height: 18px;">
+                <rect x="2" y="7" width="16" height="10" rx="1"/>
+                <line x1="20" y1="11" x2="20" y2="13"/>
+                <rect x="4" y="9" width="10" height="6" fill="currentColor"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Body -->
+          <div class="home-body">
+            <!-- Populated State -->
+            <div id="homePopulated" style="display: flex; flex-direction: column; gap: 20px;">
+              <!-- Reading Continuity Hero -->
+              <div class="hero-container">
+                <div class="hero-meta-strip">
+                  <span class="hero-eyebrow">Currently Reading</span>
+                  <span class="hero-badge" id="heroProgressBadge">64% Completed</span>
+                </div>
+
+                <div class="hero-content-grid" id="heroClickableArea">
+                  <div class="book-cover-frame">
+                    <div class="cover-title-text" id="heroCoverTitle">The Left Hand of Darkness</div>
+                    <div class="cover-author-text" id="heroCoverAuthor">Ursula K. Le Guin</div>
+                  </div>
+                  <div class="hero-info-stack">
+                    <h2 class="hero-title vi-text" id="heroTitle">The Left Hand of Darkness</h2>
+                    <div class="hero-author vi-text" id="heroAuthor">Ursula K. Le Guin</div>
+                    <div class="hero-progress-stats">
+                      <span id="heroChapterLabel">Chapter 4: The Semi-Annual</span>
+                      <span>·</span>
+                      <span id="heroRemainingLabel">42 p. left</span>
+                    </div>
+                    <div class="progress-bar-rail">
+                      <div class="progress-bar-fill" id="heroProgressBar" style="width: 64%;"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Primary Action -->
+                <button class="btn solid primary-action" id="btnResumeHero" style="width: 100%; margin-top: 4px;">
+                  <span>Continue Reading</span>
+                  <span>&rarr;</span>
+                </button>
+              </div>
+
+              <!-- Shelf Section -->
+              <div class="shelf-container">
+                <div class="shelf-header-bar">
+                  <span class="shelf-title">Recent Books</span>
+                  <span class="shelf-link" id="linkToLibrary">All Books (24) &rarr;</span>
+                </div>
+
+                <div class="shelf-row">
+                  <!-- Shelf Book 1 -->
+                  <div class="shelf-item" data-book-id="2">
+                    <div class="shelf-jacket">
+                      <div class="shelf-jacket-title">Dune</div>
+                      <div class="shelf-jacket-author">F. Herbert</div>
+                      <span class="shelf-tag">31%</span>
+                    </div>
+                    <div class="shelf-caption-title">Dune</div>
+                    <div class="shelf-caption-author">Frank Herbert</div>
+                  </div>
+
+                  <!-- Shelf Book 2: Vietnamese Text -->
+                  <div class="shelf-item" data-book-id="3">
+                    <div class="shelf-jacket">
+                      <div class="shelf-jacket-title vi-text">Nỗi Buồn Chiến Tranh</div>
+                      <div class="shelf-jacket-author vi-text">Bảo Ninh</div>
+                      <span class="shelf-tag">88%</span>
+                    </div>
+                    <div class="shelf-caption-title vi-text">Nỗi Buồn Chiến Tranh</div>
+                    <div class="shelf-caption-author vi-text">Bảo Ninh</div>
+                  </div>
+
+                  <!-- Shelf Book 3 -->
+                  <div class="shelf-item" data-book-id="4">
+                    <div class="shelf-jacket">
+                      <div class="shelf-jacket-title">Neuromancer</div>
+                      <div class="shelf-jacket-author">W. Gibson</div>
+                      <span class="shelf-tag">12%</span>
+                    </div>
+                    <div class="shelf-caption-title">Neuromancer</div>
+                    <div class="shelf-caption-author">William Gibson</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty State -->
+            <div id="homeEmpty" class="empty-canvas" style="display: none;">
+              <div class="empty-card">
+                <span class="empty-eyebrow">First-Run Onboarding</span>
+                <h2 class="empty-heading">Your device is ready.<br>Transfer books to begin.</h2>
+                <p class="empty-paragraph">
+                  MicroSD storage is formatted and online. Use any of the three ingest paths below to load EPUB, TXT, or FB2 files.
+                </p>
+
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
+                  <div class="method-tile" id="actionStartWebServer">
+                    <div>
+                      <div style="font-size: var(--fs-body); font-weight:700;">1. Wi-Fi Web Server (HTTP)</div>
+                      <div style="font-size: var(--fs-micro); color: var(--ink-subtle);">Direct upload portal: http://192.168.1.150:8080</div>
+                    </div>
+                    <span style="font-size: var(--fs-caption); font-weight:700;">START &rarr;</span>
+                  </div>
+
+                  <div class="method-tile" id="actionBrowseSD">
+                    <div>
+                      <div style="font-size: var(--fs-body); font-weight:700;">2. SD Card File Browser</div>
+                      <div style="font-size: var(--fs-micro); color: var(--ink-subtle);">Inspect raw folders or unindexed book files</div>
+                    </div>
+                    <span style="font-size: var(--fs-caption); font-weight:700;">BROWSE &rarr;</span>
+                  </div>
+
+                  <div class="method-tile" id="actionUsbInfo">
+                    <div>
+                      <div style="font-size: var(--fs-body); font-weight:700;">3. USB-C Sideload</div>
+                      <div style="font-size: var(--fs-micro); color: var(--ink-subtle);">Plug cable to PC and drag files into /books/</div>
+                    </div>
+                    <span style="font-size: var(--fs-caption); font-weight:700;">INFO &rarr;</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Storage & FAT32 Health -->
+              <div style="border: 1px dashed var(--line); padding: 14px; display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; justify-content: space-between; font-size: var(--fs-caption); font-weight:700;">
+                  <span>MicroSD Storage Health</span>
+                  <span>FAT32 · 28.4 GB Free</span>
+                </div>
+                <div class="progress-bar-rail">
+                  <div class="progress-bar-fill" style="width: 11%;"></div>
+                </div>
+                <div style="font-size: var(--fs-micro); color: var(--ink-muted);">
+                  Directory /sdcard/books/ (0 titles indexed)
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Bottom Navigation Hub -->
+          <div class="bottom-hub">
+            <button class="hub-tab active" data-nav="home">
+              <svg class="icon-mono" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <span class="hub-label">Home</span>
+            </button>
+            <button class="hub-tab" data-nav="library">
+              <svg class="icon-mono" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              <span class="hub-label">Library</span>
+            </button>
+            <button class="hub-tab" data-nav="files">
+              <svg class="icon-mono" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span class="hub-label">Files</span>
+            </button>
+            <button class="hub-tab" data-nav="settings">
+              <svg class="icon-mono" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              <span class="hub-label">Settings</span>
+            </button>
+          </div>
+        </div>
+
+
+        <!-- =================================================================
+             SCREEN 2: LIBRARY SCREEN
+             ================================================================= -->
+        <div class="screen" id="screen-library">
+          <!-- Library Header -->
+          <div class="lib-header">
+            <div class="lib-header-top">
+              <span class="lib-title-text" id="libHeaderCount">Library (24 Titles)</span>
+              <button class="btn compact" id="btnLibToHome">&larr; Home</button>
+            </div>
+
+            <div class="lib-controls-bar">
+              <div class="sort-group">
+                <button class="sort-tab active" data-sort="recent">Recent</button>
+                <button class="sort-tab" data-sort="title">Title</button>
+                <button class="sort-tab" data-sort="progress">Progress</button>
+              </div>
+
+              <div class="search-input-frame">
+                <svg class="icon-mono" viewBox="0 0 24 24" style="width: 14px; height: 14px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="libSearchField" placeholder="Filter titles..." />
+              </div>
+            </div>
+          </div>
+
+          <!-- List Area -->
+          <div class="lib-list-viewport" id="libListArea">
+            <!-- Dynamic rows injected by JS -->
+          </div>
+
+          <!-- Empty Library Ingestion View -->
+          <div id="libEmptyArea" class="empty-canvas" style="display: none; padding: 18px var(--pad-x);">
+            <div class="empty-card">
+              <span class="empty-eyebrow">Index Status</span>
+              <h2 class="empty-heading">Catalog is empty.</h2>
+              <p class="empty-paragraph">
+                No matching EPUB or document records found on the internal MicroSD storage card.
+              </p>
+              <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px;">
+                <button class="btn solid primary-action" id="btnRescanCatalog">Rescan MicroSD Index &rarr;</button>
+                <button class="btn primary-action" id="btnOpenFilesFromLib">Open SD File Browser</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pagination Bar -->
+          <div class="pagination-bar">
+            <button class="btn compact" id="btnLibPrev">&larr; Prev</button>
+            <span id="libPageIndicator">Page 1 of 3</span>
+            <button class="btn compact" id="btnLibNext">Next &rarr;</button>
+          </div>
+
+          <!-- Bottom Navigation Hub -->
+          <div class="bottom-hub">
+            <button class="hub-tab" data-nav="home">
+              <svg class="icon-mono" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <span class="hub-label">Home</span>
+            </button>
+            <button class="hub-tab active" data-nav="library">
+              <svg class="icon-mono" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              <span class="hub-label">Library</span>
+            </button>
+            <button class="hub-tab" data-nav="files">
+              <svg class="icon-mono" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span class="hub-label">Files</span>
+            </button>
+            <button class="hub-tab" data-nav="settings">
+              <svg class="icon-mono" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              <span class="hub-label">Settings</span>
+            </button>
+          </div>
+        </div>
+
+
+        <!-- =================================================================
+             SCREEN 3: READER SCREEN
+             ================================================================= -->
+        <div class="screen" id="screen-reader">
+          <div class="reader-canvas">
+            <!-- Header Status -->
+            <div class="reader-top-status">
+              <span id="readerTitleHead" class="vi-text">The Left Hand of Darkness</span>
+              <span id="readerChapterHead">Chapter 4: The Semi-Annual</span>
+            </div>
+
+            <!-- Reading Stream -->
+            <div class="reader-prose-stream vi-text" id="readerProseContent">
+              <!-- Content rendered by JS -->
+            </div>
+
+            <!-- Footer Status -->
+            <div class="reader-bottom-status">
+              <span id="readerPageProgress">Page 42 of 280 (15%)</span>
+              <span id="readerBatteryStatus">86% · 14:48</span>
+            </div>
+
+            <!-- Tap Layer (3 Touch Zones) -->
+            <div class="reader-tap-layer" id="readerTapGrid">
+              <div class="tap-zone" id="zoneTurnPrev">
+                <span class="tap-zone-hint">&larr; Prev</span>
+              </div>
+              <div class="tap-zone middle" id="zoneToggleHud">
+                <span class="tap-zone-hint">Menu</span>
+              </div>
+              <div class="tap-zone" id="zoneTurnNext">
+                <span class="tap-zone-hint">Next &rarr;</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reader HUD Top Overlay -->
+          <div class="reader-hud-top" id="readerHudTop">
+            <button class="btn compact" id="btnReaderBack">&larr; Library</button>
+            <div style="font-size: var(--fs-caption); font-weight:700;">Reading Controls</div>
+            <button class="btn compact" id="btnReaderTOC">TOC</button>
+          </div>
+
+          <!-- Reader HUD Bottom Overlay -->
+          <div class="reader-hud-bottom" id="readerHudBottom">
+            <div class="scrubber-group">
+              <span id="scrubberChapTag" style="min-width: 50px;">Ch. 4</span>
+              <input type="range" class="scrubber-slider" min="1" max="280" value="42" id="readerPageSlider">
+              <span id="scrubberPageTag" style="min-width: 60px; text-align: right;">42/280</span>
+            </div>
+
+            <div class="hud-button-strip">
+              <button class="btn compact" id="btnFontSmaller">Font -</button>
+              <button class="btn compact" id="btnFontStatus">15pt Serif</button>
+              <button class="btn compact" id="btnFontBigger">Font +</button>
+            </div>
+
+            <div class="hud-button-strip">
+              <button class="btn compact" id="btnToggleMargin">Margins: Norm</button>
+              <button class="btn compact" id="btnHudRefresh">⚡ Refresh</button>
+              <button class="btn compact solid" id="btnDismissHud">Close Menu</button>
+            </div>
+          </div>
+
+          <!-- Table of Contents Modal Sheet -->
+          <div class="toc-drawer" id="tocDrawer">
+            <div class="toc-title-bar">
+              <h3 style="font-size: var(--fs-subhead); font-weight:700;">Table of Contents</h3>
+              <button class="btn compact" id="btnCloseToc">&times; Close</button>
+            </div>
+            <div class="toc-scroll-list" id="tocList">
+              <div class="toc-row" data-page="1"><span>Chapter 1: A Parade in Erhenrang</span><span>p. 1</span></div>
+              <div class="toc-row" data-page="14"><span>Chapter 2: The Place Inside the Blizzard</span><span>p. 14</span></div>
+              <div class="toc-row" data-page="28"><span>Chapter 3: The Mad King</span><span>p. 28</span></div>
+              <div class="toc-row active" data-page="42"><span>Chapter 4: The Semi-Annual (Current)</span><span>p. 42</span></div>
+              <div class="toc-row" data-page="65"><span>Chapter 5: The Domestication of Hunch</span><span>p. 65</span></div>
+              <div class="toc-row" data-page="88"><span>Chapter 6: One Way into Orgoreyn</span><span>p. 88</span></div>
+              <div class="toc-row" data-page="112"><span>Chapter 7: The Question of Sex</span><span>p. 112</span></div>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- =================================================================
+             SCREEN 4: FILES SCREEN
+             ================================================================= -->
+        <div class="screen" id="screen-files">
+          <div class="files-header">
+            <div class="files-header-top">
+              <span class="lib-title-text">Files (SD Card)</span>
+              <button class="btn compact" id="btnFilesToHome">&larr; Home</button>
+            </div>
+            <div class="breadcrumb-pill">
+              <span id="filesPathDisplay">/sdcard/books/</span>
+            </div>
+          </div>
+
+          <!-- Files List -->
+          <div class="files-list-viewport" id="filesListArea">
+            <!-- Directory items injected by JS -->
+          </div>
+
+          <!-- Files Empty State -->
+          <div id="filesEmptyArea" class="empty-canvas" style="display: none; padding: 18px var(--pad-x);">
+            <div class="empty-card">
+              <span class="empty-eyebrow">Folder State</span>
+              <h2 class="empty-heading">No documents in this directory.</h2>
+              <p class="empty-paragraph">Supported formats: .epub, .txt, .fb2. Select another folder or return to root.</p>
+              <button class="btn solid primary-action" id="btnFilesReturnRoot" style="margin-top: 8px;">&larr; Return to /sdcard/books/</button>
+            </div>
+          </div>
+
+          <!-- Storage Capacity Footer -->
+          <div class="files-footer-strip">
+            <span>Storage: <strong>14.2 GB / 32 GB Used</strong></span>
+            <span>44% Available</span>
+          </div>
+
+          <!-- Bottom Navigation Hub -->
+          <div class="bottom-hub">
+            <button class="hub-tab" data-nav="home">
+              <svg class="icon-mono" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <span class="hub-label">Home</span>
+            </button>
+            <button class="hub-tab" data-nav="library">
+              <svg class="icon-mono" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              <span class="hub-label">Library</span>
+            </button>
+            <button class="hub-tab active" data-nav="files">
+              <svg class="icon-mono" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span class="hub-label">Files</span>
+            </button>
+            <button class="hub-tab" data-nav="settings">
+              <svg class="icon-mono" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              <span class="hub-label">Settings</span>
+            </button>
+          </div>
+        </div>
+
+
+        <!-- =================================================================
+             SCREEN 5: SETTINGS SCREEN
+             ================================================================= -->
+        <div class="screen" id="screen-settings">
+          <div class="masthead">
+            <span style="font-weight:700; font-size: var(--fs-subhead);">Settings</span>
+            <button class="btn compact" id="btnSettingsToHome" style="height: 32px; min-height: 32px;">&larr; Home</button>
+          </div>
+
+          <div class="settings-body">
+            <!-- Group 1: Display & Waveforms -->
+            <div class="settings-section-card">
+              <div class="settings-section-title">Display &amp; Waveforms</div>
+              <div class="settings-item-row" id="rowRefreshRate">
+                <div class="settings-left-col">
+                  <h4>Full Refresh Waveform</h4>
+                  <p>Invert display periodically to clear ghosting</p>
+                </div>
+                <div class="settings-val-chip" id="valRefreshRate">Every 10 p.</div>
+              </div>
+              <div class="settings-item-row" id="rowSunlightFix">
+                <div class="settings-left-col">
+                  <h4>Sunlight Fading Fix</h4>
+                  <p>Software-pulse voltage adjustment for high UV</p>
+                </div>
+                <div class="settings-val-chip" id="valSunlightFix">OFF</div>
+              </div>
+            </div>
+
+            <!-- Group 2: Reader Defaults -->
+            <div class="settings-section-card">
+              <div class="settings-section-title">Reader Defaults</div>
+              <div class="settings-item-row" id="rowDefaultFont">
+                <div class="settings-left-col">
+                  <h4>Default Typography</h4>
+                  <p>System font for EPUB rendering</p>
+                </div>
+                <div class="settings-val-chip" id="valDefaultFont">Merriweather Serif</div>
+              </div>
+              <div class="settings-item-row" id="rowLineSpacing">
+                <div class="settings-left-col">
+                  <h4>Line Spacing</h4>
+                  <p>Text line-height ratio</p>
+                </div>
+                <div class="settings-val-chip" id="valLineSpacing">1.6 (Normal)</div>
+              </div>
+            </div>
+
+            <!-- Group 3: Hardware & Controls -->
+            <div class="settings-section-card">
+              <div class="settings-section-title">Hardware &amp; Controls</div>
+              <div class="settings-item-row" id="rowHomeButton">
+                <div class="settings-left-col">
+                  <h4>Home Button Action</h4>
+                  <p>Physical front key press mapping</p>
+                </div>
+                <div class="settings-val-chip" id="valHomeButton">Return Home</div>
+              </div>
+              <div class="settings-item-row" id="rowAutoSleep">
+                <div class="settings-left-col">
+                  <h4>Auto Sleep Timeout</h4>
+                  <p>Enter low-power state after inactivity</p>
+                </div>
+                <div class="settings-val-chip" id="valAutoSleep">10 Minutes</div>
+              </div>
+            </div>
+
+            <!-- Group 4: Network & Transfer -->
+            <div class="settings-section-card">
+              <div class="settings-section-title">Network &amp; Sync</div>
+              <div class="settings-item-row" id="rowWifi">
+                <div class="settings-left-col">
+                  <h4>Wi-Fi Connection</h4>
+                  <p>802.11 b/g/n (Connected: HomeNetwork_2.4G)</p>
+                </div>
+                <div class="settings-val-chip" id="valWifi">CONNECTED</div>
+              </div>
+              <div class="settings-item-row" id="rowWebServer">
+                <div class="settings-left-col">
+                  <h4>Web Server (HTTP Sideload)</h4>
+                  <p>Transfer books at http://192.168.1.150:8080</p>
+                </div>
+                <div class="settings-val-chip" id="valWebServer">IDLE</div>
+              </div>
+            </div>
+
+            <!-- Group 5: Device About -->
+            <div class="settings-section-card">
+              <div class="settings-section-title">System Info</div>
+              <div class="settings-item-row" style="cursor: default;">
+                <div class="settings-left-col">
+                  <h4>CrossPoint OS Firmware</h4>
+                  <p>Version v2.1.0-x4pro (ESP32-C3 / FreeInk SDK)</p>
+                </div>
+                <div class="settings-val-chip">UP TO DATE</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Navigation Hub -->
+          <div class="bottom-hub">
+            <button class="hub-tab" data-nav="home">
+              <svg class="icon-mono" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <span class="hub-label">Home</span>
+            </button>
+            <button class="hub-tab" data-nav="library">
+              <svg class="icon-mono" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              <span class="hub-label">Library</span>
+            </button>
+            <button class="hub-tab" data-nav="files">
+              <svg class="icon-mono" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span class="hub-label">Files</span>
+            </button>
+            <button class="hub-tab active" data-nav="settings">
+              <svg class="icon-mono" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              <span class="hub-label">Settings</span>
+            </button>
+          </div>
+
+          <!-- Dialog Sheet -->
+          <div class="dialog-backdrop" id="dialogBackdrop">
+            <div class="dialog-panel">
+              <h3 id="dialogHeader" style="font-size: var(--fs-subhead); font-weight:700;">Configure Setting</h3>
+              <div class="dialog-options" id="dialogOptions"></div>
+              <button class="btn solid primary-action" id="btnDismissDialog">Apply &amp; Close</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <!-- =================================================================
+         SIDEBAR: EVALUATION & HYPOTHESIS COMPARISON
+         ================================================================= -->
+    <div class="evaluation-panel">
+      <h2 class="eval-header">EXP-001 Concept B · Design Evaluation</h2>
+
+      <div class="task-card" id="taskStatusBox">
+        <strong>Active Interaction Feedback:</strong>
+        <span id="taskStatusText">Viewing Screen 1: Home (Populated State). Tap 'Continue Reading' or a shelf book to test the reading flow.</span>
+      </div>
+
+      <!-- Quick Task Verification Triggers -->
+      <div>
+        <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 8px;">Run Interactive Task Flows:</h3>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <button class="action-btn" id="flowTestResume">▶ Task 1: 1-Tap Wake-to-Read Resume</button>
+          <button class="action-btn" id="flowTestTurn">▶ Task 2: Reader Tap Zones (Turn Pages &amp; Scrubber)</button>
+          <button class="action-btn" id="flowTestPagination">▶ Task 3: Library Pagination &amp; Filter</button>
+          <button class="action-btn" id="flowTestFolders">▶ Task 4: Real SD Directory Navigation</button>
+          <button class="action-btn" id="flowTestEmpty">▶ Task 5: Empty Ingestion Canvas</button>
+        </div>
+      </div>
+
+      <!-- Architectural Comparison -->
+      <div>
+        <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 8px;">Hypothesis Comparison: Concept B vs. Concept A</h3>
+        <table class="eval-table">
+          <thead>
+            <tr>
+              <th>Dimension</th>
+              <th><span class="tag-a">Concept A</span> (Editorial North Star)</th>
+              <th><span class="tag-b">Concept B</span> (Quiet Modular Hypothesis)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Primary Goal</strong></td>
+              <td>Editorial magazine aesthetic; title-first visual showcase.</td>
+              <td>Task execution efficiency across all 5 e-reader screens.</td>
+            </tr>
+            <tr>
+              <td><strong>Navigation Model</strong></td>
+              <td>Hidden drawer via top-right masthead icon (2 taps).</td>
+              <td>Persistent 4-tab bottom hub (1 tap everywhere). Testable hypothesis.</td>
+            </tr>
+            <tr>
+              <td><strong>Reachability</strong></td>
+              <td>Key triggers at top glass bezel (Y: 0..40). High risk of GT911 edge misses.</td>
+              <td>Primary controls placed in lower reach zone (Y: 744..800). All touch targets &ge;44px (important targets 56px).</td>
+            </tr>
+            <tr>
+              <td><strong>Empty State</strong></td>
+              <td>Static layout: swaps text to "Your Library is Waiting".</td>
+              <td>Dynamic reorganization into an Onboarding Ingestion Canvas with direct Web Server and SD actions.</td>
+            </tr>
+            <tr>
+              <td><strong>Screen Scope</strong></td>
+              <td>Home Screen only.</td>
+              <td>5 connected screens: Home, Library, Reader, Files, Settings.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Quality Constraints Followed -->
+      <div>
+        <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 6px;">Adherence to E-Paper Constraints</h3>
+        <ul style="font-size: 12px; line-height: 1.7; color: #333; margin-left: 18px;">
+          <li><strong>Pure 1-Bit Palette:</strong> Solid black (#000) and pure paper (#FFF) with hairline dividers; no blur or gradients.</li>
+          <li><strong>Zero Sliding Transitions:</strong> State changes mimic discrete e-paper waveform cycles.</li>
+          <li><strong>Vietnamese Typography:</strong> Multi-line titles and diacritics rendered with safe line height to prevent glyph clipping.</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==========================================================================
+     PROTOTYPE LOGIC
+     ========================================================================== -->
+<script>
+  // Global Data Store
+  const store = {
+    currentScreen: 'home',
+    isPopulated: true,
+    isInverted: false,
+    librarySort: 'recent',
+    searchQuery: '',
+    libraryPage: 1,
+    pageSize: 3,
+
+    // File System Tree
+    currentFolder: '/sdcard/books/',
+    fileSystemData: {
+      '/sdcard/books/': [
+        { name: 'Classic Literature/', type: 'dir', size: '2 items', path: '/sdcard/books/Classic Literature/' },
+        { name: 'Science Fiction/', type: 'dir', size: '3 items', path: '/sdcard/books/Science Fiction/' },
+        { name: 'Noi_Buon_Chien_Tranh.epub', type: 'epub', size: '940 KB', bookId: 3 },
+        { name: 'Reading_Notes_2026.txt', type: 'txt', size: '42 KB' }
+      ],
+      '/sdcard/books/Classic Literature/': [
+        { name: '.. (Parent Folder)', type: 'dir', size: '', isUp: true, path: '/sdcard/books/' },
+        { name: 'War_and_Peace.epub', type: 'epub', size: '3.1 MB', bookId: 5 },
+        { name: 'Pride_and_Prejudice.epub', type: 'epub', size: '1.2 MB', bookId: 7 }
+      ],
+      '/sdcard/books/Science Fiction/': [
+        { name: '.. (Parent Folder)', type: 'dir', size: '', isUp: true, path: '/sdcard/books/' },
+        { name: 'Left_Hand_Darkness.epub', type: 'epub', size: '1.2 MB', bookId: 1 },
+        { name: 'Dune_Herbert.epub', type: 'epub', size: '2.4 MB', bookId: 2 },
+        { name: 'Neuromancer_Gibson.epub', type: 'epub', size: '860 KB', bookId: 4 }
+      ]
+    },
+
+    // Active Reader State
+    reader: {
+      bookId: 1,
+      title: 'The Left Hand of Darkness',
+      author: 'Ursula K. Le Guin',
+      chapter: 'Chapter 4: The Semi-Annual',
+      currentPage: 42,
+      totalPages: 280,
+      fontSize: 15,
+      marginState: 'normal',
+      pages: {
+        41: [
+          "Through the white fog of the frozen estuary, we made our slow progress towards the capital. The sledges ran silently over the pack, their bone runners whispering against the rime.",
+          "Genly Ai sat wrapped in his furs, observing the silent passage of the Karhidish guards. No words passed between them; their breath rose like plumes of steam into the twilight sky."
+        ],
+        42: [
+          "From the arches of the Great Gate to the Court of Heptarchy, the King’s procession was moving forward through the deep snow. The music played was ancient and harsh, blown on horns of bone, rattled on hollow gourds, beaten on drums of taut hide.",
+          "I stood with the dignitaries of the First Rank upon the roof of the portico. It was cold; the wind off the ice sheet was keen, smelling of frozen mud and lichen. Down in the street the crowd stood packed so tight that no one could fall, cheering in waves, a long booming shout that surged along the avenues between the granite facades.",
+          "Argaven XV, King of Karhide, walked alone under a canopy of yellow silk supported by four of his Lords. His face was gray and set, the mouth pulled tight. In Karhide the King is neither man nor woman, yet in this hour of ritual he bore the burden of all mortal flesh."
+        ],
+        43: [
+          "Beside me, Lord Pemmer Harge looked down into the press with a sardonic turn of his lip. 'A fine day for a coronation,' he whispered, his breath clouding against the gray stone. 'Though half the realm will cough blood before the thaw arrives.'",
+          "I turned to him slowly, keeping my hands hidden within my sleeves. In the court of Argaven, sympathy was a currency spent only by fools. The frost clung to my eyelashes, blurring the banners below."
+        ]
+      }
+    },
+
+    // Book Catalog
+    books: [
+      { id: 1, title: 'The Left Hand of Darkness', author: 'Ursula K. Le Guin', format: 'EPUB', size: '1.2 MB', progress: 64, page: 42, totalPages: 280, chapter: 'Chapter 4: The Semi-Annual', date: 'Today' },
+      { id: 2, title: 'Dune', author: 'Frank Herbert', format: 'EPUB', size: '2.4 MB', progress: 31, page: 186, totalPages: 600, chapter: 'Part 1: Dune', date: 'Yesterday' },
+      { id: 3, title: 'Nỗi Buồn Chiến Tranh', author: 'Bảo Ninh', format: 'EPUB', size: '940 KB', progress: 88, page: 246, totalPages: 280, chapter: 'Chương 8: Dòng Ký Ức', date: 'Oct 28' },
+      { id: 4, title: 'Neuromancer', author: 'William Gibson', format: 'EPUB', size: '860 KB', progress: 12, page: 34, totalPages: 280, chapter: 'Ch. 2: Shopping Spree', date: 'Oct 24' },
+      { id: 5, title: 'War and Peace', author: 'Leo Tolstoy', format: 'EPUB', size: '3.1 MB', progress: 5, page: 60, totalPages: 1200, chapter: 'Book 1: 1805', date: 'Oct 20' },
+      { id: 6, title: 'Snow Crash', author: 'Neal Stephenson', format: 'EPUB', size: '1.8 MB', progress: 0, page: 1, totalPages: 440, chapter: 'Chapter 1: The Deliverator', date: 'Oct 15' },
+      { id: 7, title: 'Pride and Prejudice', author: 'Jane Austen', format: 'EPUB', size: '1.2 MB', progress: 0, page: 1, totalPages: 320, chapter: 'Chapter 1: Netherfield Park', date: 'Oct 10' }
+    ],
+
+    // Settings
+    settings: {
+      refresh: 'Every 10 p.',
+      sunlight: 'OFF',
+      font: 'Merriweather Serif',
+      spacing: '1.6 (Normal)',
+      homeButton: 'Return Home',
+      sleep: '10 Minutes',
+      wifi: 'CONNECTED'
+    }
+  };
+
+  // DOM References
+  const flashLayer = document.getElementById('flashLayer');
+  const toastBox = document.getElementById('toastBox');
+  const taskStatusText = document.getElementById('taskStatusText');
+
+  // Binary Waveform Pulse
+  function triggerFlash(cb) {
+    flashLayer.classList.add('active');
+    setTimeout(() => {
+      if (cb) cb();
+      flashLayer.classList.remove('active');
+    }, 60);
+  }
+
+  // Toast Notification
+  function showToast(msg) {
+    toastBox.innerText = msg;
+    toastBox.classList.add('active');
+    setTimeout(() => toastBox.classList.remove('active'), 2200);
+  }
+
+  // Screen Switcher
+  function switchScreen(screenId) {
+    triggerFlash(() => {
+      store.currentScreen = screenId;
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      const target = document.getElementById('screen-' + screenId);
+      if (target) target.classList.add('active');
+
+      // Sync top control buttons
+      document.querySelectorAll('.action-btn[data-screen]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.screen === screenId);
+      });
+
+      // Sync bottom navigation tabs on device
+      document.querySelectorAll('.hub-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.nav === screenId);
+      });
+
+      updateStatusFeedback();
+    });
+  }
+
+  // Status Feedback Text
+  function updateStatusFeedback() {
+    const messages = {
+      home: 'Viewing Screen 1: Home (' + (store.isPopulated ? 'Populated' : 'Empty State') + '). Tap "Continue Reading" or any shelf book to launch Reader.',
+      library: 'Viewing Screen 2: Library. Tap Prev/Next to paginate (' + store.libraryPage + '/3), use search to filter, or tap any book.',
+      reader: 'Viewing Screen 3: Reader. Tap LEFT to turn page prev, RIGHT to turn page next, or CENTER to open Reader HUD.',
+      files: 'Viewing Screen 4: Files (SD Card). Click folder rows to navigate into directories; click books to open directly in Reader.',
+      settings: 'Viewing Screen 5: Settings. Tap any row to configure hardware refresh or connectivity parameters.'
+    };
+    taskStatusText.innerText = messages[store.currentScreen] || '';
+  }
+
+  // Update Hero Content & Synchronize Progress
+  function syncHomeHero() {
+    const activeBook = store.books.find(b => b.id === store.reader.bookId) || store.books[0];
+    document.getElementById('heroCoverTitle').innerText = activeBook.title;
+    document.getElementById('heroCoverAuthor').innerText = activeBook.author;
+    document.getElementById('heroTitle').innerText = activeBook.title;
+    document.getElementById('heroAuthor').innerText = activeBook.author;
+    document.getElementById('heroProgressBadge').innerText = activeBook.progress + '% Completed';
+    document.getElementById('heroChapterLabel').innerText = activeBook.chapter;
+    
+    const pagesLeft = Math.max(0, activeBook.totalPages - activeBook.page);
+    document.getElementById('heroRemainingLabel').innerText = pagesLeft + ' p. left';
+    document.getElementById('heroProgressBar').style.width = activeBook.progress + '%';
+  }
+
+  // Render Reader Content
+  function renderReaderPage() {
+    const r = store.reader;
+    document.getElementById('readerTitleHead').innerText = r.title;
+    document.getElementById('readerChapterHead').innerText = r.chapter;
+    document.getElementById('readerPageProgress').innerText = `Page ${r.currentPage} of ${r.totalPages} (${r.progress}%)`;
+    document.getElementById('readerPageSlider').value = r.currentPage;
+    document.getElementById('scrubberPageTag').innerText = `${r.currentPage}/${r.totalPages}`;
+
+    const container = document.getElementById('readerProseContent');
+    const pageParagraphs = r.pages[r.currentPage] || [
+      `[Rendering Page ${r.currentPage}]`,
+      `The wind whipped across the barren highlands of Karhide. The road wound upward through gray granite and rime, disappearing into the white veil of the pass.`
+    ];
+
+    container.innerHTML = pageParagraphs.map(p => `<p>${p}</p>`).join('');
+  }
+
+  // Change Reader Page
+  function setReaderPage(newPage) {
+    newPage = Math.max(1, Math.min(store.reader.totalPages, newPage));
+    store.reader.currentPage = newPage;
+    store.reader.progress = Math.round((newPage / store.reader.totalPages) * 100);
+
+    // Sync book progress in catalog
+    const book = store.books.find(b => b.id === store.reader.bookId);
+    if (book) {
+      book.page = newPage;
+      book.progress = store.reader.progress;
+    }
+
+    syncHomeHero();
+    triggerFlash(() => {
+      renderReaderPage();
+    });
+  }
+
+  // Open Selected Book in Reader
+  function launchBookInReader(bookId) {
+    const book = store.books.find(b => b.id === bookId);
+    if (!book) return;
+
+    store.reader.bookId = book.id;
+    store.reader.title = book.title;
+    store.reader.author = book.author;
+    store.reader.chapter = book.chapter;
+    store.reader.currentPage = book.page || 1;
+    store.reader.totalPages = book.totalPages || 280;
+    store.reader.progress = book.progress || 0;
+
+    syncHomeHero();
+    renderReaderPage();
+    switchScreen('reader');
+  }
+
+  // Render Library List with Pagination
+  function renderLibrary() {
+    const listEl = document.getElementById('libListArea');
+    const emptyEl = document.getElementById('libEmptyArea');
+    const countEl = document.getElementById('libHeaderCount');
+    const pageIndicator = document.getElementById('libPageIndicator');
+
+    if (!store.isPopulated) {
+      listEl.style.display = 'none';
+      emptyEl.style.display = 'flex';
+      countEl.innerText = 'Library (0 Titles)';
+      pageIndicator.innerText = 'Page 0 of 0';
+      return;
+    }
+
+    listEl.style.display = 'flex';
+    emptyEl.style.display = 'none';
+
+    // Filter
+    let filtered = store.books.filter(b => {
+      if (!store.searchQuery) return true;
+      return b.title.toLowerCase().includes(store.searchQuery.toLowerCase()) ||
+             b.author.toLowerCase().includes(store.searchQuery.toLowerCase());
+    });
+
+    // Sort
+    if (store.librarySort === 'title') {
+      filtered.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (store.librarySort === 'progress') {
+      filtered.sort((a, b) => b.progress - a.progress);
+    }
+
+    countEl.innerText = `Library (${filtered.length} Titles)`;
+
+    // Pagination
+    const totalPages = Math.max(1, Math.ceil(filtered.length / store.pageSize));
+    store.libraryPage = Math.min(store.libraryPage, totalPages);
+    pageIndicator.innerText = `Page ${store.libraryPage} of ${totalPages}`;
+
+    const startIdx = (store.libraryPage - 1) * store.pageSize;
+    const pageItems = filtered.slice(startIdx, startIdx + store.pageSize);
+
+    listEl.innerHTML = '';
+    if (pageItems.length === 0) {
+      listEl.innerHTML = `<div style="padding: 30px; text-align: center; color: var(--ink-subtle); font-size: 13px;">No books match "${store.searchQuery}".</div>`;
+      return;
+    }
+
+    pageItems.forEach(b => {
+      const row = document.createElement('div');
+      row.className = 'lib-book-row';
+      row.innerHTML = `
+        <div class="lib-thumb">
+          <div style="font-weight:700; line-height:1.1;">${b.title.slice(0, 10)}</div>
+          <div style="font-size:7px; color:#555;">${b.format}</div>
+        </div>
+        <div>
+          <div class="lib-item-title vi-text">${b.title}</div>
+          <div class="lib-item-author vi-text">${b.author}</div>
+          <div class="lib-item-meta">${b.format} · ${b.size} · Read: ${b.date}</div>
+        </div>
+        <div class="lib-item-progress">
+          <span style="font-size: var(--fs-caption); font-weight:700;">${b.progress > 0 ? b.progress + '%' : 'New'}</span>
+          <div class="progress-bar-rail" style="width: 50px;">
+            <div class="progress-bar-fill" style="width: ${b.progress}%;"></div>
+          </div>
+        </div>
+      `;
+      row.addEventListener('click', () => launchBookInReader(b.id));
+      listEl.appendChild(row);
+    });
+  }
+
+  // Render Files Screen with Genuine Folder Navigation
+  function renderFiles() {
+    const listEl = document.getElementById('filesListArea');
+    const emptyEl = document.getElementById('filesEmptyArea');
+    const pathEl = document.getElementById('filesPathDisplay');
+
+    pathEl.innerText = store.currentFolder;
+
+    if (!store.isPopulated) {
+      listEl.style.display = 'none';
+      emptyEl.style.display = 'flex';
+      return;
+    }
+
+    listEl.style.display = 'flex';
+    emptyEl.style.display = 'none';
+
+    const items = store.fileSystemData[store.currentFolder] || [];
+    listEl.innerHTML = '';
+
+    if (items.length === 0) {
+      listEl.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--ink-muted); font-size: 13px;">Directory is empty.</div>`;
+      return;
+    }
+
+    items.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'file-item-row';
+      const isDir = item.type === 'dir';
+
+      row.innerHTML = `
+        <div class="file-left">
+          <span class="file-tag ${isDir ? 'dir' : ''}">${isDir ? 'DIR' : item.type.toUpperCase()}</span>
+          <span class="file-label vi-text">${item.name}</span>
+        </div>
+        <div class="file-meta-right">${item.size}</div>
+      `;
+
+      row.addEventListener('click', () => {
+        if (isDir) {
+          triggerFlash(() => {
+            store.currentFolder = item.path;
+            renderFiles();
+          });
+        } else if (item.bookId) {
+          launchBookInReader(item.bookId);
+        } else {
+          showToast(`Opened ${item.name} in plain-text viewer.`);
+        }
+      });
+
+      listEl.appendChild(row);
+    });
+  }
+
+  // Populated vs Empty State Toggle
+  function setPopulated(populated) {
+    store.isPopulated = populated;
+    document.getElementById('btnPopulated').classList.toggle('active', populated);
+    document.getElementById('btnEmpty').classList.toggle('active', !populated);
+
+    triggerFlash(() => {
+      const homePop = document.getElementById('homePopulated');
+      const homeEmpty = document.getElementById('homeEmpty');
+      if (populated) {
+        homePop.style.display = 'flex';
+        homeEmpty.style.display = 'none';
+      } else {
+        homePop.style.display = 'none';
+        homeEmpty.style.display = 'flex';
+      }
+
+      renderLibrary();
+      renderFiles();
+      updateStatusFeedback();
+    });
+  }
+
+  // Settings Dialog Modal
+  const dialogBackdrop = document.getElementById('dialogBackdrop');
+  const dialogHeader = document.getElementById('dialogHeader');
+  const dialogOptions = document.getElementById('dialogOptions');
+  const btnDismissDialog = document.getElementById('btnDismissDialog');
+
+  function openSettingsDialog(title, options, currentVal, onApply) {
+    dialogHeader.innerText = title;
+    dialogOptions.innerHTML = '';
+
+    options.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'dialog-option-btn' + (opt === currentVal ? ' selected' : '');
+      btn.innerText = opt;
+      btn.addEventListener('click', () => {
+        onApply(opt);
+        dialogBackdrop.classList.remove('open');
+        triggerFlash();
+      });
+      dialogOptions.appendChild(btn);
+    });
+
+    dialogBackdrop.classList.add('open');
+  }
+
+  btnDismissDialog.addEventListener('click', () => dialogBackdrop.classList.remove('open'));
+
+  // Attach All Event Listeners
+  document.addEventListener('DOMContentLoaded', () => {
+    // Top Screen Buttons
+    document.querySelectorAll('.action-btn[data-screen]').forEach(btn => {
+      btn.addEventListener('click', () => switchScreen(btn.dataset.screen));
+    });
+
+    // Top State Buttons
+    document.getElementById('btnPopulated').addEventListener('click', () => setPopulated(true));
+    document.getElementById('btnEmpty').addEventListener('click', () => setPopulated(false));
+
+    // Waveform flash button
+    document.getElementById('btnWaveformFlash').addEventListener('click', () => triggerFlash());
+
+    // Invert mode button
+    document.getElementById('btnInvertMode').addEventListener('click', () => {
+      store.isInverted = !store.isInverted;
+      document.querySelectorAll('.screen').forEach(s => s.classList.toggle('inverted', store.isInverted));
+      document.getElementById('btnInvertMode').classList.toggle('active', store.isInverted);
+      triggerFlash();
+    });
+
+    // Device Bottom Hub Navigation
+    document.querySelectorAll('.hub-tab').forEach(tab => {
+      tab.addEventListener('click', () => switchScreen(tab.dataset.nav));
+    });
+
+    // Home Screen Actions
+    document.getElementById('btnResumeHero').addEventListener('click', () => launchBookInReader(store.reader.bookId));
+    document.getElementById('heroClickableArea').addEventListener('click', () => launchBookInReader(store.reader.bookId));
+    document.getElementById('linkToLibrary').addEventListener('click', () => switchScreen('library'));
+
+    document.querySelectorAll('.shelf-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const id = parseInt(item.dataset.bookId, 10);
+        launchBookInReader(id);
+      });
+    });
+
+    // Home Empty State Handlers (Clearly labeled mock hardware triggers)
+    document.getElementById('actionStartWebServer').addEventListener('click', () => {
+      showToast('Simulated: HTTP Web Server active at http://192.168.1.150:8080');
+      switchScreen('settings');
+    });
+    document.getElementById('actionBrowseSD').addEventListener('click', () => switchScreen('files'));
+    document.getElementById('actionUsbInfo').addEventListener('click', () => {
+      showToast('Simulated: Connect USB cable to mount MicroSD volume on host PC.');
+    });
+
+    // Library Controls
+    document.getElementById('btnLibToHome').addEventListener('click', () => switchScreen('home'));
+
+    document.getElementById('libSearchField').addEventListener('input', (e) => {
+      store.searchQuery = e.target.value;
+      store.libraryPage = 1;
+      renderLibrary();
+    });
+
+    document.querySelectorAll('.sort-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.sort-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        store.librarySort = tab.dataset.sort;
+        store.libraryPage = 1;
+        renderLibrary();
+      });
+    });
+
+    // Library Pagination Buttons
+    document.getElementById('btnLibPrev').addEventListener('click', () => {
+      if (store.libraryPage > 1) {
+        store.libraryPage--;
+        triggerFlash(() => renderLibrary());
+      } else {
+        showToast('Already on first page');
+      }
+    });
+
+    document.getElementById('btnLibNext').addEventListener('click', () => {
+      const filtered = store.books.filter(b => {
+        if (!store.searchQuery) return true;
+        return b.title.toLowerCase().includes(store.searchQuery.toLowerCase());
+      });
+      const totalPages = Math.ceil(filtered.length / store.pageSize);
+      if (store.libraryPage < totalPages) {
+        store.libraryPage++;
+        triggerFlash(() => renderLibrary());
+      } else {
+        showToast('Already on last page');
+      }
+    });
+
+    document.getElementById('btnRescanCatalog').addEventListener('click', () => {
+      setPopulated(true);
+      showToast('Simulated: MicroSD scan indexed 24 titles.');
+    });
+    document.getElementById('btnOpenFilesFromLib').addEventListener('click', () => switchScreen('files'));
+
+    // Reader Screen Controls
+    const screenReader = document.getElementById('screen-reader');
+
+    // Page turn zones
+    document.getElementById('zoneTurnPrev').addEventListener('click', (e) => {
+      e.stopPropagation();
+      setReaderPage(store.reader.currentPage - 1);
+    });
+
+    document.getElementById('zoneTurnNext').addEventListener('click', (e) => {
+      e.stopPropagation();
+      setReaderPage(store.reader.currentPage + 1);
+    });
+
+    document.getElementById('zoneToggleHud').addEventListener('click', (e) => {
+      e.stopPropagation();
+      screenReader.classList.toggle('reader-hud-active');
+    });
+
+    document.getElementById('btnReaderBack').addEventListener('click', (e) => {
+      e.stopPropagation();
+      screenReader.classList.remove('reader-hud-active');
+      switchScreen('library');
+    });
+
+    document.getElementById('btnDismissHud').addEventListener('click', (e) => {
+      e.stopPropagation();
+      screenReader.classList.remove('reader-hud-active');
+    });
+
+    document.getElementById('btnHudRefresh').addEventListener('click', (e) => {
+      e.stopPropagation();
+      triggerFlash();
+    });
+
+    // Working Progress Scrubber
+    const pageSlider = document.getElementById('readerPageSlider');
+    pageSlider.addEventListener('input', (e) => {
+      const targetPage = parseInt(e.target.value, 10);
+      document.getElementById('scrubberPageTag').innerText = `${targetPage}/${store.reader.totalPages}`;
+    });
+    pageSlider.addEventListener('change', (e) => {
+      const targetPage = parseInt(e.target.value, 10);
+      setReaderPage(targetPage);
+    });
+
+    // Font Stepper
+    let currentFontSize = 15;
+    document.getElementById('btnFontBigger').addEventListener('click', (e) => {
+      e.stopPropagation();
+      currentFontSize = Math.min(22, currentFontSize + 1);
+      document.getElementById('readerProseContent').style.fontSize = currentFontSize + 'px';
+      document.getElementById('btnFontStatus').innerText = currentFontSize + 'pt Serif';
+    });
+    document.getElementById('btnFontSmaller').addEventListener('click', (e) => {
+      e.stopPropagation();
+      currentFontSize = Math.max(12, currentFontSize - 1);
+      document.getElementById('readerProseContent').style.fontSize = currentFontSize + 'px';
+      document.getElementById('btnFontStatus').innerText = currentFontSize + 'pt Serif';
+    });
+
+    // Margins Toggle
+    let isNarrow = false;
+    document.getElementById('btnToggleMargin').addEventListener('click', (e) => {
+      e.stopPropagation();
+      isNarrow = !isNarrow;
+      const canvas = document.querySelector('.reader-canvas');
+      canvas.style.paddingLeft = isNarrow ? '14px' : '28px';
+      canvas.style.paddingRight = isNarrow ? '14px' : '28px';
+      document.getElementById('btnToggleMargin').innerText = isNarrow ? 'Margins: Wide' : 'Margins: Norm';
+      triggerFlash();
+    });
+
+    // TOC Modal
+    const tocDrawer = document.getElementById('tocDrawer');
+    document.getElementById('btnReaderTOC').addEventListener('click', (e) => {
+      e.stopPropagation();
+      tocDrawer.classList.add('open');
+    });
+    document.getElementById('btnCloseToc').addEventListener('click', (e) => {
+      e.stopPropagation();
+      tocDrawer.classList.remove('open');
+    });
+
+    document.querySelectorAll('.toc-row').forEach(row => {
+      row.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.toc-row').forEach(r => r.classList.remove('active'));
+        row.classList.add('active');
+        const targetPage = parseInt(row.dataset.page, 10);
+        tocDrawer.classList.remove('open');
+        screenReader.classList.remove('reader-hud-active');
+        setReaderPage(targetPage);
+      });
+    });
+
+    // Files Screen Controls
+    document.getElementById('btnFilesToHome').addEventListener('click', () => switchScreen('home'));
+    document.getElementById('btnFilesReturnRoot').addEventListener('click', () => {
+      setPopulated(true);
+      store.currentFolder = '/sdcard/books/';
+      renderFiles();
+    });
+
+    // Settings Screen Controls
+    document.getElementById('btnSettingsToHome').addEventListener('click', () => switchScreen('home'));
+
+    document.getElementById('rowRefreshRate').addEventListener('click', () => {
+      openSettingsDialog('Full Refresh Waveform', ['Every Page', 'Every 5 Pages', 'Every 10 Pages', 'Every 15 Pages', 'Never'], store.settings.refresh, (val) => {
+        store.settings.refresh = val;
+        document.getElementById('valRefreshRate').innerText = val;
+        showToast(`Simulated: E-paper refresh set to ${val}`);
+      });
+    });
+
+    document.getElementById('rowSunlightFix').addEventListener('click', () => {
+      store.settings.sunlight = store.settings.sunlight === 'OFF' ? 'ON' : 'OFF';
+      document.getElementById('valSunlightFix').innerText = store.settings.sunlight;
+      showToast(`Simulated: Sunlight Fading Fix ${store.settings.sunlight}`);
+      triggerFlash();
+    });
+
+    document.getElementById('rowWifi').addEventListener('click', () => {
+      store.settings.wifi = store.settings.wifi === 'CONNECTED' ? 'OFF' : 'CONNECTED';
+      document.getElementById('valWifi').innerText = store.settings.wifi;
+      const icon = document.getElementById('homeWifiIcon');
+      icon.style.display = store.settings.wifi === 'CONNECTED' ? 'inline-block' : 'none';
+      showToast(`Simulated: Wi-Fi toggled ${store.settings.wifi}`);
+      triggerFlash();
+    });
+
+    document.getElementById('rowWebServer').addEventListener('click', () => {
+      store.settings.webserver = store.settings.webserver === 'IDLE' ? 'ACTIVE' : 'IDLE';
+      document.getElementById('valWebServer').innerText = store.settings.webserver;
+      showToast(`Simulated: Web Server ${store.settings.webserver} at :8080`);
+      triggerFlash();
+    });
+
+    // Quick Task Simulator Triggers
+    document.getElementById('flowTestResume').addEventListener('click', () => {
+      switchScreen('home');
+      setTimeout(() => document.getElementById('btnResumeHero').click(), 300);
+    });
+
+    document.getElementById('flowTestTurn').addEventListener('click', () => {
+      switchScreen('reader');
+      setTimeout(() => {
+        document.getElementById('zoneTurnNext').click();
+        setTimeout(() => document.getElementById('zoneToggleHud').click(), 400);
+      }, 300);
+    });
+
+    document.getElementById('flowTestPagination').addEventListener('click', () => {
+      switchScreen('library');
+      setTimeout(() => document.getElementById('btnLibNext').click(), 300);
+    });
+
+    document.getElementById('flowTestFolders').addEventListener('click', () => {
+      switchScreen('files');
+      setTimeout(() => {
+        const sciFiDir = Array.from(document.querySelectorAll('.file-item-row')).find(r => r.innerText.includes('Science Fiction'));
+        if (sciFiDir) sciFiDir.click();
+      }, 300);
+    });
+
+    document.getElementById('flowTestEmpty').addEventListener('click', () => {
+      setPopulated(false);
+      switchScreen('home');
+    });
+
+    // Initial Sync
+    syncHomeHero();
+    renderReaderPage();
+    renderLibrary();
+    renderFiles();
+    updateStatusFeedback();
+  });
+</script>
+
+</body>
+</html>

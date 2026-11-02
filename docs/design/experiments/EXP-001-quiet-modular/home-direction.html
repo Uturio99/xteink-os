@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XTEInk OS — EXP-001 / AD-01: Calm Editorial Utility</title>
+  <style>
+    /* ==========================================================================
+       XTEInk OS Design Tokens — AD-01: Calm Editorial Utility
+       Target: XTEINK X4 Pro (480x800 Portrait E-Paper)
+       Philosophy: Apple Precision × DuRoBo Krono Purposeful Simplicity
+       Strict: 1-Bit Ink, Zero Glass/Shadows/Animations, 32px Lateral Margins
+       ========================================================================== */
+    :root {
+      --ink: #000000;
+      --ink-subtle: #444444;
+      --ink-muted: #777777;
+      --paper: #FFFFFF;
+      --paper-dim: #F6F6F8;
+      --line: #000000;
+      --line-quiet: #D0D0D4;
+      --line-hairline: #E8E8EC;
+
+      /* Canvas & Rhythm */
+      --canvas-w: 480px;
+      --canvas-h: 800px;
+      --pad-x: 32px; /* Strict 30-34px margin rule */
+
+      /* Typography Scale */
+      --font-serif: "Merriweather", "Georgia", "Literata", serif;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Ubuntu", sans-serif;
+      --font-mono: "SF Mono", "Consolas", monospace;
+
+      --fs-micro: 11px;
+      --fs-caption: 12px;
+      --fs-body: 14px;
+      --fs-subhead: 16px;
+      --fs-title: 20px;
+      --fs-hero: 26px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: none;
+      user-select: none;
+    }
+
+    body {
+      background-color: #E6E6EA;
+      font-family: var(--font-sans);
+      color: var(--ink);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 60px;
+      min-height: 100vh;
+    }
+
+    /* Workbench Container */
+    .workbench {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      max-width: 960px;
+      width: 100%;
+    }
+
+    .workbench-header {
+      width: 100%;
+      background: #FFFFFF;
+      border: 1px solid #D0D0D5;
+      border-radius: 12px;
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .header-titles h1 {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-pill {
+      background: #000;
+      color: #FFF;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+
+    .header-titles p {
+      font-size: 12px;
+      color: #666;
+      margin-top: 2px;
+    }
+
+    .state-toggle-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .toggle-btn {
+      background: #FFF;
+      border: 1px solid #AAA;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #222;
+    }
+    .toggle-btn.active {
+      background: #000;
+      color: #FFF;
+      border-color: #000;
+    }
+
+    /* Hardware Simulator Chassis */
+    .chassis {
+      width: 504px;
+      height: 828px;
+      background: #18181A;
+      border-radius: 20px;
+      padding: 14px 12px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .viewport {
+      width: 480px;
+      height: 800px;
+      background: var(--paper);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #222;
+    }
+
+    /* Screen Frame */
+    .screen {
+      width: 480px;
+      height: 800px;
+      background: var(--paper);
+      color: var(--ink);
+      display: flex;
+      flex-direction: column;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    /* 1. Quiet Status Bar (42px) */
+    .masthead {
+      height: 42px;
+      padding: 0 var(--pad-x);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--paper);
+      border-bottom: 1px solid var(--line-hairline);
+      flex-shrink: 0;
+    }
+
+    .status-left, .status-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: var(--fs-caption);
+      font-weight: 600;
+      color: var(--ink-subtle);
+      letter-spacing: 0.02em;
+    }
+
+    .time-mono {
+      font-weight: 700;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .icon-mono {
+      width: 15px;
+      height: 15px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: square;
+      stroke-linejoin: miter;
+      vertical-align: middle;
+      display: inline-block;
+    }
+
+    /* Main Scroll / Canvas Container */
+    .content-canvas {
+      flex: 1;
+      padding: 24px var(--pad-x) 22px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Vietnamese typography protection */
+    .vi-title {
+      line-height: 1.28;
+      text-rendering: optimizeLegibility;
+      word-break: break-word;
+      overflow-wrap: break-word;
+    }
+
+    /* ==========================================================================
+       PO-PULATED STATE: Reading-First Editorial Composition
+       ========================================================================== */
+    .populated-flow {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      justify-content: space-between;
+    }
+
+    /* Asymmetric Hero (Left: Text & Stats, Right: Cover) */
+    .hero-editorial {
+      display: grid;
+      grid-template-columns: 1fr 104px;
+      gap: 20px;
+      align-items: start;
+      padding-top: 4px;
+      cursor: pointer;
+    }
+
+    .hero-text-col {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .hero-kicker {
+      font-size: var(--fs-micro);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      margin-bottom: 4px;
+    }
+
+    .hero-book-title {
+      font-family: var(--font-serif);
+      font-size: var(--fs-hero);
+      font-weight: 700;
+      color: var(--ink);
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .hero-book-author {
+      font-size: var(--fs-body);
+      font-style: italic;
+      color: var(--ink-subtle);
+      margin-top: 2px;
+      margin-bottom: 12px;
+    }
+
+    .hero-meta-block {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .hero-progress-text {
+      font-size: var(--fs-caption);
+      font-weight: 600;
+      color: var(--ink-subtle);
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .hero-progress-bold {
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .hero-rail {
+      width: 100%;
+      height: 3px;
+      background: var(--line-quiet);
+      position: relative;
+    }
+    .hero-rail-fill {
+      height: 100%;
+      background: var(--ink);
+    }
+
+    /* Book Jacket on Right */
+    .hero-jacket-frame {
+      width: 104px;
+      height: 152px;
+      border: 1px solid var(--line);
+      background: var(--paper-dim);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10px 8px;
+      text-align: center;
+      position: relative;
+      box-shadow: none;
+    }
+
+    .jacket-spine-hint {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--ink);
+    }
+
+    .jacket-title-mini {
+      font-family: var(--font-serif);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.22;
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      padding-left: 2px;
+    }
+
+    .jacket-author-mini {
+      font-size: 9px;
+      color: var(--ink-subtle);
+      font-style: italic;
+      padding-left: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Primary Reading CTA (Strictly >=44px, 56px for primary) */
+    .cta-reading-slab {
+      height: 56px;
+      min-height: 56px;
+      background: var(--ink);
+      color: var(--paper);
+      border: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      font-size: var(--fs-subhead);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      text-decoration: none;
+      margin-top: 18px;
+    }
+    .cta-reading-slab:active {
+      background: var(--paper);
+      color: var(--ink);
+    }
+
+    /* Compact Recent Books Section */
+    .recent-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .recent-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      border-bottom: 1px solid var(--line-hairline);
+      padding-bottom: 6px;
+    }
+
+    .recent-heading {
+      font-size: var(--fs-caption);
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+    }
+
+    .recent-all-link {
+      font-size: var(--fs-caption);
+      font-weight: 600;
+      color: var(--ink);
+      text-decoration: none;
+      cursor: pointer;
+      padding: 4px 0;
+    }
+    .recent-all-link:hover {
+      text-decoration: underline;
+    }
+
+    .recent-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .recent-item {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+    }
+
+    .recent-thumb-jacket {
+      width: 100%;
+      height: 122px;
+      border: 1px solid var(--line);
+      background: var(--paper-dim);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 8px 6px;
+      position: relative;
+    }
+
+    .recent-thumb-title {
+      font-family: var(--font-serif);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.22;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .recent-thumb-author {
+      font-size: 9px;
+      color: var(--ink-muted);
+      margin-top: 3px;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .recent-progress-tag {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      background: var(--ink);
+      color: var(--paper);
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 4px;
+    }
+
+    .recent-item-title {
+      font-size: var(--fs-caption);
+      font-weight: 700;
+      line-height: 1.25;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .recent-item-author {
+      font-size: var(--fs-micro);
+      color: var(--ink-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* 3 Direct Utility Actions (Lower Section, No 4-tab bar) */
+    .utility-strip {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      border-top: 1px solid var(--line-quiet);
+      padding-top: 14px;
+      margin-top: 16px;
+    }
+
+    .util-btn {
+      height: 52px;
+      min-height: 48px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      font-size: var(--fs-caption);
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .util-btn:active {
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    /* ==========================================================================
+       EMPTY STATE: Calm Onboarding & Sideload Guidance
+       ========================================================================== */
+    .empty-flow {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      justify-content: space-between;
+    }
+
+    .empty-hero-block {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-top: 8px;
+    }
+
+    .empty-eyebrow {
+      font-size: var(--fs-micro);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+    }
+
+    .empty-title {
+      font-family: var(--font-serif);
+      font-size: var(--fs-hero);
+      font-weight: 700;
+      line-height: 1.25;
+      color: var(--ink);
+    }
+
+    .empty-copy {
+      font-size: var(--fs-body);
+      color: var(--ink-subtle);
+      line-height: 1.45;
+      margin-top: 4px;
+    }
+
+    .import-options-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .import-tile {
+      border: 1px solid var(--line);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 56px;
+      cursor: pointer;
+      background: var(--paper);
+    }
+    .import-tile:active {
+      background: var(--paper-dim);
+    }
+
+    .import-tile-info h3 {
+      font-size: var(--fs-body);
+      font-weight: 700;
+    }
+    .import-tile-info p {
+      font-size: var(--fs-micro);
+      color: var(--ink-subtle);
+      margin-top: 2px;
+    }
+
+    .import-tile-arrow {
+      font-size: var(--fs-caption);
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .storage-health-card {
+      border: 1px dashed var(--line-quiet);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      background: var(--paper-dim);
+    }
+
+    .storage-health-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: var(--fs-caption);
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    /* Simulation Notification */
+    .sim-toast {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--ink);
+      color: var(--paper);
+      padding: 8px 16px;
+      font-size: var(--fs-caption);
+      font-weight: 700;
+      border: 1px solid var(--line);
+      display: none;
+      z-index: 1000;
+      white-space: nowrap;
+    }
+    .sim-toast.show {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+<div class="workbench">
+
+  <!-- Top Study Toolbar -->
+  <header class="workbench-header">
+    <div class="header-titles">
+      <h1>
+        <span class="badge-pill">AD-01</span>
+        Calm Editorial Utility
+      </h1>
+      <p>EXP-001 Home Study: Apple Visual Hierarchy × DuRoBo Krono Purposeful Simplicity</p>
+    </div>
+
+    <div class="state-toggle-group">
+      <button class="toggle-btn active" id="btnShowPopulated">Populated State</button>
+      <button class="toggle-btn" id="btnShowEmpty">Empty / Ingest State</button>
+    </div>
+  </header>
+
+  <!-- Hardware Frame (480x800) -->
+  <div class="chassis">
+    <div class="viewport" id="viewport">
+
+      <!-- Simulated Toast -->
+      <div class="sim-toast" id="toast">Action</div>
+
+      <div class="screen" id="homeScreen">
+
+        <!-- 1. Quiet Top Status Area (42px) -->
+        <header class="masthead">
+          <div class="status-left">
+            <span class="time-mono">14:45</span>
+            <span>·</span>
+            <span>SD 32GB</span>
+          </div>
+          <div class="status-right">
+            <svg class="icon-mono" viewBox="0 0 24 24">
+              <path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/>
+            </svg>
+            <span>86%</span>
+            <svg class="icon-mono" viewBox="0 0 24 24" style="width: 17px; height: 17px;">
+              <rect x="2" y="7" width="16" height="10" rx="1"/>
+              <line x1="20" y1="11" x2="20" y2="13"/>
+              <rect x="4" y="9" width="10" height="6" fill="currentColor"/>
+            </svg>
+          </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="content-canvas">
+
+          <!-- ==============================================================
+               STATE 1: POPULATED (Reading-First Composition)
+               ============================================================== -->
+          <div class="populated-flow" id="statePopulated">
+            <!-- 1. Dominant Reading Hero + Primary CTA -->
+            <div>
+              <div class="hero-editorial" id="heroTouchRegion">
+                <!-- Left: Title, Author, Milestone & Progress -->
+                <div class="hero-text-col">
+                  <span class="hero-kicker">Current Reading</span>
+                  <h2 class="hero-book-title vi-title">The Left Hand of Darkness</h2>
+                  <div class="hero-book-author vi-title">Ursula K. Le Guin</div>
+                  
+                  <div class="hero-meta-block">
+                    <div class="hero-progress-text">
+                      <span class="hero-progress-bold">64%</span>
+                      <span>·</span>
+                      <span>Ch. 4: The Semi-Annual</span>
+                      <span>·</span>
+                      <span>42 p. left</span>
+                    </div>
+                    <div class="hero-rail">
+                      <div class="hero-rail-fill" style="width: 64%;"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Right: High-Contrast Companion Book Jacket -->
+                <div class="hero-jacket-frame">
+                  <div class="jacket-spine-hint"></div>
+                  <div class="jacket-title-mini">The Left Hand of Darkness</div>
+                  <div class="jacket-author-mini">U.K. Le Guin</div>
+                </div>
+              </div>
+
+              <!-- 2. Primary Reading CTA (56px) -->
+              <button class="cta-reading-slab" id="btnResume">
+                <span>Continue Reading</span>
+                <span style="font-size: 18px;">&rarr;</span>
+              </button>
+            </div>
+
+            <!-- 3. Secondary Content: Compact Recent Books Shelf -->
+            <section class="recent-section">
+              <div class="recent-header">
+                <span class="recent-heading">Recent Books</span>
+                <a class="recent-all-link" id="linkAllBooks">All 24 &rarr;</a>
+              </div>
+
+              <div class="recent-grid">
+                <!-- Book 1 -->
+                <article class="recent-item" data-title="Dune">
+                  <div class="recent-thumb-jacket">
+                    <div class="recent-thumb-title">Dune</div>
+                    <div class="recent-thumb-author">F. Herbert</div>
+                    <span class="recent-progress-tag">31%</span>
+                  </div>
+                  <div class="recent-item-title">Dune</div>
+                  <div class="recent-item-author">Frank Herbert</div>
+                </article>
+
+                <!-- Book 2: Vietnamese Diacritic Verification -->
+                <article class="recent-item" data-title="Nỗi Buồn Chiến Tranh">
+                  <div class="recent-thumb-jacket">
+                    <div class="recent-thumb-title vi-title">Nỗi Buồn Chiến Tranh</div>
+                    <div class="recent-thumb-author vi-title">Bảo Ninh</div>
+                    <span class="recent-progress-tag">88%</span>
+                  </div>
+                  <div class="recent-item-title vi-title">Nỗi Buồn Chiến Tranh</div>
+                  <div class="recent-item-author vi-title">Bảo Ninh</div>
+                </article>
+
+                <!-- Book 3 -->
+                <article class="recent-item" data-title="Neuromancer">
+                  <div class="recent-thumb-jacket">
+                    <div class="recent-thumb-title">Neuromancer</div>
+                    <div class="recent-thumb-author">W. Gibson</div>
+                    <span class="recent-progress-tag">12%</span>
+                  </div>
+                  <div class="recent-item-title">Neuromancer</div>
+                  <div class="recent-item-author">William Gibson</div>
+                </article>
+              </div>
+            </section>
+
+            <!-- 4. Direct Utility Access (Three Discrete Lower Actions) -->
+            <footer class="utility-strip">
+              <button class="util-btn" id="btnUtilLibrary">
+                <svg class="icon-mono" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                <span>Library</span>
+              </button>
+              <button class="util-btn" id="btnUtilAdd">
+                <svg class="icon-mono" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>Add Books</span>
+              </button>
+              <button class="util-btn" id="btnUtilSettings">
+                <svg class="icon-mono" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <span>Settings</span>
+              </button>
+            </footer>
+          </div>
+
+          <!-- ==============================================================
+               STATE 2: EMPTY (Prioritized Ingestion / Onboarding)
+               ============================================================== -->
+          <div class="empty-flow" id="stateEmpty" style="display: none;">
+            <div>
+              <div class="empty-hero-block">
+                <span class="empty-eyebrow">Setup &amp; Import</span>
+                <h2 class="empty-title">Your reader is ready.<br>Add books to begin.</h2>
+                <p class="empty-copy">
+                  MicroSD card is formatted as FAT32 and online. Transfer EPUB or TXT files using any direct method below.
+                </p>
+              </div>
+
+              <!-- Actionable Ingestion Paths -->
+              <div class="import-options-stack">
+                <div class="import-tile" id="tileWebServer">
+                  <div class="import-tile-info">
+                    <h3>1. Wi-Fi Web Server (HTTP)</h3>
+                    <p>Browser upload portal at http://192.168.1.150:8080</p>
+                  </div>
+                  <div class="import-tile-arrow"><span>START</span> <span>&rarr;</span></div>
+                </div>
+
+                <div class="import-tile" id="tileSDCard">
+                  <div class="import-tile-info">
+                    <h3>2. SD Card File Browser</h3>
+                    <p>Open unindexed books from custom folders</p>
+                  </div>
+                  <div class="import-tile-arrow"><span>BROWSE</span> <span>&rarr;</span></div>
+                </div>
+
+                <div class="import-tile" id="tileUsbSideload">
+                  <div class="import-tile-info">
+                    <h3>3. USB-C Mass Storage</h3>
+                    <p>Connect cable to PC and drag files into /books/</p>
+                  </div>
+                  <div class="import-tile-arrow"><span>INFO</span> <span>&rarr;</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Lower Section: Storage Health + Utility Actions -->
+            <div>
+              <div class="storage-health-card">
+                <div class="storage-health-row">
+                  <span>MicroSD Storage Capacity</span>
+                  <span>FAT32 · 28.4 GB Free</span>
+                </div>
+                <div class="hero-rail" style="margin: 4px 0;">
+                  <div class="hero-rail-fill" style="width: 11%;"></div>
+                </div>
+                <div style="font-size: 11px; color: var(--ink-subtle);">
+                  Mounted at /sdcard/books/ · 0 titles in catalog
+                </div>
+              </div>
+
+              <!-- Lower Utilities preserved in Empty state -->
+              <footer class="utility-strip" style="margin-top: 14px;">
+                <button class="util-btn" id="btnEmptyLibrary">
+                  <svg class="icon-mono" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                  <span>Library</span>
+                </button>
+                <button class="util-btn" id="btnEmptyAdd">
+                  <svg class="icon-mono" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  <span>Add Books</span>
+                </button>
+                <button class="util-btn" id="btnEmptySettings">
+                  <svg class="icon-mono" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                  <span>Settings</span>
+                </button>
+              </footer>
+            </div>
+          </div>
+
+        </main>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const statePopulated = document.getElementById('statePopulated');
+  const stateEmpty = document.getElementById('stateEmpty');
+  const btnShowPopulated = document.getElementById('btnShowPopulated');
+  const btnShowEmpty = document.getElementById('btnShowEmpty');
+  const toast = document.getElementById('toast');
+
+  function showFeedback(msg) {
+    toast.innerText = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+  }
+
+  btnShowPopulated.addEventListener('click', () => {
+    btnShowPopulated.classList.add('active');
+    btnShowEmpty.classList.remove('active');
+    statePopulated.style.display = 'flex';
+    stateEmpty.style.display = 'none';
+  });
+
+  btnShowEmpty.addEventListener('click', () => {
+    btnShowEmpty.classList.add('active');
+    btnShowPopulated.classList.remove('active');
+    statePopulated.style.display = 'none';
+    stateEmpty.style.display = 'flex';
+  });
+
+  // Action feedback
+  document.getElementById('btnResume').addEventListener('click', () => showFeedback('Triggered: Resume Reading'));
+  document.getElementById('heroTouchRegion').addEventListener('click', () => showFeedback('Triggered: Open Current Book'));
+  document.getElementById('linkAllBooks').addEventListener('click', () => showFeedback('Triggered: Open Library (24 Titles)'));
+  document.getElementById('btnUtilLibrary').addEventListener('click', () => showFeedback('Direct Action: Open Library'));
+  document.getElementById('btnUtilAdd').addEventListener('click', () => showFeedback('Direct Action: Add / Import Books'));
+  document.getElementById('btnUtilSettings').addEventListener('click', () => showFeedback('Direct Action: Open Settings'));
+
+  document.querySelectorAll('.recent-item').forEach(el => {
+    el.addEventListener('click', () => showFeedback(`Open: ${el.dataset.title}`));
+  });
+
+  // Empty state actions
+  document.getElementById('tileWebServer').addEventListener('click', () => showFeedback('Action: Start Web Server (HTTP :8080)'));
+  document.getElementById('tileSDCard').addEventListener('click', () => showFeedback('Action: Browse SD Filesystem'));
+  document.getElementById('tileUsbSideload').addEventListener('click', () => showFeedback('Action: USB Sideload Help'));
+  document.getElementById('btnEmptyLibrary').addEventListener('click', () => showFeedback('Direct Action: Open Library'));
+  document.getElementById('btnEmptyAdd').addEventListener('click', () => showFeedback('Direct Action: Add Books'));
+  document.getElementById('btnEmptySettings').addEventListener('click', () => showFeedback('Direct Action: Open Settings'));
+</script>
+
+</body>
+</html>

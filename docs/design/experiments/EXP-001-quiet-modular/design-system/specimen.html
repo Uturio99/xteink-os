@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>XOS-DL 1.0 | Quiet Editorial Utility — Design Specimen</title>
+<style>
+:root{--ink:#111;--secondary:#414141;--paper:#fff;--warm:#ebebeb;--rule:#bdbdbd;--side:32px;--serif:'Noto Serif','Georgia','DejaVu Serif',serif;--sans:system-ui,'Arial',sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:#e9e9e9;font-family:var(--sans);color:var(--ink)}
+.lab{max-width:1000px;margin:24px auto;padding:0 16px 40px}
+.labhead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.labhead h1{font-size:16px;font-weight:650;letter-spacing:-.02em;margin:0}
+.labhead p{margin:6px 0 0;font-size:12px;color:#555}
+.labnav{display:flex;gap:6px;flex-wrap:wrap}
+.labnav button{background:#fff;border:1px solid #bbb;padding:9px 12px;font:600 12px var(--sans);cursor:pointer}
+.labnav button.selected{background:#111;color:#fff;border-color:#111}
+.workspace{display:flex;gap:24px;align-items:flex-start;justify-content:center;flex-wrap:wrap}
+.device{width:480px;height:800px;background:#fff;box-shadow:0 8px 26px #00000017;position:relative;overflow:hidden;flex:none}
+.screen{display:none;width:480px;height:800px;background:var(--paper);position:absolute;inset:0;overflow:hidden}
+.screen.active{display:block}
+.topline{height:64px;padding:25px var(--side) 0;display:flex;justify-content:space-between;align-items:flex-start}
+.wordmark{font:650 13px/19px var(--sans);letter-spacing:.18em}
+.status{font:500 12px/19px var(--sans);color:var(--secondary);display:flex;gap:9px;align-items:center}
+.status svg{width:16px;height:16px;stroke:currentColor;stroke-width:1.7;fill:none}
+.textlabel{font:600 12px/17px var(--sans);letter-spacing:.12em;color:var(--secondary)}
+.serif{font-family:var(--serif)}
+button{font-family:var(--sans)}
+button:focus-visible,[role=button]:focus-visible{outline:2px solid #111;outline-offset:3px}
+.action{display:inline-flex;align-items:center;justify-content:space-between;min-height:56px;min-width:176px;border:0;border-radius:28px;padding:0 20px;color:#fff;background:#111;font:600 15px var(--sans);cursor:pointer;gap:20px}
+.action svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8}
+.link{border:0;background:transparent;color:var(--ink);font:500 13px var(--sans);min-height:48px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;padding:0}
+.arrow{font-size:19px;line-height:1}
+/* HOME: authored as semantic vertical bands, no flex spacer layout. */
+.homehero{padding:26px var(--side) 0}
+.homehero-main{display:grid;grid-template-columns:minmax(0,1fr) 108px;gap:18px;margin-top:17px;align-items:start}
+.hero-title{font:600 34px/1.22 var(--serif);margin:0;letter-spacing:-.035em;max-width:270px;overflow-wrap:break-word}
+.hero-author{font:400 14px/20px var(--sans);margin:10px 0 0;color:var(--secondary)}
+.hero-progress{font:500 13px/19px var(--sans);margin:20px 0 0;color:var(--secondary)}
+.jacket{width:108px;height:154px;background:#222;color:#fff;padding:14px 11px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.jacket:before{content:'';width:130px;height:1px;background:#fff;transform:rotate(-56deg);position:absolute;left:-20px;top:81px;opacity:.55}
+.jacket .jtitle{font:600 13px/19px var(--serif);position:relative;z-index:1}
+.jacket small{font:500 9px/13px var(--sans);letter-spacing:.06em;position:relative;z-index:1}
+.herocta{margin-top:25px}
+.home-recent{margin:48px var(--side) 0}
+.sectionrow{display:flex;align-items:baseline;justify-content:space-between}
+.sectionrow h2{font:600 17px/23px var(--sans);margin:0}
+.recent-list{margin-top:12px}
+.bookrow{border:0;border-top:1px solid #e1e1e1;background:#fff;width:100%;display:flex;align-items:center;text-align:left;gap:13px;padding:8px 0;min-height:77px;cursor:pointer;color:var(--ink)}
+.bookrow:last-child{border-bottom:1px solid #e1e1e1}
+.thumb{width:40px;height:57px;background:#eee;border:1px solid #ddd;flex:none;display:flex;align-items:center;justify-content:center;font:600 10px/13px var(--serif);text-align:center;padding:3px}
+.bkmeta{flex:1;min-width:0}
+.bkmeta strong{display:block;font:600 15px/20px var(--sans);white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+.bkmeta span{display:block;font:400 13px/19px var(--sans);color:var(--secondary);margin-top:2px}
+.bookrow .pct{font:500 12px/17px var(--sans);color:var(--secondary)}
+.homeutility{margin:28px var(--side) 0}
+.utilitymain{border:0;width:100%;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #111;background:#fff;min-height:60px;cursor:pointer;padding:0;text-align:left;color:var(--ink)}
+.utilitymain strong{font:600 17px/23px var(--sans)}
+.utilitymain span{font:400 13px/19px var(--sans);color:var(--secondary)}
+.utilitysmall{display:flex;justify-content:space-between;gap:22px}
+.utilitysmall button{display:flex;justify-content:space-between;align-items:center;flex:1;text-align:left;min-height:54px;border:0;background:#fff;font:500 14px/21px var(--sans);cursor:pointer;padding:0;color:var(--ink)}
+/* HOME EMPTY */
+.emptycontent{padding:56px var(--side) 0}
+.emptycontent h1{margin:21px 0 0;font:600 36px/1.21 var(--serif);letter-spacing:-.03em;max-width:375px}
+.emptycontent p{margin:20px 0 0;font:400 15px/23px var(--sans);color:var(--secondary);max-width:350px}
+.emptycontent .action{margin-top:33px}
+.empty-methods{margin-top:73px}
+.empty-methods h2{font:600 17px/23px var(--sans);margin:0 0 12px}
+.method{min-height:65px;border:0;border-top:1px solid #ddd;background:#fff;display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;cursor:pointer;padding:0}
+.method:last-child{border-bottom:1px solid #ddd}
+.method strong{font:500 15px/22px var(--sans)}
+.method small{display:block;font:400 12px/17px var(--sans);color:var(--secondary);margin-top:2px}
+.emptyfoot{margin-top:29px;display:flex;justify-content:space-between}
+/* LIBRARY */
+.backrow{min-height:48px;display:flex;align-items:center;padding:0 var(--side)}
+.backrow .link{font-size:13px}
+.libhead{padding:31px var(--side) 0}
+.page-title{margin:0;font:600 34px/42px var(--serif);letter-spacing:-.03em}
+.page-sub{font:400 13px/19px var(--sans);color:var(--secondary);margin:6px 0 0}
+.libactions{display:flex;gap:20px;align-items:center;margin-top:26px;border-bottom:1px solid #bdbdbd}
+.libactions button{min-height:50px;border:0;background:#fff;padding:0;font:500 14px/19px var(--sans);cursor:pointer;color:#555;position:relative}
+.libactions button.active{color:#111;font-weight:600}
+.libactions button.active:after{content:'';height:2px;background:#111;position:absolute;bottom:0;left:0;right:0}
+.liblist{padding:16px var(--side) 0}
+.liblist .bookrow{min-height:91px}
+.liblist .thumb{width:50px;height:71px}
+.liblist .bkmeta strong{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+.libtail{position:absolute;left:var(--side);right:var(--side);bottom:22px;display:flex;align-items:center;justify-content:space-between;font:400 13px var(--sans);color:var(--secondary)}
+/* READER */
+.reader{padding:37px 34px 0}
+.readerstatus{display:flex;justify-content:space-between;font:400 12px/17px var(--sans);color:var(--secondary)}
+.readertitle{font:600 24px/34px var(--serif);margin:48px 0 28px}
+.reader p{font:400 19px/1.65 var(--serif);margin:0 0 20px;text-align:left}
+.readerfoot{position:absolute;bottom:26px;left:34px;right:34px;display:flex;justify-content:space-between;align-items:center;font:400 12px var(--sans);color:var(--secondary)}
+.readerhud{display:none;position:absolute;bottom:0;left:0;right:0;padding:22px 32px 28px;background:#fff;border-top:1px solid #111}
+.readerhud.show{display:block}
+.readerhud strong{font:600 15px var(--sans)}
+.readerhud .hudlinks{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:13px}
+.readerhud button{border:0;background:transparent;font:500 14px var(--sans);min-height:48px;cursor:pointer;padding:0}
+/* COMPONENT SHEET */
+.specsheet{padding:22px var(--side) 42px}
+#screen-specimen{overflow-y:auto}
+.specsheet h1{font:600 30px/38px var(--serif);margin:28px 0 10px}
+.specsheet h2{font:600 17px/23px var(--sans);margin:28px 0 12px}
+.specsheet p{font:400 14px/21px var(--sans);color:var(--secondary);margin:0}
+.swatches{display:flex;gap:14px;margin:17px 0}
+.swatch{width:75px;text-align:center;font:500 11px var(--sans)}
+.swatch b{display:block;width:75px;height:50px;border:1px solid #bbb;margin-bottom:5px}
+.specdivider{height:1px;background:#bdbdbd;margin-top:18px}
+.specsmall{font:400 12px/17px var(--sans);color:#444;margin-top:7px}
+.note{font:400 12px/18px var(--sans);color:#444;max-width:320px;margin:0}
+.notice{font:500 12px/18px var(--sans);color:#666;max-width:330px}
+@media(max-width:600px){.lab{padding:0 0 30px;margin:0}.labhead{padding:12px 14px}.workspace{display:block;overflow-x:auto}.device{box-shadow:none}}
+</style>
+</head>
+<body>
+<div class="lab">
+  <div class="labhead"><div><h1>XOS-DL 1.0 · Quiet Editorial Utility</h1><p>PROPOSED · Concept B only · 480×800 · Import/Settings are labeled design-only actions</p></div><nav class="labnav" aria-label="Specimen screens"><button class="selected" data-screen="home">Home</button><button data-screen="empty">Empty</button><button data-screen="library">Library</button><button data-screen="reader">Reader</button><button data-screen="specimen">Tokens</button></nav></div>
+  <div class="workspace"><div class="device" id="device">
+    <!-- HOME -->
+    <main class="screen active" id="screen-home">
+      <div class="topline"><span class="wordmark">XTEINK</span><span class="status">THỨ HAI · 02 TH11 <svg viewBox="0 0 24 24"><rect x="2" y="7" width="18" height="11" rx="1"/><path d="M22 11v4"/><rect x="4" y="9" width="13" height="7" fill="currentColor" stroke="none"/></svg></span></div>
+      <section class="homehero"><span class="textlabel">ĐANG ĐỌC</span><div class="homehero-main"><div><h1 class="hero-title">Nỗi buồn<br>chiến tranh</h1><p class="hero-author">Bảo Ninh</p><p class="hero-progress">Chương 8 <span aria-hidden="true">·</span> 64% đã đọc</p></div><div class="jacket" role="img" aria-label="Typography-only illustrative book jacket, not real cover"><div class="jtitle">Nỗi buồn<br>chiến tranh</div><small>BẢO NINH</small></div></div><button class="action herocta" data-go="reader">Đọc tiếp <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></section>
+      <section class="home-recent"><div class="sectionrow"><h2>Đọc gần đây</h2><button class="link" data-go="library">Xem tất cả <span class="arrow">›</span></button></div><div class="recent-list"><button class="bookrow" data-go="reader"><span class="thumb">DUNE</span><span class="bkmeta"><strong>Dune</strong><span>Frank Herbert</span></span><span class="pct">31%</span></button><button class="bookrow" data-go="reader"><span class="thumb">NẮNG<br>QUA</span><span class="bkmeta"><strong>Nắng qua thềm cũ</strong><span>Truyện đọc gần đây</span></span><span class="pct">12%</span></button></div></section>
+      <section class="homeutility"><button class="utilitymain" data-go="library"><strong>Thư viện</strong><span>24 cuốn &nbsp; →</span></button><div class="utilitysmall"><button data-stub="Import / Add Books">Thêm sách <span>→</span></button><button data-stub="Settings">Cài đặt <span>→</span></button></div></section>
+    </main>
+    <!-- EMPTY HOME -->
+    <main class="screen" id="screen-empty"><div class="topline"><span class="wordmark">XTEINK</span><span class="status">THỨ HAI · 02 TH11</span></div><section class="emptycontent"><span class="textlabel">BẮT ĐẦU ĐỌC</span><h1>Trang sách đầu tiên đang chờ bạn.</h1><p>Thư viện của bạn chưa có sách. Thêm tệp EPUB hoặc TXT để bắt đầu.</p><button class="action" data-stub="Import / Add Books">Thêm sách <span>→</span></button><div class="empty-methods"><h2>Cách thêm sách</h2><button class="method" data-stub="Files Browser"><span><strong>Duyệt tệp trên thẻ nhớ</strong><small>Tìm những cuốn sách đã có</small></span><span>→</span></button><button class="method" data-stub="Wi-Fi Transfer"><span><strong>Chuyển sách qua Wi-Fi</strong><small>Chỉ dùng khi firmware hỗ trợ</small></span><span>→</span></button></div><div class="emptyfoot"><button class="link" data-go="library">Thư viện →</button><button class="link" data-stub="Settings">Cài đặt →</button></div></section></main>
+    <!-- LIBRARY -->
+    <main class="screen" id="screen-library"><div class="backrow"><button class="link" data-go="home">← &nbsp; Trang chủ</button></div><section class="libhead"><h1 class="page-title">Thư viện</h1><p class="page-sub">24 cuốn sách · Sắp xếp theo hoạt động gần đây</p><div class="libactions"><button class="active" data-filter="Gần đây">Gần đây</button><button data-filter="Tên">Tên sách</button><button data-filter="Tác giả">Tác giả</button><button aria-label="Search" onclick="alert('Search: UI pattern only; CrossPoint keyboard needs native validation')">Tìm kiếm ↗</button></div></section><section class="liblist"><button class="bookrow" data-go="reader"><span class="thumb">NỖI BUỒN</span><span class="bkmeta"><strong>Nỗi buồn chiến tranh</strong><span>Bảo Ninh · Đang đọc</span></span><span class="pct">64%</span></button><button class="bookrow" data-go="reader"><span class="thumb">DUNE</span><span class="bkmeta"><strong>Dune</strong><span>Frank Herbert</span></span><span class="pct">31%</span></button><button class="bookrow" data-go="reader"><span class="thumb">SÁCH</span><span class="bkmeta"><strong>Những người khốn khổ — Tập thứ nhất</strong><span>Victor Hugo</span></span><span class="pct">Chưa đọc</span></button><button class="bookrow" data-go="reader"><span class="thumb">NẮNG</span><span class="bkmeta"><strong>Nắng qua thềm cũ</strong><span>Truyện đọc gần đây</span></span><span class="pct">12%</span></button></section><div class="libtail"><span>Hiển thị 4 / 24</span><span>Trang 1 →</span></div></main>
+    <!-- READER -->
+    <main class="screen" id="screen-reader"><section class="reader"><div class="readerstatus"><span>Nỗi buồn chiến tranh</span><span>64%</span></div><h1 class="readertitle">Một trang sách bình yên</h1><p>Sáng hôm ấy, thành phố thức dậy chậm rãi. Những tán cây đứng yên dưới ánh trời nhạt, còn tiếng bước chân rơi nhẹ trên con đường quen thuộc.</p><p>Ở một góc nhà nhỏ, cuốn sách vẫn mở tại trang hôm qua. Người đọc trở lại, không phải để tìm một điều vĩ đại, mà để tiếp nối một dòng suy nghĩ còn dang dở.</p><p>Đôi khi, sự yên tĩnh cũng là một chức năng. Nó nhường chỗ cho câu chuyện, và để mọi thứ khác chờ đến lúc cần thiết.</p></section><div class="readerfoot"><span>38 / 180</span><button class="link" id="btnHud">Công cụ đọc ↑</button></div><div class="readerhud" id="hud"><strong>Công cụ đọc</strong><div class="hudlinks"><button data-go="library">← Thư viện</button><button id="btnSize">Cỡ chữ A+</button><button id="btnCloseHud">Đóng ×</button></div></div></main>
+    <!-- TOKENS -->
+    <main class="screen" id="screen-specimen"><div class="backrow"><button class="link" data-go="home">← &nbsp; Trang chủ</button></div><section class="specsheet"><div class="textlabel">HỆ THỐNG THIẾT KẾ / v1.0</div><h1>Ít nhưng<br>đúng chỗ.</h1><p>Reading-first hierarchy. Intentional whitespace. 1-bit-first semantics.</p><h2>Type scale</h2><div style="font:600 34px/42px var(--serif)">Một cuốn sách</div><div style="font:600 17px/23px var(--sans);margin-top:5px">Section / 17px</div><div style="font:400 15px/22px var(--sans);margin-top:5px">Body / 15px — Nỗi buồn chiến tranh</div><div class="specsmall">Secondary / 13px · Metadata / 12px</div><div class="specdivider"></div><h2>Contrast (1-bit semantics)</h2><div class="swatches"><div class="swatch"><b style="background:#111"></b>Ink</div><div class="swatch"><b style="background:#fff"></b>Paper</div><div class="swatch"><b style="background:#ebebeb"></b>Preview*</div></div><p class="note">*Preview gray must never carry unique semantic meaning; verify black/white threshold output.</p><div class="specdivider"></div><h2>Primary action</h2><button class="action" data-go="home">Đọc tiếp <span>→</span></button><p class="specsmall">One prominent filled action per screen. Other controls are quiet, discoverable text actions.</p><div class="specdivider"></div><h2>Touch / focus</h2><div class="notice">≥48px secondary target · ≥56px primary. Real X4 Pro touch and reader-font benchmarks remain unverified.</div></section></main>
+  </div></div>
+</div>
+<script>
+function go(screen){document.querySelectorAll('.screen').forEach(e=>e.classList.toggle('active',e.id==='screen-'+screen));document.querySelectorAll('.labnav [data-screen]').forEach(e=>e.classList.toggle('selected',e.dataset.screen===screen));if(screen!=='reader')document.getElementById('hud').classList.remove('show')}
+document.querySelectorAll('[data-screen]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.screen)));
+document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.go)));
+document.querySelectorAll('[data-stub]').forEach(b=>b.addEventListener('click',()=>alert('DESIGN-ONLY ACTION: '+b.dataset.stub+'. Native CrossPoint route not verified in this specimen.')));
+document.querySelectorAll('[data-filter]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-filter]').forEach(x=>x.classList.toggle('active',x===b))}));
+document.getElementById('btnHud').addEventListener('click',()=>document.getElementById('hud').classList.toggle('show'));
+document.getElementById('btnCloseHud').addEventListener('click',()=>document.getElementById('hud').classList.remove('show'));
+document.getElementById('btnSize').addEventListener('click',()=>{let paragraphs=document.querySelectorAll('#screen-reader p');for(const p of paragraphs)p.style.fontSize=(parseInt(getComputedStyle(p).fontSize,10)+1)+'px'});
+</script>
+</body></html>
