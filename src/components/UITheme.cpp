@@ -32,7 +32,13 @@ void UITheme::reload() {
 
 bool UITheme::supportsCoverGrid() { return HalMemory::getPsramHeap().totalBytes > 0; }
 
-bool UITheme::hasCoverGridHome() { return SETTINGS.uiTheme == CrossPointSettings::COVER_GRID && supportsCoverGrid(); }
+bool UITheme::hasCoverGridHome() {
+#if FREEINK_DEVICE_X4PRO
+  return supportsCoverGrid();
+#else
+  return SETTINGS.uiTheme == CrossPointSettings::COVER_GRID && supportsCoverGrid();
+#endif
+}
 
 void UITheme::drawCoverGridHome(CoverGridHomeUi& home) { home.renderUi(); }
 

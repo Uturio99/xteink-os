@@ -10,6 +10,8 @@
 
 #include "MappedInputManager.h"
 #include "UITheme.h"
+#include "X4ProHomeLayout.h"
+#include "components/controls/button.h"
 #include "icons/blocks.h"
 #include "icons/book.h"
 #include "icons/folder.h"
@@ -51,11 +53,14 @@ void CoverGridHomeUi::refreshCoverPaths() {
 void CoverGridHomeUi::refreshCoverPath(size_t index) {
   if (index >= books->size() || index >= coverPaths.size()) return;
   coverCache.invalidate(index);
-  coverPaths[index] =
-      thumbHeight > 0 ? UITheme::getCoverThumbPath((*books)[index].coverBmpPath, thumbHeight) : std::string();
+  coverPaths[index] = thumbHeights[index] > 0
+                          ? UITheme::getCoverThumbPath((*books)[index].coverBmpPath, thumbHeights[index])
+                          : std::string();
 }
 
-int CoverGridHomeUi::thumbHeightFor() const { return thumbHeight > 0 ? thumbHeight : THUMB_HEIGHT; }
+int CoverGridHomeUi::thumbHeightFor(const size_t index) const {
+  return index < thumbHeights.size() && thumbHeights[index] > 0 ? thumbHeights[index] : THUMB_HEIGHT;
+}
 
 bool CoverGridHomeUi::takeThumbHeightChanged() { return std::exchange(thumbHeightChanged, false); }
 
@@ -65,11 +70,28 @@ void CoverGridHomeUi::noteThumbHeight(int slotHeight) {
   // rightward nudge never exposes the left edge; covers narrower than the
   // 2:3 slot may show a thin sliver at the sides rather than being cropped.
   const int height = std::max(1, slotHeight + 8);
-  if (thumbHeight != height) {
-    thumbHeight = height;
-    thumbHeightChanged = true;
-    refreshCoverPaths();
+  bool changed = false;
+  for (size_t i = 0; i < books->size() && i < thumbHeights.size(); ++i) {
+    if (thumbHeights[i] == height) continue;
+    thumbHeights[i] = height;
+    changed = true;
   }
+  if (!changed) return;
+  thumbHeightChanged = true;
+  refreshCoverPaths();
+}
+
+void CoverGridHomeUi::noteThumbHeights(const int heroSlotHeight, const int shelfSlotHeight) {
+  bool changed = false;
+  for (size_t i = 0; i < books->size() && i < thumbHeights.size(); ++i) {
+    const int height = std::max(1, (i == 0 ? heroSlotHeight : shelfSlotHeight) + 8);
+    if (thumbHeights[i] == height) continue;
+    thumbHeights[i] = height;
+    changed = true;
+  }
+  if (!changed) return;
+  thumbHeightChanged = true;
+  refreshCoverPaths();
 }
 
 void CoverGridHomeUi::onAction(const fui::ActionEvent& event, void* user) {
@@ -84,9 +106,25 @@ int CoverGridHomeUi::selectedAction(const MappedInputManager& input) {
   return touch.snap.touchReleased ? pending : -1;
 }
 
+int CoverGridHomeUi::visibleBookCount() const {
+  if (!books) return 0;
+#if FREEINK_DEVICE_X4PRO
+  if (renderer.getScreenWidth() == 480 && renderer.getScreenHeight() == 800) {
+    return x4ProVisibleBookCount(static_cast<int>(books->size()));
+  }
+#endif
+  return static_cast<int>(books->size());
+}
+
 void CoverGridHomeUi::screenFn(UiScreen& screen, void* user) { static_cast<CoverGridHomeUi*>(user)->draw(screen); }
 
 void CoverGridHomeUi::draw(UiScreen& screen) {
+#if FREEINK_DEVICE_X4PRO
+  if (renderer.getScreenWidth() == 480 && renderer.getScreenHeight() == 800) {
+    drawX4ProPortrait(screen);
+    return;
+  }
+#endif
   coverCache.prepare();
   const auto& theme = screen.theme();
   const auto safe = UITheme::getInstance().getScreenSafeArea(renderer, true);
@@ -154,11 +192,180 @@ void CoverGridHomeUi::draw(UiScreen& screen) {
   drawHeaderBand();
 }
 
+#if FREEINK_DEVICE_X4PRO
+void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
+  coverCache.prepare();
+  const auto& theme = screen.theme();
+  const int16_t titleLineHeight = screen.target().lineHeight(theme.titleText.font);
+  const int16_t smallLineHeight = screen.target().lineHeight(theme.smallText.font);
+  const char* ctaLabel = hasContinueReading ? tr(STR_CONTINUE_READING) : tr(STR_LIBRARY);
+  const int16_t ctaWidth = static_cast<int16_t>(
+      screen.target().measureText(theme.smallText.font, ctaLabel, theme.smallText).width + 56);
+  const auto layout = makeX4ProHomeLayout(titleLineHeight, smallLineHeight, ctaWidth);
+  screen.setContentMarginFromScreen(fui::Insets{layout.content.y,
+                                                static_cast<int16_t>(480 - layout.content.right()),
+                                                static_cast<int16_t>(800 - layout.content.bottom()), layout.content.x});
+
+  if (books->empty()) {
+    drawTabs(screen, fui::Rect{layout.tabs.x, layout.tabs.y, layout.tabs.width, layout.tabs.height});
+    drawEmpty(screen);
+    drawHeaderBand();
+    return;
+  }
+
+  noteThumbHeights(layout.heroCover.height, layout.shelfCovers[0].height);
+  paintFramedCover(screen.target(),
+                   fui::Rect{layout.heroCover.x, layout.heroCover.y, layout.heroCover.width, layout.heroCover.height}, 0);
+  button = {};
+  button.action = SELECT;
+  button.value = 0;
+  button.inputMask = fui::InputTouch;
+  button.styles = fui::plainStyles();
+  button.minTouchSize = 44;
+  fui::button(screen.frame(),
+              fui::Rect{layout.heroCover.x, layout.heroCover.y, layout.heroCover.width, layout.heroCover.height},
+              button);
+
+  auto title = theme.titleText;
+  title.align = fui::TextAlign::Center;
+  title.bold = true;
+  title.maxLines = 3;
+  screen.target().text(
+      fui::Rect{layout.heroTitle.x, layout.heroTitle.y, layout.heroTitle.width, layout.heroTitle.height},
+      books->front().title.c_str(), title);
+
+  if (!books->front().author.empty()) {
+    auto author = theme.smallText;
+    author.align = fui::TextAlign::Center;
+    screen.target().text(
+        fui::Rect{layout.heroAuthor.x, layout.heroAuthor.y, layout.heroAuthor.width, layout.heroAuthor.height},
+        books->front().author.c_str(), author);
+  }
+
+  if (progress >= 0) {
+    auto progressStyle = theme.smallText;
+    progressStyle.align = fui::TextAlign::Center;
+    progressStyle.bold = true;
+    screen.target().text(fui::Rect{layout.progressLabel.x, layout.progressLabel.y, layout.progressLabel.width,
+                                   layout.progressLabel.height},
+                         progressText, progressStyle);
+    screen.target().fill(
+        fui::Rect{layout.progressTrack.x, layout.progressTrack.y, layout.progressTrack.width, layout.progressTrack.height},
+        fui::Paint::dither(fui::Color::LightGray));
+    const int16_t fillWidth = static_cast<int16_t>(layout.progressTrack.width * progress / 100);
+    if (fillWidth > 0) {
+      screen.target().fill(
+          fui::Rect{layout.progressTrack.x, layout.progressTrack.y, fillWidth, layout.progressTrack.height},
+          fui::Paint::solid(fui::Color::Black));
+    }
+  }
+
+  button = {};
+  button.label = ctaLabel;
+  button.action = SELECT;
+  button.value = static_cast<int16_t>(x4ProHeroCtaAction(hasContinueReading, static_cast<int>(books->size())));
+  button.inputMask = fui::InputTouch;
+  button.state = selected == button.value ? fui::StateSelected : fui::StateNormal;
+  button.text = theme.smallText;
+  button.text.bold = true;
+  button.styles = fui::defaultButtonStyles();
+  button.styles.normal.background = fui::Paint::solid(fui::Color::Black);
+  button.styles.normal.foreground = fui::Paint::solid(fui::Color::White);
+  button.styles.selected = button.styles.normal;
+  button.styles.selected.border = fui::Paint::solid(fui::Color::White);
+  button.styles.selected.borderWidth = 1;
+  button.styles.focused = button.styles.selected;
+  button.styles.active = button.styles.selected;
+  button.styles.disabled = button.styles.normal;
+  button.radius = 22;
+  button.minTouchSize = 44;
+  fui::button(screen.frame(), fui::Rect{layout.cta.x, layout.cta.y, layout.cta.width, layout.cta.height}, button);
+
+  auto shelfHeading = theme.smallText;
+  shelfHeading.bold = true;
+  screen.target().text(fui::Rect{layout.shelfHeader.x, layout.shelfHeader.y, layout.shelfHeader.width / 2,
+                                 layout.shelfHeader.height},
+                       tr(STR_LIBRARY_TAB_RECENT), shelfHeading);
+
+  button = {};
+  button.label = tr(STR_LIBRARY);
+  button.action = SELECT;
+  button.value = static_cast<int16_t>(books->size() + 1);
+  button.inputMask = fui::InputTouch;
+  button.text = theme.smallText;
+  button.text.align = fui::TextAlign::Right;
+  button.styles = fui::flatButtonStyles();
+  button.minTouchSize = 44;
+  const int16_t libraryLinkWidth = static_cast<int16_t>(std::min<int>(
+      layout.shelfHeader.width / 2,
+      std::max<int>(44, screen.target().measureText(theme.smallText.font, tr(STR_LIBRARY), theme.smallText).width + 16)));
+  fui::button(screen.frame(),
+              fui::Rect{static_cast<int16_t>(layout.shelfHeader.right() - libraryLinkWidth), layout.shelfHeader.y,
+                        libraryLinkWidth, layout.shelfHeader.height},
+              button);
+
+  const int shelfCount = std::min<int>(GRID_COLUMNS, books->size() - 1);
+  grid.count = shelfCount;
+  grid.columns = GRID_COLUMNS;
+  grid.columnLayout = fui::CoverGridColumnLayout::EqualWidth;
+  grid.action = SELECT;
+  grid.inputMask = fui::InputTouch;
+  grid.selectedIndex = selected > 0 && selected <= shelfCount ? selected - 1 : -1;
+  grid.selectionIndicator = fui::CoverGridSelectionIndicator::CoverFrame;
+  grid.selectedCoverFrameGap = 4;
+  grid.selectedCoverFrameWidth = 3;
+  grid.cellStyles = fui::plainStyles();
+  grid.coverSize = {layout.shelfCovers[0].width, layout.shelfCovers[0].height};
+  grid.rowHeight = static_cast<int16_t>(layout.shelfAuthors[0].bottom() - layout.shelfCovers[0].y);
+  grid.gap = 20;
+  grid.rowGap = 0;
+  grid.cellInset = {};
+  grid.labelHeight = layout.shelfTitles[0].height;
+  grid.labelGap = 6;
+  grid.labelAlign = fui::TextAlign::Left;
+  grid.labelFollowsCover = true;
+  grid.titleText = theme.smallText;
+  grid.titleText.bold = true;
+  grid.titleText.maxLines = 1;
+  grid.scrollIndicator = false;
+  grid.itemProviderUserData = this;
+  grid.itemProvider = [](const uint16_t index, void* user) {
+    const auto& self = *static_cast<CoverGridHomeUi*>(user);
+    return fui::coverGridItem((*self.books)[index + 1].title.c_str(), index + 1);
+  };
+  grid.coverPainterUserData = this;
+  grid.coverPainter = [](fui::DrawTarget& target, fui::Rect cover, const fui::CoverGridItem&, const uint16_t index,
+                         void* user) {
+    return static_cast<CoverGridHomeUi*>(user)->paintFramedCover(target, cover, index + 1);
+  };
+  gridBounds = fui::Rect{layout.shelfCovers[0].x, layout.shelfCovers[0].y, layout.content.width, grid.rowHeight};
+  fui::coverGrid(screen.frame(), gridBounds, grid);
+
+  auto shelfAuthor = theme.smallText;
+  shelfAuthor.maxLines = 1;
+  for (int i = 0; i < shelfCount; ++i) {
+    const auto& authorText = (*books)[i + 1].author;
+    if (authorText.empty()) continue;
+    const auto& rect = layout.shelfAuthors[i];
+    screen.target().text(fui::Rect{rect.x, rect.y, rect.width, rect.height}, authorText.c_str(), shelfAuthor);
+  }
+
+  drawTabs(screen, fui::Rect{layout.tabs.x, layout.tabs.y, layout.tabs.width, layout.tabs.height});
+  drawHeaderBand();
+}
+#endif
+
 void CoverGridHomeUi::drawHeaderBand() {
   // The stock full-width band at the theme's topPadding, exactly like every
   // pushed screen's header: the battery/clock hold one position across the
   // whole UI, and the grid is widened to meet them (see the hInset above).
   const ThemeMetrics& metrics = UITheme::getInstance().getMetrics();
+#if FREEINK_DEVICE_X4PRO
+  if (renderer.getScreenWidth() == 480 && renderer.getScreenHeight() == 800) {
+    GUI.drawHeader(renderer, Rect{0, 0, 480, 40}, nullptr);
+    return;
+  }
+#endif
   GUI.drawHeader(renderer, Rect{0, metrics.topPadding, renderer.getScreenWidth(), metrics.batteryBarHeight}, nullptr);
 }
 

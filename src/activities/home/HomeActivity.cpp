@@ -166,14 +166,18 @@ void HomeActivity::loadRecentCovers(int coverHeight) {
   Rect popupRect;
 
   int progress = 0;
-  for (RecentBook& book : recentBooks) {
-    // The cover grid shares one slot size; generating at any other height
-    // would rescale the dithered thumb at draw time and alias badly.
-    const int thumbHeight = coverGridUi ? coverGridUi->thumbHeightFor() : coverHeight;
+  const size_t coverCount = coverGridUi
+                                ? std::min(recentBooks.size(), static_cast<size_t>(coverGridUi->visibleBookCount()))
+                                : recentBooks.size();
+  for (size_t index = 0; index < coverCount; ++index) {
+    RecentBook& book = recentBooks[index];
+    // Generate each cover at its recorded slot height so the render path does
+    // not rescale already-dithered art.
+    const int thumbHeight = coverGridUi ? coverGridUi->thumbHeightFor(index) : coverHeight;
     if (coverGridUi) {
       loadGridCover(book, thumbHeight, showingLoading, popupRect);
       ++progress;
-      if (showingLoading) GUI.fillPopupProgress(renderer, popupRect, progress * 100 / recentBooks.size());
+      if (showingLoading) GUI.fillPopupProgress(renderer, popupRect, progress * 100 / coverCount);
       continue;
     }
     if (!book.coverBmpPath.empty()) {
@@ -250,7 +254,11 @@ void HomeActivity::onEnter() {
   }
 
   const auto base = static_cast<int>(recentBooks.size());
-  selectorIndex = initialMenuItem == HomeMenuItem::NONE ? 0 : base + menuItemToIndex(initialMenuItem, hasLibrarySlot());
+  selectorIndex = initialMenuItem == HomeMenuItem::NONE
+                      ? (coverGridUi && !hasContinueReading ? base + menuItemToIndex(HomeMenuItem::LIBRARY,
+                                                                                    hasLibrarySlot())
+                                                           : 0)
+                      : base + menuItemToIndex(initialMenuItem, hasLibrarySlot());
 
   // Trigger first update
   requestUpdate();
@@ -348,12 +356,16 @@ void HomeActivity::loop() {
 
   const auto swipe = mappedInput.wasSwipe();
   if (swipe == MappedInputManager::SwipeDir::Up) {
-    selectorIndex = ButtonNavigator::nextIndex(selectorIndex, menuCount);
+    const int visibleBooks = coverGridUi ? coverGridUi->visibleBookCount() : 0;
+    const int count = visibleBooks > 0 ? visibleBooks : menuCount;
+    selectorIndex = ButtonNavigator::nextIndex(selectorIndex < count ? selectorIndex : count - 1, count);
     requestUpdate();
     return;
   }
   if (swipe == MappedInputManager::SwipeDir::Down) {
-    selectorIndex = ButtonNavigator::previousIndex(selectorIndex, menuCount);
+    const int visibleBooks = coverGridUi ? coverGridUi->visibleBookCount() : 0;
+    const int count = visibleBooks > 0 ? visibleBooks : menuCount;
+    selectorIndex = ButtonNavigator::previousIndex(selectorIndex < count ? selectorIndex : 0, count);
     requestUpdate();
     return;
   }
@@ -367,6 +379,12 @@ void HomeActivity::loop() {
   }
 
   if (coverGridUi) {
+    const int visibleBooks = coverGridUi->visibleBookCount();
+    if (selectorIndex >= visibleBooks && selectorIndex < static_cast<int>(recentBooks.size())) {
+      selectorIndex = 0;
+      requestUpdate();
+      return;
+    }
     const int touched = coverGridUi->selectedAction(mappedInput);
     if (touched >= 0 && touched < menuCount) {
       selectorIndex = touched;
@@ -380,7 +398,8 @@ void HomeActivity::loop() {
     // Side page buttons walk the covers, front Left/Right walk the tabs
     // (selectorIndex is flat: books first, then the tab items). A press while
     // selection sits in the other band jumps into this band first.
-    const int bookCount = static_cast<int>(recentBooks.size());
+    const int bookCount = visibleBooks;
+    const int menuBase = static_cast<int>(recentBooks.size());
     const auto cycleBand = [this](const int base, const int count, const int dir) {
       if (count <= 0) return;
       int idx = selectorIndex - base;
@@ -396,13 +415,11 @@ void HomeActivity::loop() {
                                          [&cycleBand, bookCount] { cycleBand(0, bookCount, -1); });
     buttonNavigator.onPressAndContinuous({MappedInputManager::Button::Down},
                                          [&cycleBand, bookCount] { cycleBand(0, bookCount, +1); });
-    buttonNavigator.onPressAndContinuous({MappedInputManager::Button::Left}, [this, &cycleBand] {
-      const int bookCount = static_cast<int>(recentBooks.size());
-      cycleBand(bookCount, getMenuItemCount() - bookCount, -1);
+    buttonNavigator.onPressAndContinuous({MappedInputManager::Button::Left}, [this, &cycleBand, menuBase] {
+      cycleBand(menuBase, getMenuItemCount() - menuBase, -1);
     });
-    buttonNavigator.onPressAndContinuous({MappedInputManager::Button::Right}, [this, &cycleBand] {
-      const int bookCount = static_cast<int>(recentBooks.size());
-      cycleBand(bookCount, getMenuItemCount() - bookCount, +1);
+    buttonNavigator.onPressAndContinuous({MappedInputManager::Button::Right}, [this, &cycleBand, menuBase] {
+      cycleBand(menuBase, getMenuItemCount() - menuBase, +1);
     });
     return;
   }
