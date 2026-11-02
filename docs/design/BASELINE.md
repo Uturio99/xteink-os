@@ -22,12 +22,12 @@ AI agents, contributors, and maintainers must distinguish between:
 
 | Artifact Group | Primary Location / Ref | Official Status | Merged to Production? | PO Approval Status |
 | :--- | :--- | :---: | :---: | :---: |
-| **Concept A / Home v1.1 / H1.1A** | Branch `checkpoint/h1.1a-native-home` (`877461d3`) & `codex/xteink-os-checkpoint-2026-10-31` (`0861aeaf`) | **APPROVED PRODUCTION BASELINE** | **YES** (Implemented in `src/components/`) | **APPROVED** |
+| **Concept A / Home v1.1 / H1.1A** | Branch `checkpoint/h1.1a-native-home` (`877461d3`) & `codex/xteink-os-checkpoint-2026-10-31` (`0861aeaf`) | **APPROVED PRODUCTION BASELINE** | **NO** (Isolated checkpoint branch `checkpoint/h1.1a-native-home`; NOT merged to `develop`) | **APPROVED FOR PROTOTYPING / HARNESS EVALUATION** |
 | **Concept B / EXP-001** | `docs/design/experiments/EXP-001-quiet-modular/prototype.html` | **EXPERIMENTAL** | **NO** | **UNAPPROVED / IN EVALUATION** |
 | **XOS-DL v1.0 Design System** | `docs/design/experiments/EXP-001-quiet-modular/design-system/` | **PROPOSED EXPERIMENTAL SPEC** | **NO** | **UNAPPROVED / IN EVALUATION** |
 | **AD-01 Calm Editorial Home** | `docs/design/experiments/EXP-001-quiet-modular/home-direction.html` | **EXPERIMENTAL STUDY** | **NO** | **UNAPPROVED / IN EVALUATION** |
 | **Home Pilot (XOS-DL)** | `docs/design/experiments/EXP-001-quiet-modular/home-xosdl-pilot.html` | **EXPERIMENTAL PILOT** | **NO** | **UNAPPROVED / IN EVALUATION** |
-| **DESIGN-002 Assets** | Historical external host path (`D:\...`) | **DOCUMENTED ONLY / MISSING EVIDENCE** | **NO** | **AWAITING EXTERNAL RECOVERY** |
+| **DESIGN-002 Assets** | `xteink-os-design-002-review.zip` (Local archive) & commit `c9d12b52` on `develop` (`docs/design/explorations/design-002/`) | **PRESERVED HISTORICAL ASSETS** | **NO** (Pre-M0 exploration branch/zip) | **REVIEW / REFERENCE** |
 
 ---
 
@@ -39,16 +39,16 @@ AI agents, contributors, and maintainers must distinguish between:
   - Firmware Implementation: Commit `877461d3` on branch `checkpoint/h1.1a-native-home`. Contains native C++ implementation within `src/components/X4ProHomeLayout.h`, `src/components/CoverGridHomeUi.cpp`, and associated FreeInk drivers.
 
 ### Baseline Principles
-- Optimized directly for the ESP32-C3 hardware constraints (380 KB RAM, no external PSRAM).
+- Target hardware is X4 Pro: ESP32-S3 (16 MB Flash, 8 MB PSRAM, GT911 touch subject to SDK board-profile verification), while maintaining memory discipline and compatibility with generic CrossPoint / legacy ESP32-C3 constraints (380 KB SRAM, no PSRAM).
 - Direct cover grid layout with minimal memory overhead and zero dynamic heap reallocations during home navigation.
-- Verified on hardware display controllers.
+- Firmware compiled and validated in test harness; physical on-device display validation pending (not yet hardware-verified).
 
 ---
 
 ## 4. Experimental Explorations: Concept B & XOS-DL v1.0
 
 ### Definition & Scope
-- **Directory:** [`docs/design/experiments/EXP-001-quiet-modular/`](file:///g:/AI-Setup/XTEInk-X4-Pro/xteink-os/docs/design/experiments/EXP-001-quiet-modular/)
+- **Directory:** [`docs/design/experiments/EXP-001-quiet-modular/`](docs/design/experiments/EXP-001-quiet-modular/)
 - **Experiment Status:** **EXPERIMENTAL / NOT APPROVED**
 - **Core Assets:**
   - `prototype.html`: 5-screen interactive prototype exploring Home, Library, Reader, Files, and Settings.
@@ -74,10 +74,10 @@ Prior audit notes and design logs referenced a suite of editorial designs:
 - `COMPOSITION_REVIEW.md`
 - `P0_REFERENCE_FONT_LOCK.md`
 
-### Audit Findings
-- **Filesystem Verification:** These files do not exist anywhere in the tracked repository or untracked local tree. They were authored on an external host path (`D:\...`) during prior design phases.
-- **Policy:** Classified as **DOCUMENTED ONLY / REVIEW**.
-- **Rule for AI Agents:** Do not fabricate, hallucinate, or simulate these files. If these historical references are required for Milestone M1 reconciliation, they must be retrieved from external archives by the Product Owner.
+### Audit Findings & Provenance
+- **Repository Provenance:** These files are preserved in the historical commit `c9d12b52` on branch `develop` (under `docs/design/explorations/design-002/`) and packaged in the local archive `xteink-os-design-002-review.zip`.
+- **Policy:** Classified as **PRESERVED HISTORICAL ASSETS / REVIEW**.
+- **Rule for AI Agents:** Treat DESIGN-002 assets as historical reference material. Do not overwrite or modify them without explicit Product Owner authorization.
 
 ---
 

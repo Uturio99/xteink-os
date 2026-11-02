@@ -109,11 +109,11 @@
 - Create: `docs/PROJECT_STATUS.md`
 - Create: `docs/design/BASELINE.md`
 
-- [ ] **Step 1: Author `docs/PROJECT_MAP.md`**
+- [x] **Step 1: Author `docs/PROJECT_MAP.md`**
   Detail repository architecture, directory layout, reading order for AI agents (firmware vs design vs experiments), and maintenance rules.
   Verify path links match actual filesystem paths.
 
-- [ ] **Step 2: Author `docs/PROJECT_STATUS.md`**
+- [x] **Step 2: Author `docs/PROJECT_STATUS.md`**
   Track progression from M0 to M7:
   - M0: Safe Project Consolidation (In Progress)
   - M1: Baseline Reconciliation & Target Selection (Pending PO review)
@@ -124,7 +124,7 @@
   - M6: Waveform Integration & Display Pipeline (Pending)
   - M7: End-to-End Release & Handoff (Pending)
 
-- [ ] **Step 3: Author `docs/design/BASELINE.md`**
+- [x] **Step 3: Author `docs/design/BASELINE.md`**
   State unequivocally:
   - Approved Baseline: H1.1A native home as implemented in `src/components/CoverGridHomeUi.cpp` and `codex/xteink-os-checkpoint-2026-10-31`.
   - Experimental Exploration: Concept B / EXP-001 / XOS-DL v1.0. Must NOT be merged into production without formal sign-off.
@@ -137,19 +137,19 @@
 **Files:**
 - Inspect: Full repository working tree
 
-- [ ] **Step 1: Verify file existence and link integrity**
+- [x] **Step 1: Verify file existence and link integrity**
   Run: Check that all canonical files, moved archive files, and newly created entrypoints exist.
   Expected: All paths resolve correctly.
 
-- [ ] **Step 2: Run Git whitespace and syntax check**
+- [x] **Step 2: Run Git whitespace and syntax check**
   Run: `git diff --check`
   Expected: Clean exit code 0; zero whitespace errors or merge conflict markers.
 
-- [ ] **Step 3: Verify working tree status**
+- [x] **Step 3: Verify working tree status**
   Run: `git status --short`
   Expected: Only expected new files in `docs/` and modified `USER_GUIDE.md` present. No firmware files modified, deleted, or staged.
 
-- [ ] **Step 4: Confirm zero deletions**
+- [x] **Step 4: Confirm zero deletions**
   Run: `git diff --diff-filter=D --stat`
   Expected: Empty output; zero deleted files.
 

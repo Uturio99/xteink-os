@@ -1,4 +1,4 @@
-# EXP-001 Priority Update — Concept B Decision Rationale
+﻿# EXP-001 Priority Update — Concept B Decision Rationale
 
 > **Document ID:** EXP-001-RATIONALE-B  
 > **Experiment Name:** Concept B: Function-Led, Composition-Driven Architecture  
@@ -106,7 +106,7 @@ Concept B adheres strictly to the physical realities of the XTEINK X4 Pro:
 ## 5. Review & Verification Instructions
 
 To inspect the Concept B prototype:
-1. Open [`docs/design/concept-b-prototype.html`](file:///g:/AI-Setup/XTEInk-X4-Pro/xteink-os/docs/design/concept-b-prototype.html) in any modern web browser.
+1. Open [`docs/design/concept-b-prototype.html`](prototype.html) in any modern web browser.
 2. In the top toolbar, use the **Screen Switcher** buttons (`1. Home`, `2. Library`, `3. Reader`, `4. Files`, `5. Settings`) or the bottom navigation hub on the device canvas to navigate between all 5 screens.
 3. Toggle between **Populated** and **Empty / Initial** states to observe the meaningful layout reorganization on Home, Library, and Files.
 4. Test the interactive task flows:

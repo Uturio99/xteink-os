@@ -11,12 +11,12 @@
 
 | Milestone | Title | Status | Primary Focus | Dependencies |
 | :---: | :--- | :---: | :--- | :--- |
-| **M0** | **Safe Project Consolidation** | **IN PROGRESS (95%)** | Non-destructive repository audit, baseline protection, archival of duplicates, single sources of truth. | None |
+| **M0** | **Safe Project Consolidation** | **COMPLETE (100%)** | Non-destructive repository audit, baseline protection, archival of duplicates, single sources of truth. | None |
 | **M1** | **Baseline Reconciliation & Selection** | **PENDING REVIEW** | Product Owner alignment on production design baseline (Concept A / H1.1A vs Concept B / XOS-DL v1.0). | M0 |
 | **M2** | **Screen Architecture & Full Specs** | **QUEUED** | Comprehensive interaction and visual specs for all 5 screens (Home, Library, Reader, Files, Settings). | M1 |
-| **M3** | **Native C++ Home & Nav Architecture** | **QUEUED** | Implementing approved Home layout and navigation hierarchy in embedded C++ on ESP32-C3. | M2 |
+| **M3** | **Native C++ Home & Nav Architecture** | **QUEUED** | Implementing approved Home layout and navigation hierarchy in embedded C++ on X4 Pro (ESP32-S3 / 8 MB PSRAM) while maintaining ESP32-C3 compatibility. | M2 |
 | **M4** | **Font Subsystem & Typography** | **QUEUED** | Bitmap and vector font pipeline, Vietnamese glyph coverage, font metrics cache. | M3 |
-| **M5** | **Touch Driver, Hit Targets & Events** | **QUEUED** | FT6336 touch controller integration, ≥44px hit bounds, debouncing, and input event routing. | M3 |
+| **M5** | **Touch Driver, Hit Targets & Events** | **QUEUED** | Touch controller integration (GT911 on X4 Pro subject to SDK board-profile verification, FT6336 on Paper Mono / legacy), ≥44px hit bounds, debouncing, and input event routing. | M3 |
 | **M6** | **Waveform Modes & Refresh Pipeline** | **QUEUED** | 1-bit fast paging, 4-bit high quality rendering, ghosting mitigation, flashing reduction. | M3, M5 |
 | **M7** | **End-to-End Release & Handoff** | **QUEUED** | Hardware validation on physical X4 Pro, firmware-handoff verification, release build packaging. | M1–M6 |
 
@@ -34,15 +34,16 @@
   - [x] Milestone status dashboard (`docs/PROJECT_STATUS.md`)
   - [x] Design baseline specification (`docs/design/BASELINE.md`)
   - [x] Non-destructive archival of redundant root duplicates into `docs/design/experiments/EXP-001-quiet-modular/archive/root-spec-duplicates/`
-  - [ ] Final verification and Product Owner handoff report.
-- **Current Blocker:** Awaiting final verification pass and Product Owner review.
+  - [x] Final verification and Product Owner handoff report (docs/superpowers/audits/M0-CLOSEOUT.md).
+- **Current Blocker:** None. M0 complete and ready for Product Owner review and transition to M1.
 
 ---
 
 ### M1: Baseline Reconciliation & Target Selection
 - **Objective:** Reconcile differences between the approved production baseline (Concept A / H1.1A Native Home) and the experimental explorations (Concept B / EXP-001 / XOS-DL v1.0) to select the definitive architectural direction.
 - **Scope & Key Decisions:**
-  - Compare H1.1A Native Home performance/memory footprint on ESP32-C3 vs XOS-DL token-driven architecture.
+  - Complete UI Collection and UX validation (reviewing Concept A, Concept B, and DESIGN-002 explorations) before broad native C++ firmware implementation.
+  - Compare H1.1A Native Home performance/memory footprint on X4 Pro (ESP32-S3) and generic ESP32-C3 vs XOS-DL token-driven architecture.
   - Review 5-screen scope: Concept A covers Home; Concept B explored Home, Library, Reader, Files, Settings.
   - Formal Product Owner sign-off on whether to maintain H1.1A, adopt XOS-DL v1.0, or pursue a phased hybrid.
 - **Status:** Ready to commence immediately upon approval of M0.
@@ -81,7 +82,7 @@
 ### M5: Touch Driver, Hit Targets & Event Bus
 - **Objective:** Ensure responsive, ergonomic touch input on physical hardware.
 - **Deliverables:**
-  - FT6336 I2C touch controller tuning (polling rate vs sleep current).
+  - GT911 I2C touch controller tuning on X4 Pro (subject to SDK board-profile verification; FT6336 on Paper Mono / legacy).
   - Minimum touch target bounds (≥44×44 CSS equivalent; 56px for primary reading actions).
   - Edge swipe rejection and reading gesture zones.
 

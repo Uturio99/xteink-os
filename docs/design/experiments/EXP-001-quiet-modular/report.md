@@ -1,11 +1,11 @@
 # EXP-001 Priority Update — Concept B Deliverable Report
 
-> **Experiment ID:** EXP-001 (Concept B)  
-> **Philosophy:** Function-Led, Composition-Driven  
-> **Target Hardware:** XTEINK X4 Pro (480×800 Portrait E-Paper Display)  
-> **Approved Baseline:** Concept A (`home-v1.1.html`) preserved intact  
-> **Prototype Location:** [`docs/design/concept-b-prototype.html`](file:///g:/AI-Setup/XTEInk-X4-Pro/xteink-os/docs/design/concept-b-prototype.html)  
-> **Full Decision Rationale:** [`docs/design/EXP-001_CONCEPT_B_RATIONALE.md`](file:///g:/AI-Setup/XTEInk-X4-Pro/xteink-os/docs/design/EXP-001_CONCEPT_B_RATIONALE.md)  
+> **Experiment ID:** EXP-001 (Concept B)
+> **Philosophy:** Function-Led, Composition-Driven
+> **Target Hardware:** XTEINK X4 Pro (480×800 Portrait E-Paper Display)
+> **Approved Baseline:** Concept A (`home-v1.1.html`) preserved intact
+> **Prototype Location:** [`docs/design/concept-b-prototype.html`](prototype.html)
+> **Full Decision Rationale:** [`docs/design/EXP-001_CONCEPT_B_RATIONALE.md`](design-notes.md)
 
 ---
 
