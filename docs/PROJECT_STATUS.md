@@ -12,7 +12,7 @@
 | Milestone | Title | Status | Primary Focus | Dependencies |
 | :---: | :--- | :---: | :--- | :--- |
 | **M0** | **Safe Project Consolidation** | **COMPLETE (100%)** | Non-destructive repository audit, baseline protection, archival of duplicates, single sources of truth. | None |
-| **M1** | **Baseline Reconciliation & Selection** | **PENDING REVIEW** | Product Owner alignment on production design baseline (Concept A / H1.1A vs Concept B / XOS-DL v1.0). | M0 |
+| **M1** | **Baseline Reconciliation & Selection** | **COMPLETE (DESIGN ACCEPTED)** | Product Owner alignment on production design baseline (Concept A / H1.1A vs Concept B / XOS-DL v1.0). Design frozen for native implementation. | M0 |
 | **M2** | **Screen Architecture & Full Specs** | **QUEUED** | Comprehensive interaction and visual specs for all 5 screens (Home, Library, Reader, Files, Settings). | M1 |
 | **M3** | **Native C++ Home & Nav Architecture** | **QUEUED** | Implementing approved Home layout and navigation hierarchy in embedded C++ on X4 Pro (ESP32-S3 / 8 MB PSRAM) while maintaining ESP32-C3 compatibility. | M2 |
 | **M4** | **Font Subsystem & Typography** | **QUEUED** | Bitmap and vector font pipeline, Vietnamese glyph coverage, font metrics cache. | M3 |
@@ -41,12 +41,25 @@
 
 ### M1: Baseline Reconciliation & Target Selection
 - **Objective:** Reconcile differences between the approved production baseline (Concept A / H1.1A Native Home) and the experimental explorations (Concept B / EXP-001 / XOS-DL v1.0) to select the definitive architectural direction.
-- **Scope & Key Decisions:**
-  - Complete UI Collection and UX validation (reviewing Concept A, Concept B, and DESIGN-002 explorations) before broad native C++ firmware implementation.
-  - Compare H1.1A Native Home performance/memory footprint on X4 Pro (ESP32-S3) and generic ESP32-C3 vs XOS-DL token-driven architecture.
-  - Review 5-screen scope: Concept A covers Home; Concept B explored Home, Library, Reader, Files, Settings.
-  - Formal Product Owner sign-off on whether to maintain H1.1A, adopt XOS-DL v1.0, or pursue a phased hybrid.
-- **Status:** Ready to commence immediately upon approval of M0.
+- **Status:** **COMPLETE & DESIGN ACCEPTED (Design Freeze Checkpoint)**
+- **Design Acceptance Record:**
+  - Complete 15-frame UI Collection and interactive HTML prototype approved by Product Design Review.
+  - Authentic TrueType reference fonts bundled with SIL OFL 1.1 license for reproducible typography across host environments.
+  - Automated Playwright QA verification suite confirmed 100% PASS across dimensions, frame integrity, overflow, 99 evaluated touch targets, state persistence, search reset, sorting, Reader ↔ HUD typography synchronization, and all 5 user journeys.
+- **Key Deliverables:**
+  - [x] Baseline Reconciliation Matrix ([docs/superpowers/audits/M1-UI-COLLECTION-RECONCILIATION.md](superpowers/audits/M1-UI-COLLECTION-RECONCILIATION.md))
+  - [x] Unified UI Collection Specification ([docs/design/specs/UNIFIED_UI_COLLECTION.md](design/specs/UNIFIED_UI_COLLECTION.md))
+  - [x] Complete 15-Frame Navigable HTML Prototype ([docs/design/prototype/unified-ui-prototype.html](design/prototype/unified-ui-prototype.html))
+  - [x] 15-Frame Visual Inspection Gallery ([docs/design/prototype/gallery.html](design/prototype/gallery.html))
+  - [x] 15 Pixel-Exact 480×800 Captures ([docs/design/prototype/captures/](design/prototype/captures/))
+  - [x] Comprehensive QA & Verification Report ([docs/superpowers/audits/M1-UI-COLLECTION-QA.md](superpowers/audits/M1-UI-COLLECTION-QA.md))
+  - [x] Product Owner Review Package ([docs/superpowers/audits/M1-UI-COLLECTION-REVIEW.md](superpowers/audits/M1-UI-COLLECTION-REVIEW.md))
+- **Documented Implementation Limitations (Deferred to Native Implementation):**
+  - **Reader dynamic reflow/pagination:** Text formatting is styled via CSS in the reference prototype, but true book dynamic reflow and pagination calculations across custom font sizes (14–22px) must be implemented by the native C++ EPUB layout engine in firmware.
+  - **Search demo query initialization:** The search frame initializes with a deterministic demo query (`chiến tranh`) for automated capture reproducibility; native firmware will initialize with empty query and live SQLite/catalog index.
+  - **Hardware e-paper behavior:** 1-bit thresholding and high-contrast styling validated in browser reference, but physical refresh waveforms, ghosting clearing, and panel partial updates require on-device validation on XTEINK X4 Pro hardware.
+  - **DESIGN-002 historical provenance:** Components derived from historical DESIGN-002 explorations remain categorized as unverified design heritage, preserved for visual guidance rather than proven firmware implementation.
+- **Current Blocker:** None. Ready for M2 (Screen Architecture & Full Specs).
 
 ---
 

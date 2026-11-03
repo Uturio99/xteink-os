@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>XTEInk OS · 15-Frame Visual Inspection Gallery (M1)</title>
+<style>
+/* ==========================================================================
+   OFFLINE REPRODUCIBLE VIETNAMESE TYPOGRAPHY (TRUE-TYPE ASSETS)
+   Builtin firmware Noto Serif & Noto Sans font families for exact rendering
+   ========================================================================== */
+@font-face {
+  font-family: 'Noto Serif';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('fonts/NotoSerif-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Serif';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('fonts/NotoSerif-Italic.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Serif';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('fonts/NotoSerif-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('fonts/NotoSans-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('fonts/NotoSans-Italic.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('fonts/NotoSans-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('fonts/NotoSans-Bold.ttf') format('truetype');
+}
+:root {
+  --ink: #111111;
+  --secondary: #555555;
+  --paper: #FFFFFF;
+  --bg: #EEEEEE;
+  --border: #CCCCCC;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding: 24px;
+  background: var(--bg);
+  font-family: 'Noto Sans', system-ui, -apple-system, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'kern' 1, 'liga' 1;
+  color: var(--ink);
+  line-height: 1.4;
+}
+.header {
+  max-width: 1600px;
+  margin: 0 auto 32px;
+  background: #FFF;
+  border: 1px solid var(--border);
+  padding: 24px 32px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+.header h1 {
+  margin: 0 0 8px;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.header p {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: var(--secondary);
+}
+.header-links {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.btn-open {
+  background: var(--ink);
+  color: #FFF;
+  padding: 8px 16px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+}
+.stats-badge {
+  background: #F0F0F0;
+  border: 1px solid #DDD;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 4px;
+}
+
+.gallery-grid {
+  max-width: 1600px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(490px, 1fr));
+  gap: 32px;
+}
+.frame-card {
+  background: #FFF;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+}
+.frame-card-head {
+  padding: 14px 18px;
+  background: #FAFAFA;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.frame-id {
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+}
+.frame-area {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 3px;
+  background: #E0E0E0;
+  color: #333;
+}
+.frame-viewport-wrap {
+  width: 480px;
+  height: 800px;
+  margin: 16px auto;
+  border: 1px solid #AAA;
+  background: #FFF;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.frame-viewport-wrap img {
+  width: 480px;
+  height: 800px;
+  display: block;
+}
+.frame-info {
+  padding: 16px 20px 20px;
+  border-top: 1px solid var(--border);
+  background: #FFF;
+  font-size: 13px;
+  flex: 1;
+}
+.frame-info h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.frame-info p {
+  margin: 0 0 10px;
+  color: var(--secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.frame-meta-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tag {
+  background: #F4F4F4;
+  border: 1px solid #DDD;
+  padding: 2px 6px;
+  font-size: 11px;
+  border-radius: 2px;
+  color: #444;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>XTEInk OS · 15-Frame Visual Inspection Gallery</h1>
+  <p>
+    Milestone M1 Deliverable · 480×800 Logical E-Paper Portrait Viewport · Candidate Production Baseline (XOS-DL v1.0)
+  </p>
+  <div class="header-links">
+    <a href="unified-ui-prototype.html" class="btn-open" target="_blank">Mở Interactive Prototype (Toàn màn hình) →</a>
+    <span class="stats-badge">15/15 Frames Hoàn Tất</span>
+    <span class="stats-badge">5/5 Functional Areas</span>
+    <span class="stats-badge">1-Bit Monochrome Feasible</span>
+    <span class="stats-badge">Vietnamese Diacritics Verified</span>
+  </div>
+</div>
+
+<div class="gallery-grid">
+
+  <!-- FR-01 -->
+  <div class="frame-card">
+    <div class="frame-card-head">
+      <span class="frame-id">FR-01: Populated Home</span>
+      <span class="frame-area">HOME</span>
+    </div>
+    <div class="frame-viewport-wrap">
+      <img src="captures/FR-01.png" alt="FR-01 Populated Home" loading="lazy" />
+    </div>
+    <div class="frame-info">
+      <h3>Màn hình chính đang đọc dở (Hero Populated)</h3>
+      <p>
+        Bố cục bất đối xứng: Tiêu đề sách (Display 34px Serif) + tác giả + tiến độ đọc (15%) + nút CTA chính "Tiếp tục đọc" (56px) kết hợp bìa sách 112×156px. Danh sách đọc gần đây và liên kết tiện ích Thư viện, Quản lý tệp, Cài đặt.
+      </p>
+      <div class="frame-meta-tags">
+        <span class="tag">Anchor: Hero Band</span>
+        <span class="tag">Hit Target: 56px CTA</span>
+        <span class="tag">Origin: Concept A / XOS-DL</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FR-02 -->
+  <div class="frame-card">
+    <div class="frame-card-head">
+      <span class="frame-id">FR-02: Empty Home</span>
+      <span class="frame-area">HOME</span>
+    </div>
+    <div class="frame-viewport-wrap">
+      <img src="captures/FR-02.png" alt="FR-02 Empty Home" loading="lazy" />
+    </div>
+    <div class="frame-info">
+      <h3>Màn hình chính rỗng / Khởi động (Ingestion Stage)</h3>
+      <p>
+        Tái cấu trúc có chủ đích: không để giả tiến độ 0% hay khung bìa rỗng. Tiêu đề Display 34px rõ ràng, nút chính "Thêm sách ngay" (56px) dẫn thẳng tới phương thức nạp thẻ SD và máy chủ Wi-Fi cục bộ.
+      </p>
+      <div class="frame-meta-tags">
+        <span class="tag">Anchor: Ingestion Canvas</span>
+        <span class="tag">Zero Fake Data</span>
+        <span class="tag">Origin: Concept B Ingestion</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FR-03 -->
+  <div class="frame-card">
+    <div class="frame-card-head">
+      <span class="frame-id">FR-03: Unstarted Home</span>
+      <span class="frame-area">HOME</span>
+    </div>
+    <div class="frame-viewport-wrap">
+      <img src="captures/FR-03.png" alt="FR-03 Unstarted Home" loading="lazy" />
+    </div>
+    <div class="frame-info">
+      <h3>Màn hình chính tuyển chọn / Chưa đọc dở</h3>
+      <p>
+        Trạng thái máy có sách nhưng chưa có phiên đọc nào đang dở. Nổi bật tác phẩm kinh điển "Những người khốn khổ — Tập thứ nhất" với lời kêu gọi "Bắt đầu đọc cuốn này" cùng danh sách sách mới thêm.
+      </p>
+      <div class="frame-meta-tags">
+        <span class="tag">Anchor: Curation Card</span>
+        <span class="tag">Long Title 3-Line Wrap</span>
+        <span class="tag">Origin: UNVERIFIED / HISTORICAL REFERENCE (DESIGN-002)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FR-04 -->
+  <div class="frame-card">
+    <div class="frame-card-head">
+      <span class="frame-id">FR-04: Curated Shelf</span>
+      <span class="frame-area">LIBRARY</span>
+    </div>
+    <div class="frame-viewport-wrap">
+      <img src="captures/FR-04.png" alt="FR-04 Curated Shelf" loading="lazy" />
+    </div>
+    <div class="frame-info">
+      <h3>Kệ sách tuyển chọn (Editorial Shelf View)</h3>
+      <p>
+        Bố cục biên tập đậm chất tạp chí sách: Tiêu điểm tuần này với bìa nổi bật và trích đoạn giới thiệu, phía dưới là kệ sách 2 cột chia theo bộ sưu tập Văn học Việt Nam.
+      </p>
+      <div class="frame-meta-tags">
+        <span class="tag">Anchor: Featured Book Tile</span>
+        <span class="tag">Editorial Grid</span>
+        <span class="tag">Origin: UNVERIFIED / HISTORICAL REFERENCE (DESIGN-002)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FR-05 -->
+  <div class="frame-card">
+    <div class="frame-card-head">
+      <span class="frame-id">FR-05: Editorial List</span>
+      <span class="frame-area">LIBRARY</span>
+    </div>
+    <div class="frame-viewport-wrap">
+      <img src="captures/FR-05.png" alt="FR-05 Editorial List" loading="lazy" />
+    </div>
+    <div class="frame-info">
+      <h3>Danh sách thư viện chi tiết (Editorial 1-Col List)</h3>
+      <p>
+        Chế độ hiển thị mặc định của Thư viện: 1 cột mật độ thông tin cao, hỗ trợ tựa tiếng Việt dài tự xuống dòng, kèm thanh tìm kiếm tức thì và các bộ lọc sắp xếp (Gần đây, A-Z, Tiến độ).
+      </p>
+      <div class="frame-meta-tags">
+        <span class="tag">Anchor: High-Density List</span>
+        <span class="tag">Sort Ribbon</span>
+        <span class="tag">Origin: XOS-DL / DESIGN-002</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FR-06 -->
+  <div class="frame-card">
+    <div class="frame-card-head">
+      <span class="frame-id">FR-06: Filtered Search</span>
+      <span class="frame-area">LIBRARY</span>
+    </div>
+    <div class="frame-viewport-wrap">
+      <img src="captures/FR-06.png" alt="FR-06 Filtered Search" loading="lazy" />
+    </div>
+    <div class="frame-info">
+      <h3>Tìm kiếm & lọc danh mục thời gian thực</h3>
+      <p>
+        Ô tìm kiếm đang hoạt động với từ khóa "chiến tranh", hiển thị tức thì số lượng kết quả trùng khớp (2 kết quả) cùng nút xóa nhanh (×) và đường dẫn quay lại danh mục đầy đủ.
+      </p>
+      <div class="frame-meta-tags">
+        <span class="tag">Anchor: Active Search Field</span>
+        <span class="tag">Dynamic Filtering</span>
+        <span class="tag">Origin: Concept B Search</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FR-07 -->
+  <div class="frame-card">
+    <div class="frame-card-head">
+      <span class="frame-id">FR-07: Empty Library</span>
+      <span class="frame-area">LIBRARY</span>
+    </div>
+    <div class="frame-viewport-wrap">
+      <img src="captures/FR-07.png" alt="FR-07 Empty Library" loading="lazy" />
+    </div>
+    <div class="frame-info">
+      <h3>Thư viện trống & Hướng dẫn phục hồi</h3>
+      <p>
+        Phân định rạch ròi giữa thư viện chưa có sách và kết quả tìm kiếm không thấy. Cung cấp nút Quét lại thẻ SD (56px) và hướng dẫn các định dạng sách tương thích (.epub, .txt, .fb2, .pdf).
+      </p>
+      <div class="frame-meta-tags">
+        <span class="tag">Anchor: Recovery Actions</span>
+        <span class="tag">1-Bit Wireframe Icon</span>
+        <span class="tag">Origin: Concept B Empty State</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FR-08 -->
+  <div class="frame-card">
+    <div class="frame-card-head">
+      <span class="frame-id">FR-08: Immersive Reader</span>
+      <span class="frame-area">READER</span>
+    </div>
+    <div class="frame-viewport-wrap">
+      <img src="captures/FR-08.png" alt="FR-08 Immersive Reader" loading="lazy" />
+    </div>
+    <div class="frame-info">
+      <h3>Trang đọc nhập tâm thuần khiết (Pure Immersive)</h3>
+      <p>
+        Nội dung đọc làm chủ toàn bộ màn hình: không nút bấm thừa, không thanh điều hướng cố định. Tiêu đề chương trên đầu, thanh tiến độ chân trang (Trang 42/280 · 15%). Chữ Serif 19px giãn dòng 1.65.
+      </p>
+      <div class="frame-meta-tags">
+        <span class="tag">Anchor: Editorial Prose</span>
+        <span class="tag">3-Zone Tap Architecture</span>
+        <span class="tag">Origin: UNVERIFIED / HISTORICAL REFERENCE (DESIGN-002) Reader</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FR-09 -->
+  <div class="frame-card">
+    <div class="frame-card-head">
+      <span class="frame-id">FR-09: Reader HUD</span>
+      <span class="frame-area">READER</span>
+    </div>
+    <div class="frame-viewport-wrap">
+      <img src="captures/FR-09.png" alt="FR-09 Reader HUD" loading="lazy" />
+    </div>
+    <div class="frame-info">
+      <h3>Thanh công cụ đọc theo ngữ cảnh (On-Demand HUD)</h3>
+      <p>
+        Xuất hiện khi chạm vào vùng giữa màn hình: Thanh trên có nút quay về Thư viện và Mục lục; thanh dưới chứa thanh trượt tiến độ, nút chuyển chương (← Chương trước / Chương sau →), mở Mục lục, chỉnh cỡ chữ (Aa) và làm mới e-paper. Vùng trang đọc ở giữa giữ nguyên nội dung hiển thị thực tế của cuốn sách và cho phép chạm để đóng thanh công cụ tiếp tục đọc.
+      </p>
+      <div class="frame-meta-tags">
+        <span class="tag">Anchor: Contextual HUD Bars</span>
+        <span class="tag">Non-Modal Center Dismiss</span>
+        <span class="tag">Origin: Concept B HUD</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FR-10 -->
+  <div class="frame-card">
+    <div class="frame-card-head">
+      <span class="frame-id">FR-10: Table of Contents</span>
+      <span class="frame-area">READER</span>
+    </div>
+    <div class="frame-viewport-wrap">
+      <img src="captures/FR-10.png" alt="FR-10 TOC Drawer" loading="lazy" />
+    </div>
+    <div class="frame-info">
+      <h3>Mục lục sách (Table of Contents Drawer)</h3>
+      <p>
+        Danh sách chương rõ ràng với số trang đích tương ứng. Đánh dấu chấm đen đậm nổi bật chương đang đọc (Chương 4). Chạm vào bất kỳ chương nào sẽ nhảy thẳng tới trang đó và mở lại Reader.
+      </p>
+      <div class="frame-meta-tags">
+        <span class="tag">Anchor: Current Chapter Indicator</span>
+        <span class="tag">Direct Jump Navigation</span>
+        <span class="tag">Origin: Concept B TOC</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FR-11 -->
+  <div class="frame-card">
+    <div class="frame-card-head">
+      <span class="frame-id">FR-11: Typo Settings</span>
+      <span class="frame-area">READER</span>
+    </div>
+    <div class="frame-viewport-wrap">
+      <img src="captures/FR-11.png" alt="FR-11 Typo Settings" loading="lazy" />
+    </div>
+    <div class="frame-info">
+      <h3>Cài đặt hiển thị đọc nhanh (Typography Tuning)</h3>
+      <p>
+        Tùy chỉnh trực tiếp trong lúc đọc: Cỡ chữ (16, 18, 19px [Chuẩn], 22px), Khoảng cách dòng (1.4, 1.65 [Chuẩn], 1.8), Kiểu chữ (Serif / Sans-Serif), và Lề trang (24, 32, 48px) với khả năng xem trước tức thì trên màn hình.
+      </p>
+      <div class="frame-meta-tags">
+        <span class="tag">Anchor: Stepper Segmented Controls</span>
+        <span class="tag">Live Layout Preview</span>
+        <span class="tag">Origin: UNVERIFIED / HISTORICAL REFERENCE (DESIGN-002) Controls</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FR-12 -->
+  <div class="frame-card">
+    <div class="frame-card-head">
+      <span class="frame-id">FR-12: SD File Browser</span>
+      <span class="frame-area">FILES</span>
+    </div>
+    <div class="frame-viewport-wrap">
+      <img src="captures/FR-12.png" alt="FR-12 SD File Browser" loading="lazy" />
+    </div>
+    <div class="frame-info">
+      <h3>Trình duyệt tệp thẻ nhớ SD (Files Directory)</h3>
+      <p>
+        Khám phá cấu trúc thư mục thực tế với breadcrumb đường dẫn (/sdcard/books/tieng-viet/), hàng duyệt thư mục cha [..], các huy hiệu phân loại định dạng [EPUB], [TXT], dung lượng tệp và thanh trạng thái dung lượng thẻ nhớ.
+      </p>
+      <div class="frame-meta-tags">
+        <span class="tag">Anchor: Path Breadcrumb</span>
+        <span class="tag">Format Badges</span>
+        <span class="tag">Origin: Concept B Files</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FR-13 -->
+  <div class="frame-card">
+    <div class="frame-card-head">
+      <span class="frame-id">FR-13: Sideload Preview</span>
+      <span class="frame-area">FILES</span>
+    </div>
+    <div class="frame-viewport-wrap">
+      <img src="captures/FR-13.png" alt="FR-13 Sideload Preview" loading="lazy" />
+    </div>
+    <div class="frame-info">
+      <h3>Xem trước & Xác nhận nạp tệp trực tiếp</h3>
+      <p>
+        Thẻ thông tin chi tiết của tệp EPUB vừa chọn từ thẻ SD: Tựa đề giải mã từ tệp, tác giả, kiểm tra cấu trúc OPF hợp lệ, dung lượng và nút hành động chính "Mở sách trong Reader →" (56px).
+      </p>
+      <div class="frame-meta-tags">
+        <span class="tag">Anchor: Inspection Card</span>
+        <span class="tag">Metadata Pre-Parse</span>
+        <span class="tag">Origin: Concept B Sideload</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FR-14 -->
+  <div class="frame-card">
+    <div class="frame-card-head">
+      <span class="frame-id">FR-14: Settings Overview</span>
+      <span class="frame-area">SETTINGS</span>
+    </div>
+    <div class="frame-viewport-wrap">
+      <img src="captures/FR-14.png" alt="FR-14 Settings Overview" loading="lazy" />
+    </div>
+    <div class="frame-info">
+      <h3>Cài đặt hệ thống theo nhóm biên tập</h3>
+      <p>
+        Danh mục cài đặt 1-bit được nhóm theo lĩnh vực chức năng: Màn hình & làm mới E-paper, Đọc sách & phông chữ, Kết nối Wi-Fi, và Thông số phần cứng thiết bị (XTEINK X4 Pro ESP32-S3 / 8MB PSRAM).
+      </p>
+      <div class="frame-meta-tags">
+        <span class="tag">Anchor: Editorial Settings List</span>
+        <span class="tag">Trailing Values</span>
+        <span class="tag">Origin: UNVERIFIED / HISTORICAL REFERENCE (DESIGN-002) Settings</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FR-15 -->
+  <div class="frame-card">
+    <div class="frame-card-head">
+      <span class="frame-id">FR-15: Modal Settings</span>
+      <span class="frame-area">SETTINGS</span>
+    </div>
+    <div class="frame-viewport-wrap">
+      <img src="captures/FR-15.png" alt="FR-15 Modal Settings" loading="lazy" />
+    </div>
+    <div class="frame-info">
+      <h3>Hộp thoại cài đặt làm mới màn hình E-Paper</h3>
+      <p>
+        Cửa sổ tùy chọn tần suất làm mới toàn phần (Mỗi 5, 10, 20 trang hoặc Không bao giờ) với giải thích rõ ràng về ưu nhược điểm giữa độ sắc nét và tốc độ lật trang, có nút Lưu thay đổi cập nhật tức thì.
+      </p>
+      <div class="frame-meta-tags">
+        <span class="tag">Anchor: Radio Options Card</span>
+        <span class="tag">State Persistence</span>
+        <span class="tag">Origin: UNVERIFIED / HISTORICAL REFERENCE (DESIGN-002) Modal</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

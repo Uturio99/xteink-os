@@ -1,0 +1,2863 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>XTEInk OS · Unified UI/UX Prototype (M1 Remediation)</title>
+<style>
+/* ==========================================================================
+   OFFLINE REPRODUCIBLE VIETNAMESE TYPOGRAPHY (TRUE-TYPE ASSETS)
+   Builtin firmware Noto Serif & Noto Sans font families for exact rendering
+   ========================================================================== */
+@font-face {
+  font-family: 'Noto Serif';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('fonts/NotoSerif-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Serif';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('fonts/NotoSerif-Italic.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Serif';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('fonts/NotoSerif-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('fonts/NotoSans-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('fonts/NotoSans-Italic.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('fonts/NotoSans-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Noto Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('fonts/NotoSans-Bold.ttf') format('truetype');
+}
+
+/* ==========================================================================
+   XOS-DL v1.0 DESIGN TOKENS & SYSTEM BASELINE
+   Target: 480x800 portrait e-paper | 1-bit high-contrast contract
+   ========================================================================== */
+:root {
+  --screen-w: 480px;
+  --screen-h: 800px;
+  --side-inset: 32px;
+  --top-inset: 20px;
+  --bottom-clearance: 24px;
+  --content-w: 416px;
+
+  /* Typography scale */
+  --font-serif: 'Noto Serif', 'Times New Roman', serif;
+  --font-sans: 'Noto Sans', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+
+  /* Color palette - 1-bit binary contract compliant */
+  --paper: #FFFFFF;
+  --ink: #111111;
+  --secondary: #414141;
+  --preview-surf: #EBEBEB;
+  --rule: #BDBDBD;
+  --rule-light: #E0E0E0;
+
+  /* Touch bounds */
+  --tap-min: 48px;
+  --tap-primary: 56px;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #E4E4E4;
+  font-family: var(--font-sans);
+  color: var(--ink);
+  line-height: 1.4;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "kern" 1, "liga" 1;
+}
+
+/* Review Bar & Shell Controls (outside 480x800 viewport) */
+.prototype-shell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 8px 48px;
+  min-height: 100vh;
+}
+.review-header {
+  max-width: 960px;
+  width: 100%;
+  margin-bottom: 16px;
+  background: #FFFFFF;
+  border: 1px solid #CCC;
+  border-radius: 6px;
+  padding: 12px 16px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+.review-header-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.review-header-title h1 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.review-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  background: #111;
+  color: #FFF;
+  border-radius: 12px;
+  text-transform: uppercase;
+}
+.frame-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+.frame-btn {
+  background: #F4F4F4;
+  border: 1px solid #BBB;
+  color: #111;
+  padding: 5px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 3px;
+  min-height: 28px;
+}
+.frame-btn:hover { background: #E0E0E0; }
+.frame-btn.active {
+  background: #111;
+  color: #FFF;
+  border-color: #111;
+}
+.journey-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed #DDD;
+  font-size: 12px;
+}
+.journey-label { font-weight: 600; color: #555; }
+.journey-btn {
+  background: transparent;
+  border: 1px solid #999;
+  border-radius: 3px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 26px;
+}
+.journey-btn:hover { background: #111; color: #FFF; }
+
+/* SVG Monochrome Icons */
+.icon-svg {
+  display: inline-block;
+  vertical-align: middle;
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+/* ==========================================================================
+   480x800 PORTRAIT E-PAPER CANVAS CONTAINER
+   ========================================================================== */
+.device-viewport {
+  width: var(--screen-w);
+  height: var(--screen-h);
+  background: var(--paper);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.22);
+  border: none;
+  outline: 1px solid #999;
+  user-select: none;
+}
+
+/* E-paper binary refresh simulation pulse */
+.epaper-flash {
+  animation: epaperPulse 0.08s steps(2, start);
+}
+@keyframes epaperPulse {
+  0% { filter: invert(1); }
+  50% { filter: invert(0.8); }
+  100% { filter: invert(0); }
+}
+
+/* Screen base class */
+.screen-frame {
+  display: none;
+  width: 480px;
+  height: 800px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: var(--paper);
+  overflow: hidden;
+}
+.screen-frame.active {
+  display: block;
+}
+
+/* Inline E-Paper Notification (Replaces intrusive alert() popups) */
+.device-toast {
+  position: absolute;
+  top: 12px;
+  left: 20px;
+  right: 20px;
+  background: #FFFFFF;
+  border: 2px solid var(--ink);
+  padding: 10px 14px;
+  z-index: 999;
+  box-shadow: none;
+  display: none;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.device-toast.show { display: block; }
+.device-toast-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.device-toast-close {
+  background: transparent;
+  border: 1px solid var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 12px;
+  min-height: 48px;
+  min-width: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Shared UI Components */
+.system-line {
+  height: 36px;
+  padding: var(--top-inset) var(--side-inset) 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--secondary);
+}
+.system-brand {
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  font-size: 12px;
+  color: var(--ink);
+}
+.system-meta {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.nav-back-row {
+  min-height: 48px;
+  padding: 4px var(--side-inset) 0;
+  display: flex;
+  align-items: center;
+}
+.nav-back-btn {
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0 12px;
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.nav-back-btn:hover { text-decoration: underline; }
+
+/* Primary Button CTA */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--tap-primary);
+  min-width: 140px;
+  background: var(--ink);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 28px;
+  padding: 0 24px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  gap: 16px;
+}
+.btn-primary:active {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+.nav-back-btn:active,
+.action-link:active,
+.sort-pill:active,
+.hud-action-btn:active,
+.stepper-btn:active,
+.device-toast-close:active {
+  background: var(--ink) !important;
+  color: #FFFFFF !important;
+}
+
+/* Text Link Action */
+.action-link {
+  background: transparent;
+  border: none;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 8px;
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Book Row Item */
+.book-row-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  border-top: 1px solid var(--rule-light);
+  display: flex;
+  align-items: center;
+  text-align: left;
+  gap: 14px;
+  padding: 8px 0;
+  min-height: 76px;
+  cursor: pointer;
+  color: var(--ink);
+}
+.book-row-item:last-child { border-bottom: 1px solid var(--rule-light); }
+.book-thumb-small {
+  width: 40px;
+  height: 56px;
+  background: var(--ink);
+  color: #FFF;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-family: var(--font-serif);
+  font-size: 9px;
+  font-weight: 600;
+  text-align: center;
+  padding: 4px;
+  line-height: 1.2;
+}
+.book-thumb-paper {
+  background: #FFF;
+  border: 1px solid var(--ink);
+  color: var(--ink);
+}
+.book-meta-col {
+  flex: 1;
+  min-width: 0;
+}
+.book-meta-col strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+}
+.fr05-canvas .book-row-item {
+  min-height: 84px;
+}
+.book-meta-col span {
+  display: block;
+  font-size: 13px;
+  color: var(--secondary);
+  line-height: 18px;
+  margin-top: 2px;
+}
+.book-progress-tag {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--secondary);
+  flex: none;
+  text-align: right;
+}
+
+/* ==========================================================================
+   FRAME SPECIFIC STYLING (FR-01 to FR-15)
+   ========================================================================== */
+
+/* FR-01: Populated Home */
+.fr01-hero {
+  padding: 16px var(--side-inset) 0;
+}
+.fr01-eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--secondary);
+  text-transform: uppercase;
+}
+.fr01-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px;
+  gap: 18px;
+  margin-top: 10px;
+  align-items: start;
+}
+/* SPEC FIDELITY: 34px / 42px Serif Display */
+.fr01-title {
+  font-family: var(--font-serif);
+  font-size: 34px;
+  line-height: 42px;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.025em;
+  word-break: break-word;
+}
+.fr01-author {
+  font-size: 14px;
+  color: var(--secondary);
+  margin-top: 6px;
+}
+.fr01-milestone {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--secondary);
+  margin-top: 14px;
+}
+.fr01-jacket {
+  width: 112px;
+  height: 156px;
+  background: var(--ink);
+  color: #FFF;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+.fr01-jacket::after {
+  content: '';
+  position: absolute;
+  left: -20px;
+  top: 75px;
+  width: 140px;
+  height: 1px;
+  background: #FFF;
+  opacity: 0.45;
+  transform: rotate(-52deg);
+}
+.fr01-jacket-title {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 600;
+}
+.fr01-jacket-sub {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+.fr01-cta-wrap {
+  margin-top: 18px;
+}
+
+.fr01-recent-section {
+  margin: 28px var(--side-inset) 0;
+}
+.section-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+.section-header-title {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0;
+}
+.fr01-utility-section {
+  margin: 24px var(--side-inset) 0;
+}
+.utility-main-row {
+  width: 100%;
+  border: none;
+  background: transparent;
+  border-top: 1px solid var(--ink);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 58px;
+  cursor: pointer;
+  padding: 0 4px;
+  text-align: left;
+}
+.utility-sub-group {
+  display: flex;
+  gap: 16px;
+  margin-top: 4px;
+}
+.utility-sub-btn {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: var(--tap-min);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--rule-light);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0 4px;
+  text-align: left;
+}
+
+/* FR-02: Empty Home */
+.fr02-canvas {
+  padding: 44px var(--side-inset) 0;
+}
+.fr02-headline {
+  font-family: var(--font-serif);
+  font-size: 34px;
+  line-height: 42px;
+  font-weight: 600;
+  margin: 12px 0 0;
+  letter-spacing: -0.02em;
+}
+.fr02-desc {
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--secondary);
+  margin: 16px 0 0;
+  max-width: 380px;
+}
+.fr02-methods-group {
+  margin-top: 48px;
+}
+.fr02-method-row {
+  width: 100%;
+  min-height: 68px;
+  border: none;
+  background: transparent;
+  border-top: 1px solid var(--rule-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.fr02-method-row:last-child { border-bottom: 1px solid var(--rule-light); }
+.fr02-method-row strong { font-size: 15px; font-weight: 600; display: block; }
+.fr02-method-row span { font-size: 13px; color: var(--secondary); margin-top: 2px; display: block; }
+.storage-health-tag {
+  margin-top: 36px;
+  font-size: 12px;
+  color: var(--secondary);
+  display: flex;
+  justify-content: space-between;
+}
+
+/* FR-03: Unstarted Home */
+.fr03-canvas {
+  padding: 16px var(--side-inset) 0;
+}
+.fr03-hero-card {
+  border: 1px solid var(--ink);
+  padding: 20px 18px;
+  margin-top: 12px;
+}
+/* SPEC FIDELITY: 30px / 38px Serif Screen Title */
+.fr03-book-title {
+  font-family: var(--font-serif);
+  font-size: 30px;
+  line-height: 38px;
+  font-weight: 600;
+  margin: 8px 0 6px;
+  word-break: break-word;
+}
+
+/* FR-04: Curated Shelf */
+.fr04-canvas {
+  padding: 8px var(--side-inset) 0;
+}
+.shelf-mode-tabs {
+  display: flex;
+  gap: 16px;
+  border-bottom: 1px solid var(--rule);
+  margin-top: 12px;
+}
+.shelf-tab-btn {
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--secondary);
+  cursor: pointer;
+  position: relative;
+  padding: 0 8px;
+}
+.shelf-tab-btn.active {
+  color: var(--ink);
+  font-weight: 600;
+}
+.shelf-tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--ink);
+}
+.shelf-featured {
+  display: flex;
+  gap: 16px;
+  margin-top: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--rule-light);
+}
+.shelf-featured-cover {
+  width: 120px;
+  height: 170px;
+  background: var(--ink);
+  color: #FFF;
+  flex: none;
+  padding: 12px 10px;
+  font-family: var(--font-serif);
+  font-size: 12px;
+}
+.shelf-grid-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 18px;
+}
+.shelf-item-card {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+}
+.shelf-item-cover {
+  width: 100%;
+  height: 115px;
+  background: #2E2E2E;
+  color: #FFF;
+  padding: 8px;
+  font-family: var(--font-serif);
+  font-size: 11px;
+}
+
+/* FR-05 & FR-06: Editorial List & Filtered Search */
+.fr05-canvas {
+  padding: 8px var(--side-inset) 0;
+}
+/* Semantic button control for search trigger */
+.search-bar-wrap {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  border: 1px solid var(--ink);
+  padding: 0 12px;
+  align-items: center;
+  min-height: var(--tap-min);
+  width: 100%;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+.search-input {
+  border: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  flex: 1;
+  outline: none;
+  color: var(--ink);
+  min-height: var(--tap-min);
+  height: var(--tap-min);
+}
+mark.search-match {
+  background: var(--ink);
+  color: #FFFFFF;
+  padding: 0 2px;
+  font-weight: 700;
+}
+.search-clear-btn {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.sort-pills-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.sort-pill {
+  background: transparent;
+  border: 1px solid var(--rule);
+  padding: 0 14px;
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 24px;
+}
+.sort-pill.active {
+  background: var(--ink);
+  color: #FFF;
+  border-color: var(--ink);
+}
+
+/* FR-07: Empty Library */
+.fr07-canvas {
+  padding: 56px var(--side-inset) 0;
+  text-align: left;
+}
+.empty-icon-wireframe {
+  width: 64px;
+  height: 48px;
+  border: 2px solid var(--ink);
+  position: relative;
+  margin-bottom: 20px;
+}
+.empty-icon-wireframe::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--ink);
+}
+
+/* FR-08: Immersive Reader */
+.fr08-reader-body {
+  padding: 24px var(--side-inset) 0;
+  height: 100%;
+  position: relative;
+}
+.reader-running-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--secondary);
+  border-bottom: 1px solid var(--rule-light);
+  padding-bottom: 8px;
+}
+/* SPEC FIDELITY: 19px Serif, 1.65 line-height */
+.reader-prose-wrap {
+  margin-top: 36px;
+  font-family: var(--font-serif);
+  font-size: 19px;
+  line-height: 1.65;
+  color: var(--ink);
+  text-align: justify;
+}
+.reader-prose-wrap h2 {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0 0 20px;
+  line-height: 1.3;
+}
+.reader-prose-wrap p {
+  margin: 0 0 18px;
+  text-indent: 1.5em;
+}
+.reader-running-footer {
+  position: absolute;
+  bottom: var(--bottom-clearance);
+  left: var(--side-inset);
+  right: var(--side-inset);
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--secondary);
+  border-top: 1px solid var(--rule-light);
+  padding-top: 8px;
+}
+
+/* SPEC FIDELITY: Tap Zones: Left 30%, Center 20%, Right 50% */
+.reader-tap-left { position: absolute; left: 0; top: 0; bottom: 0; width: 30%; cursor: w-resize; }
+.reader-tap-center { position: absolute; left: 30%; top: 0; bottom: 0; width: 20%; cursor: pointer; }
+.reader-tap-right { position: absolute; left: 50%; top: 0; bottom: 0; width: 50%; cursor: e-resize; }
+
+/* FR-09: Reader HUD Overlay (Opaque Controls Over Visible Reading Canvas) */
+#frame-fr-09 {
+  position: relative;
+}
+#frame-fr-09 .hud-top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: #FFFFFF;
+  border-bottom: 2px solid var(--ink);
+  z-index: 50;
+  padding: 0 var(--side-inset);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+#frame-fr-09 .hud-center-dismiss {
+  position: absolute;
+  top: 60px;
+  bottom: 140px;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  cursor: pointer;
+  background: transparent;
+}
+#frame-fr-09 .hud-bottom-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #FFFFFF;
+  border-top: 2px solid var(--ink);
+  z-index: 50;
+  padding: 16px var(--side-inset) var(--bottom-clearance);
+}
+.hud-scrubber-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.hud-scrubber-track {
+  flex: 1;
+  height: 6px;
+  background: #DDD;
+  position: relative;
+}
+.hud-scrubber-fill {
+  width: 15%;
+  height: 100%;
+  background: var(--ink);
+}
+.hud-actions-grid {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.hud-action-btn {
+  flex: 1;
+  min-height: var(--tap-min);
+  min-width: 60px;
+  background: #FFFFFF;
+  border: 1px solid var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 6px;
+}
+
+/* FR-10: TOC Drawer Modal */
+.modal-drawer {
+  position: absolute;
+  inset: 0;
+  background: #FFFFFF;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+}
+.modal-head {
+  padding: 20px var(--side-inset);
+  border-bottom: 2px solid var(--ink);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.modal-head h2 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 20px;
+  line-height: 26px;
+  flex: 1;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.modal-close-btn {
+  background: transparent;
+  border: 1px solid var(--ink);
+  padding: 0 16px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.toc-list-wrap {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px var(--side-inset);
+}
+.toc-row-item {
+  width: 100%;
+  min-height: 56px;
+  border: none;
+  background: transparent;
+  border-bottom: 1px solid var(--rule-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 10px 4px;
+  gap: 12px;
+}
+.toc-row-item > span:first-child {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.4;
+  word-break: break-word;
+}
+.toc-row-item > span:last-child {
+  flex: none;
+  white-space: nowrap;
+}
+.toc-row-item.current {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* FR-11: Typography Settings Modal */
+.typo-controls-wrap {
+  padding: 20px var(--side-inset);
+}
+.typo-control-group {
+  margin-bottom: 20px;
+}
+.typo-control-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.stepper-btn-row {
+  display: flex;
+  gap: 8px;
+}
+.stepper-btn {
+  flex: 1;
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+  border: 1px solid var(--ink);
+  background: #FFF;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.stepper-btn.active {
+  background: var(--ink);
+  color: #FFF;
+}
+
+/* FR-12: Files Browser */
+.fr12-canvas {
+  padding: 8px var(--side-inset) 0;
+}
+.path-crumb-box {
+  background: var(--preview-surf);
+  padding: 8px 12px;
+  font-family: monospace;
+  font-size: 13px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+  border-left: 3px solid var(--ink);
+}
+.file-row-btn {
+  width: 100%;
+  min-height: 58px;
+  border: none;
+  background: transparent;
+  border-bottom: 1px solid var(--rule-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.file-badge {
+  font-size: 11px;
+  font-weight: 700;
+  background: #000;
+  color: #FFF;
+  padding: 2px 6px;
+  margin-right: 8px;
+  border-radius: 2px;
+}
+
+/* FR-13: Direct Sideload Selection */
+.fr13-canvas {
+  padding: 24px var(--side-inset) 0;
+}
+.file-card-inspect {
+  border: 2px solid var(--ink);
+  padding: 20px;
+  margin-top: 20px;
+}
+
+/* FR-14: Settings Overview */
+.fr14-canvas {
+  padding: 8px var(--side-inset) 0;
+}
+.settings-group-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--secondary);
+  margin: 22px 0 6px;
+}
+.settings-row-item {
+  width: 100%;
+  min-height: 54px;
+  border: none;
+  background: transparent;
+  border-bottom: 1px solid var(--rule-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 0 4px;
+  text-align: left;
+}
+.settings-row-item strong { font-size: 15px; font-weight: 500; }
+.settings-row-item span { font-size: 13px; color: var(--secondary); font-weight: 600; }
+
+/* FR-15: Compact Settings Modal */
+.fr15-modal-box {
+  border: 2px solid var(--ink);
+  padding: 24px;
+  margin-top: 28px;
+}
+.radio-option-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  cursor: pointer;
+  border-bottom: 1px dashed var(--rule-light);
+}
+.radio-option-row input[type="radio"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--ink);
+}
+
+</style>
+</head>
+<body>
+
+<div class="prototype-shell">
+
+  <!-- Reviewer Navigation Panel -->
+  <div class="review-header">
+    <div class="review-header-title">
+      <div>
+        <h1>XTEInk OS · 15-Frame Master Prototype (M1 Remediation)</h1>
+        <div style="font-size: 12px; color: #666; margin-top: 2px;">
+          480×800 Portrait E-Paper Canvas · XOS-DL v1.0 Spec-Compliant Baseline
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button class="journey-btn" onclick="triggerEpaperFlash()" title="Mô phỏng chớp làm mới e-paper">[Làm mới e-paper]</button>
+        <span class="review-badge" id="current-frame-badge">FR-01 Populated Home</span>
+      </div>
+    </div>
+
+    <!-- Direct Frame Jump Switcher -->
+    <div class="frame-selector">
+      <button class="frame-btn active" onclick="showFrame('fr-01')">FR-01 Home</button>
+      <button class="frame-btn" onclick="showFrame('fr-02')">FR-02 Empty Home</button>
+      <button class="frame-btn" onclick="showFrame('fr-03')">FR-03 Unstarted Home</button>
+      <button class="frame-btn" onclick="showFrame('fr-04')">FR-04 Curated Shelf</button>
+      <button class="frame-btn" onclick="showFrame('fr-05')">FR-05 Editorial List</button>
+      <button class="frame-btn" onclick="showFrame('fr-06')">FR-06 Search Query</button>
+      <button class="frame-btn" onclick="showFrame('fr-07')">FR-07 Empty Library</button>
+      <button class="frame-btn" onclick="showFrame('fr-08')">FR-08 Reader</button>
+      <button class="frame-btn" onclick="showFrame('fr-09')">FR-09 Reader HUD</button>
+      <button class="frame-btn" onclick="showFrame('fr-10')">FR-10 TOC Drawer</button>
+      <button class="frame-btn" onclick="showFrame('fr-11')">FR-11 Typo Settings</button>
+      <button class="frame-btn" onclick="showFrame('fr-12')">FR-12 SD Files</button>
+      <button class="frame-btn" onclick="showFrame('fr-13')">FR-13 Sideload Preview</button>
+      <button class="frame-btn" onclick="showFrame('fr-14')">FR-14 Settings</button>
+      <button class="frame-btn" onclick="showFrame('fr-15')">FR-15 Modal Settings</button>
+    </div>
+
+    <!-- Journey Fast Playback -->
+    <div class="journey-bar">
+      <span class="journey-label">Hành trình kiểm thử:</span>
+      <button class="journey-btn" onclick="runJourneyA()">Journey A: Tiếp tục đọc</button>
+      <button class="journey-btn" onclick="runJourneyB()">Journey B: Tìm & Mở sách</button>
+      <button class="journey-btn" onclick="runJourneyC()">Journey C: Mục lục & Chỉnh phông</button>
+      <button class="journey-btn" onclick="runJourneyD()">Journey D: Nhập sách từ tệp</button>
+      <button class="journey-btn" onclick="runJourneyE()">Journey E: Đổi cài đặt làm mới</button>
+    </div>
+
+    <!-- Prototype State Inspection Toolbar (Outside 480x800 Device Viewport) -->
+    <div class="journey-bar" style="border-top: 1px dashed #DDD; padding-top: 8px;">
+      <span class="journey-label">Mô phỏng tệp sideload (FR-13):</span>
+      <button class="journey-btn active" id="dev-btn-valid" onclick="setFileInspectMode(false)">[Trạng thái A: Tệp EPUB hợp lệ]</button>
+      <button class="journey-btn" id="dev-btn-invalid" onclick="setFileInspectMode(true)">[Trạng thái B: Tệp lỗi không hỗ trợ .BIN]</button>
+    </div>
+  </div>
+
+  <!-- 480x800 Logical Device Viewport -->
+  <div class="device-viewport" id="device-screen">
+
+    <!-- In-Viewport E-Paper Notification Toast (Zero alert() usage) -->
+    <div class="device-toast" id="device-toast-box">
+      <div class="device-toast-head">
+        <span id="device-toast-title">THÔNG BÁO HỆ THỐNG</span>
+        <button class="device-toast-close" onclick="hideToast()">ĐÓNG (×)</button>
+      </div>
+      <div id="device-toast-body" style="font-size: 13px;">...</div>
+    </div>
+
+    <!-- ====================================================================
+         FR-01: Populated Home
+         ==================================================================== -->
+    <div class="screen-frame active" id="frame-fr-01">
+      <div class="system-line">
+        <span class="system-brand">XTEINK OS</span>
+        <div class="system-meta">
+          <span>82%</span>
+          <span>09:22</span>
+        </div>
+      </div>
+
+      <div class="fr01-hero">
+        <div class="fr01-eyebrow">ĐANG ĐỌC DỞ</div>
+        <div class="fr01-hero-grid">
+          <div>
+            <h1 class="fr01-title" id="home-hero-title">Nỗi buồn chiến tranh</h1>
+            <div class="fr01-author" id="home-hero-author">Bảo Ninh</div>
+            <div class="fr01-milestone" id="home-hero-milestone">Chương 4 · Trang 42/280 (15%)</div>
+            <div class="fr01-cta-wrap">
+              <button class="btn-primary" onclick="openReaderFromHome()">
+                <span>Tiếp tục đọc</span>
+                <span>→</span>
+              </button>
+            </div>
+          </div>
+          <div class="fr01-jacket" onclick="openReaderFromHome()" style="cursor:pointer;" title="Chạm để mở sách">
+            <div class="fr01-jacket-title" id="home-hero-jacket-title">NỖI BUỒN<br/>CHIẾN TRANH</div>
+            <div class="fr01-jacket-sub" id="home-hero-jacket-sub">BẢO NINH · TIỂU THUYẾT</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fr01-recent-section">
+        <div class="section-header-row">
+          <h2 class="section-header-title">Đang đọc gần đây</h2>
+          <button class="action-link" onclick="showFrame('fr-05')">Xem tất cả (24) →</button>
+        </div>
+        <button class="book-row-item" onclick="switchToBook('nhung-nguoi-khon-kho')">
+          <div class="book-thumb-small">KHỐN<br/>KHỔ</div>
+          <div class="book-meta-col">
+            <strong>Những người khốn khổ — Tập thứ nhất</strong>
+            <span>Victor Hugo</span>
+          </div>
+          <div class="book-progress-tag" id="rec-progress-khon-kho">Chưa đọc</div>
+        </button>
+        <button class="book-row-item" onclick="switchToBook('de-men-phieu-luu-ky')">
+          <div class="book-thumb-small book-thumb-paper">DẾ<br/>MÈN</div>
+          <div class="book-meta-col">
+            <strong>Dế Mèn phiêu lưu ký</strong>
+            <span>Tô Hoài</span>
+          </div>
+          <div class="book-progress-tag" id="rec-progress-de-men">40%</div>
+        </button>
+      </div>
+
+      <div class="fr01-utility-section">
+        <button class="utility-main-row" onclick="showFrame('fr-05')">
+          <div>
+            <strong style="font-size: 16px;">Thư viện sách (24 cuốn)</strong>
+            <div style="font-size: 13px; color: var(--secondary);">Xem toàn bộ kho sách đã lập chỉ mục</div>
+          </div>
+          <span style="font-size: 18px;">→</span>
+        </button>
+        <div class="utility-sub-group">
+          <button class="utility-sub-btn" onclick="showFrame('fr-12')">
+            <span>Quản lý tệp SD</span>
+            <span>→</span>
+          </button>
+          <button class="utility-sub-btn" onclick="showFrame('fr-14')">
+            <span>Cài đặt hệ thống</span>
+            <span>→</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         FR-02: Empty Home
+         ==================================================================== -->
+    <div class="screen-frame" id="frame-fr-02">
+      <div class="system-line">
+        <span class="system-brand">XTEINK OS</span>
+        <div class="system-meta">
+          <span>82%</span>
+          <span>09:22</span>
+        </div>
+      </div>
+
+      <div class="fr02-canvas">
+        <div class="fr01-eyebrow">KHỞI ĐỘNG THIẾT BỊ</div>
+        <h1 class="fr02-headline">Thư viện trống</h1>
+        <p class="fr02-desc">
+          Chưa có sách nào trên thiết bị. Kết nối thẻ nhớ MicroSD hoặc sử dụng máy chủ Wi-Fi để bắt đầu đọc.
+        </p>
+
+        <div style="margin-top: 28px;">
+          <button class="btn-primary" onclick="showFrame('fr-12')">
+            <span>Thêm sách ngay</span>
+            <span>→</span>
+          </button>
+        </div>
+
+        <div class="fr02-methods-group">
+          <div style="font-size: 13px; font-weight: 700; color: var(--secondary); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px;">
+            PHƯƠNG THỨC NẠP SÁCH
+          </div>
+          <button class="fr02-method-row" onclick="showFrame('fr-12')">
+            <div>
+              <strong>Trình duyệt thẻ nhớ SD</strong>
+              <span>Quét tự động thư mục /sdcard/books</span>
+            </div>
+            <span>→</span>
+          </button>
+          <button class="fr02-method-row" onclick="showToast('MÁY CHỦ WI-FI [MÔ PHỎNG]', 'Địa chỉ máy chủ cục bộ: http://192.168.1.150:8080. Mở trình duyệt trên máy tính cùng mạng Wi-Fi để nạp sách EPUB.')">
+            <div>
+              <strong>Máy chủ Wi-Fi cục bộ</strong>
+              <span>http://192.168.1.150:8080</span>
+            </div>
+            <span>→</span>
+          </button>
+          <button class="fr02-method-row" onclick="showToast('KẾT NỐI USB [MÔ PHỎNG]', 'Cắm cáp USB-C kết nối với máy tính, bật chế độ USB Mass Storage trong Cài đặt để sao chép trực tiếp vào thẻ nhớ.')">
+            <div>
+              <strong>Kết nối máy tính qua USB</strong>
+              <span>Hướng dẫn sao chép tệp trực tiếp</span>
+            </div>
+            <span>→</span>
+          </button>
+        </div>
+
+        <div class="storage-health-tag">
+          <span>Thẻ nhớ MicroSD: 14.2 GB trống / 32 GB</span>
+          <span>FAT32</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         FR-03: Unstarted Home
+         ==================================================================== -->
+    <div class="screen-frame" id="frame-fr-03">
+      <div class="system-line">
+        <span class="system-brand">XTEINK OS</span>
+        <div class="system-meta">
+          <span>82%</span>
+          <span>09:22</span>
+        </div>
+      </div>
+
+      <div class="fr03-canvas">
+        <div class="fr01-eyebrow">GỢI Ý ĐỌC HÔM NAY</div>
+        <div class="fr03-hero-card">
+          <div style="font-size: 12px; font-weight: 600; color: var(--secondary);">TÁC PHẨM KINH ĐIỂN CHƯA MỞ</div>
+          <h2 class="fr03-book-title">Những người khốn khổ — Tập thứ nhất</h2>
+          <div style="font-size: 14px; color: var(--secondary); margin-bottom: 16px;">
+            Victor Hugo · Bản dịch tiếng Việt kinh điển · 680 trang
+          </div>
+          <button class="btn-primary" onclick="switchToBook('nhung-nguoi-khon-kho')">
+            <span>Bắt đầu đọc cuốn này</span>
+            <span>→</span>
+          </button>
+        </div>
+
+        <div style="margin-top: 24px;">
+          <div class="section-header-row">
+            <h2 class="section-header-title">Sách mới thêm vào máy</h2>
+            <button class="action-link" onclick="showFrame('fr-05')">Toàn bộ kho sách →</button>
+          </div>
+          <button class="book-row-item" onclick="switchToBook('de-men-phieu-luu-ky')">
+            <div class="book-thumb-small book-thumb-paper">DẾ<br/>MÈN</div>
+            <div class="book-meta-col">
+              <strong>Dế Mèn phiêu lưu ký</strong>
+              <span>Tô Hoài · 120 trang</span>
+            </div>
+            <div class="book-progress-tag">Mới</div>
+          </button>
+          <button class="book-row-item" onclick="switchToBook('chien-tranh-va-hoa-binh')">
+            <div class="book-thumb-small">TOLSTOY</div>
+            <div class="book-meta-col">
+              <strong>Chiến tranh và Hòa bình</strong>
+              <span>Lev Tolstoy · 1280 trang</span>
+            </div>
+            <div class="book-progress-tag">Mới</div>
+          </button>
+          <button class="book-row-item" onclick="switchToBook('so-do')">
+            <div class="book-thumb-small book-thumb-paper">SỐ<br/>ĐỎ</div>
+            <div class="book-meta-col">
+              <strong>Số Đỏ</strong>
+              <span>Vũ Trọng Phụng · 210 trang</span>
+            </div>
+            <div class="book-progress-tag">Mới</div>
+          </button>
+        </div>
+
+        <div style="margin-top: 24px;">
+          <button class="utility-main-row" onclick="showFrame('fr-05')">
+            <div>
+              <strong style="font-size: 15px;">Mở Thư viện sách (24 cuốn)</strong>
+              <div style="font-size: 13px; color: var(--secondary);">Duyệt theo danh sách hoặc dạng kệ</div>
+            </div>
+            <span>→</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         FR-04: Curated Shelf
+         ==================================================================== -->
+    <div class="screen-frame" id="frame-fr-04">
+      <div class="nav-back-row">
+        <button class="nav-back-btn" onclick="showFrame('fr-01')">← Trang chủ</button>
+      </div>
+
+      <div class="fr04-canvas">
+        <h1 style="font-family: var(--font-serif); font-size: 30px; margin: 0;">Kệ sách tuyển chọn</h1>
+        
+        <div class="shelf-mode-tabs">
+          <button class="shelf-tab-btn active">Kệ sách tuyển chọn</button>
+          <button class="shelf-tab-btn" onclick="showFrame('fr-05')">Danh sách chi tiết</button>
+          <button class="shelf-tab-btn" onclick="openSearch()">Tìm kiếm</button>
+        </div>
+
+        <!-- Featured Collection -->
+        <div class="shelf-featured" onclick="switchToBook('noi-buon-chien-tranh')" style="cursor: pointer;">
+          <div class="shelf-featured-cover">
+            <strong>NỖI BUỒN<br/>CHIẾN TRANH</strong>
+            <div style="font-size: 8px; margin-top: 18px;">BẢO NINH</div>
+          </div>
+          <div style="flex: 1;">
+            <div style="font-size: 11px; font-weight: 700; color: var(--secondary); text-transform: uppercase;">TIÊU ĐIỂM TUẦN NÀY</div>
+            <h2 style="font-family: var(--font-serif); font-size: 18px; margin: 4px 0;">Nỗi buồn chiến tranh</h2>
+            <div style="font-size: 13px; color: var(--secondary);">Bảo Ninh · 280 trang</div>
+            <div style="font-size: 12px; margin-top: 8px; line-height: 1.4;">
+              Kiệt tác văn học chiến tranh đương đại Việt Nam, đoạt giải thưởng Hội Nhà văn.
+            </div>
+            <div style="font-size: 12px; font-weight: 600; margin-top: 8px;">Đang đọc: 15% →</div>
+          </div>
+        </div>
+
+        <!-- Secondary Grid -->
+        <div style="margin-top: 16px;">
+          <div style="font-size: 13px; font-weight: 700; color: var(--secondary);">VĂN HỌC VIỆT NAM CHỌN LỌC</div>
+          <div class="shelf-grid-row">
+            <button class="shelf-item-card" onclick="switchToBook('de-men-phieu-luu-ky')">
+              <div class="shelf-item-cover" style="background: var(--ink); color: #FFFFFF; border: 1px solid var(--ink);">
+                <strong style="font-size: 12px; letter-spacing: 0.04em;">DẾ MÈN<br/>PHIÊU LƯU KÝ</strong>
+                <div style="font-size: 10px; margin-top: 14px; font-weight: 600;">TÔ HOÀI</div>
+              </div>
+              <div style="font-size: 13px; font-weight: 600; margin-top: 4px;">Dế Mèn phiêu lưu ký</div>
+              <div style="font-size: 11px; color: var(--secondary);">Đang đọc 40%</div>
+            </button>
+            <button class="shelf-item-card" onclick="switchToBook('so-do')">
+              <div class="shelf-item-cover" style="background: #FFFFFF; color: var(--ink); border: 2px solid var(--ink);">
+                <strong style="font-size: 13px; letter-spacing: 0.04em;">SỐ ĐỎ</strong>
+                <div style="font-size: 10px; margin-top: 18px; font-weight: 600;">VŨ TRỌNG PHỤNG</div>
+              </div>
+              <div style="font-size: 13px; font-weight: 600; margin-top: 4px;">Số Đỏ</div>
+              <div style="font-size: 11px; color: var(--secondary);">Chưa đọc</div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         FR-05: Editorial List
+         ==================================================================== -->
+    <div class="screen-frame" id="frame-fr-05">
+      <div class="nav-back-row">
+        <button class="nav-back-btn" onclick="showFrame('fr-01')">← Trang chủ</button>
+      </div>
+
+      <div class="fr05-canvas">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <h1 style="font-family: var(--font-serif); font-size: 30px; margin: 0;">Thư viện sách</h1>
+          <span style="font-size: 13px; color: var(--secondary);">24 tựa sách</span>
+        </div>
+
+        <!-- Semantic Accessible Button for Search Trigger -->
+        <button class="search-bar-wrap" type="button" aria-label="Tìm kiếm tựa sách" onclick="openSearch()">
+          <span style="font-size: 14px; margin-right: 6px;">[Tìm]</span>
+          <span style="color: #666; font-size: 14px;">Tìm kiếm tựa sách, tác giả...</span>
+        </button>
+
+        <div class="sort-pills-row">
+          <button class="sort-pill active" onclick="sortLibrary('recent')">Gần đây</button>
+          <button class="sort-pill" onclick="sortLibrary('title')">Tên sách (A-Z)</button>
+          <button class="sort-pill" onclick="sortLibrary('progress')">Tiến độ</button>
+          <button class="sort-pill" onclick="showFrame('fr-04')">Xem dạng kệ</button>
+        </div>
+
+        <div id="library-list-items">
+          <!-- Dynamic Book Rows from Persistent Catalog -->
+          <button class="book-row-item" onclick="switchToBook('noi-buon-chien-tranh')">
+            <div class="book-thumb-small">BẢO<br/>NINH</div>
+            <div class="book-meta-col">
+              <strong>Nỗi buồn chiến tranh</strong>
+              <span>Bảo Ninh · 280 trang</span>
+            </div>
+            <div class="book-progress-tag" id="lib-progress-noi-buon">15%</div>
+          </button>
+          <button class="book-row-item" onclick="switchToBook('nhung-nguoi-khon-kho')">
+            <div class="book-thumb-small book-thumb-paper">HUGO</div>
+            <div class="book-meta-col">
+              <strong>Những người khốn khổ — Tập thứ nhất</strong>
+              <span>Victor Hugo · 680 trang</span>
+            </div>
+            <div class="book-progress-tag" id="lib-progress-khon-kho">Chưa đọc</div>
+          </button>
+          <button class="book-row-item" onclick="switchToBook('de-men-phieu-luu-ky')">
+            <div class="book-thumb-small book-thumb-paper">TÔ<br/>HOÀI</div>
+            <div class="book-meta-col">
+              <strong>Dế Mèn phiêu lưu ký</strong>
+              <span>Tô Hoài · 120 trang</span>
+            </div>
+            <div class="book-progress-tag" id="lib-progress-de-men">40%</div>
+          </button>
+          <button class="book-row-item" onclick="switchToBook('chien-tranh-va-hoa-binh')">
+            <div class="book-thumb-small">TOLSTOY</div>
+            <div class="book-meta-col">
+              <strong>Chiến tranh và Hòa bình</strong>
+              <span>Lev Tolstoy · 1280 trang</span>
+            </div>
+            <div class="book-progress-tag" id="lib-progress-chien-tranh-hb">Chưa đọc</div>
+          </button>
+          <button class="book-row-item" onclick="switchToBook('so-do')">
+            <div class="book-thumb-small book-thumb-paper">SỐ<br/>ĐỎ</div>
+            <div class="book-meta-col">
+              <strong>Số Đỏ</strong>
+              <span>Vũ Trọng Phụng · 210 trang</span>
+            </div>
+            <div class="book-progress-tag" id="lib-progress-so-do">Chưa đọc</div>
+          </button>
+          <button class="book-row-item" onclick="switchToBook('truyen-kieu')">
+            <div class="book-thumb-small">NGUYỄN<br/>DU</div>
+            <div class="book-meta-col">
+              <strong>Truyện Kiều</strong>
+              <span>Nguyễn Du · 150 trang</span>
+            </div>
+            <div class="book-progress-tag" id="lib-progress-truyen-kieu">Chưa đọc</div>
+          </button>
+        </div>
+
+        <div style="margin-top: 16px; font-size: 12px; color: var(--secondary); text-align: center;">
+          Trang 1 / 4 · Hiển thị 1 - 6 trên 24 cuốn
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         FR-06: Filtered Search
+         ==================================================================== -->
+    <div class="screen-frame" id="frame-fr-06">
+      <div class="nav-back-row">
+        <button class="nav-back-btn" onclick="showFrame('fr-05')">← Quay lại danh sách</button>
+      </div>
+
+      <div class="fr05-canvas">
+        <div class="search-bar-wrap" style="cursor: default;">
+          <span style="font-size: 13px; font-weight: 700; margin-right: 6px;">[Tìm]</span>
+          <input type="text" class="search-input" id="search-input-field" value="chiến tranh" oninput="handleSearchInput(this.value)" placeholder="Nhập tên sách để tìm..." />
+          <button class="search-clear-btn" type="button" aria-label="Xóa từ khóa tìm kiếm" onclick="clearSearch()">×</button>
+        </div>
+
+        <div style="margin-top: 10px; font-size: 13px; font-weight: 600; color: var(--secondary);" id="search-result-count">
+          Tìm thấy 2 kết quả cho "chiến tranh"
+        </div>
+
+        <div id="search-results-list" style="margin-top: 8px;">
+          <button class="book-row-item" onclick="switchToBook('noi-buon-chien-tranh')">
+            <div class="book-thumb-small">BẢO<br/>NINH</div>
+            <div class="book-meta-col">
+              <strong>Nỗi buồn <mark class="search-match">chiến tranh</mark></strong>
+              <span>Bảo Ninh · 280 trang (Đang đọc 15%)</span>
+            </div>
+            <div class="book-progress-tag">Mở →</div>
+          </button>
+          <button class="book-row-item" onclick="switchToBook('chien-tranh-va-hoa-binh')">
+            <div class="book-thumb-small">TOLSTOY</div>
+            <div class="book-meta-col">
+              <strong><mark class="search-match">Chiến tranh</mark> và Hòa bình</strong>
+              <span>Lev Tolstoy · 1280 trang (Chưa đọc)</span>
+            </div>
+            <div class="book-progress-tag">Mở →</div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         FR-07: Empty Library
+         ==================================================================== -->
+    <div class="screen-frame" id="frame-fr-07">
+      <div class="nav-back-row">
+        <button class="nav-back-btn" onclick="showFrame('fr-01')">← Trang chủ</button>
+      </div>
+
+      <div class="fr07-canvas">
+        <h1 style="font-family: var(--font-serif); font-size: 30px; line-height: 38px; margin: 0 0 16px 0;">Thư viện sách</h1>
+        <div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+          <div class="empty-icon-wireframe"></div>
+          <h2 style="font-family: var(--font-serif); font-size: 24px; line-height: 32px; margin: 16px 0 8px 0;">Chưa tìm thấy sách</h2>
+        </div>
+        <p style="font-size: 15px; line-height: 22px; color: var(--secondary); margin: 8px 0 24px; text-align: center;">
+          Không có tệp sách nào trong thư mục quét hệ thống (/sdcard/books). Vui lòng chép tệp sách hoặc kiểm tra định dạng thẻ nhớ.
+        </p>
+
+        <button class="btn-primary" onclick="showFrame('fr-12')" style="width: 100%; margin-bottom: 12px;">
+          <span>Quét lại thẻ nhớ SD</span>
+          <span>→</span>
+        </button>
+
+        <button class="action-link" onclick="showFrame('fr-12')" style="display: block; text-align: center; width: 100%;">
+          Mở trình quản lý tệp để duyệt thủ công →
+        </button>
+
+        <div style="margin-top: 48px; border-top: 1px solid var(--rule-light); padding-top: 16px; font-size: 13px; color: var(--secondary);">
+          Định dạng hỗ trợ: EPUB, TXT, FB2, PDF.<br/>
+          Khuyên dùng EPUB không khóa DRM để có trải nghiệm đọc tốt nhất.
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         FR-08: Immersive Reader
+         ==================================================================== -->
+    <div class="screen-frame" id="frame-fr-08">
+      <div class="fr08-reader-body">
+        <div class="reader-running-header">
+          <span id="reader-header-title">Nỗi buồn chiến tranh</span>
+          <span id="reader-header-ch">Chương 4: Tiếng súng xa dần</span>
+        </div>
+
+        <div class="reader-prose-wrap" id="reader-prose-text">
+          <h2 id="reader-chapter-title">Chương 4: Tiếng súng xa dần</h2>
+          <div id="reader-paragraphs-container">
+            <p>Chiến tranh đã qua đi, nhưng trong tâm trí Kiên, tiếng súng vẫn chưa bao giờ dứt hẳn...</p>
+          </div>
+        </div>
+
+        <div class="reader-running-footer">
+          <span id="reader-progress-footer">Trang 42 / 280 (15%)</span>
+          <span>Pin: 82% · 09:22</span>
+        </div>
+
+        <!-- SPEC FIDELITY: 3-zone tap overlay (Left 30%, Center 20%, Right 50%) -->
+        <div class="reader-tap-left" onclick="readerPrevPage()" title="Lùi 1 trang (Left 30%)"></div>
+        <div class="reader-tap-center" onclick="toggleReaderHUD(true)" title="Mở thanh công cụ đọc (Center 20%)"></div>
+        <div class="reader-tap-right" onclick="readerNextPage()" title="Tiến 1 trang (Right 50%)"></div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         FR-09: Reader HUD Overlay (Opaque Control Bars over Visible Reading Canvas)
+         ==================================================================== -->
+    <div class="screen-frame" id="frame-fr-09">
+      <!-- Underlying Reading Canvas (Identical to FR-08, 100% Visible Under HUD) -->
+      <div class="fr08-reader-body">
+        <div class="reader-running-header">
+          <span id="reader-hud-header-title">Nỗi buồn chiến tranh</span>
+          <span id="reader-hud-header-ch">Chương 4: Tiếng súng xa dần</span>
+        </div>
+
+        <div class="reader-prose-wrap" id="reader-hud-prose-text">
+          <h2 id="reader-hud-chapter-title">Chương 4: Tiếng súng xa dần</h2>
+          <div id="reader-hud-paragraphs-container">
+            <p>Chiến tranh đã qua đi, nhưng trong tâm trí Kiên, tiếng súng vẫn chưa bao giờ dứt hẳn...</p>
+          </div>
+        </div>
+
+        <div class="reader-running-footer">
+          <span id="reader-hud-progress-footer">Trang 42 / 280 (15%)</span>
+          <span>Pin: 82% · 09:22</span>
+        </div>
+      </div>
+
+      <!-- Opaque Contextual Control Bars (Pure 1-Bit Solid White Surfaces) -->
+      <div class="hud-top-bar">
+        <button class="nav-back-btn" onclick="showFrame('fr-05')">← Thư viện</button>
+        <strong style="font-size: 14px;" id="hud-book-name">Nỗi buồn chiến tranh</strong>
+        <button class="action-link" onclick="showFrame('fr-10')">[Mục lục]</button>
+      </div>
+
+      <!-- Interactive Reading Area Hit Target (Dismisses HUD Back to FR-08) -->
+      <div class="hud-center-dismiss" onclick="showFrame('fr-08')" title="Chạm vào vùng đọc để tiếp tục đọc"></div>
+
+      <div class="hud-bottom-bar">
+        <div class="hud-scrubber-row">
+          <span style="font-size: 12px; font-weight: 600;" id="hud-page-indicator">Trang 42 / 280 (15%)</span>
+          <div class="hud-scrubber-track">
+            <div class="hud-scrubber-fill" id="hud-scrubber-bar"></div>
+          </div>
+        </div>
+
+        <div class="hud-actions-grid">
+          <button class="hud-action-btn" onclick="prevChapter()">← Chương trước</button>
+          <button class="hud-action-btn" onclick="showFrame('fr-10')">[Mục lục]</button>
+          <button class="hud-action-btn" onclick="showFrame('fr-11')">[Aa Phông chữ]</button>
+          <button class="hud-action-btn" onclick="triggerEpaperFlash()">[Làm mới]</button>
+          <button class="hud-action-btn" onclick="nextChapter()">Chương sau →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         FR-10: TOC Drawer Modal
+         ==================================================================== -->
+    <div class="screen-frame" id="frame-fr-10">
+      <div class="modal-drawer">
+        <div class="modal-head">
+          <h2 id="toc-modal-title">Mục lục sách</h2>
+          <button class="modal-close-btn" onclick="showFrame('fr-08')">Đóng (×)</button>
+        </div>
+        <div class="toc-list-wrap" id="toc-dynamic-list">
+          <!-- Dynamically populated based on active book -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         FR-11: Typography Settings Modal
+         ==================================================================== -->
+    <div class="screen-frame" id="frame-fr-11">
+      <div class="modal-drawer">
+        <div class="modal-head">
+          <h2>Cài đặt hiển thị đọc</h2>
+          <button class="modal-close-btn" onclick="showFrame('fr-08')">Áp dụng</button>
+        </div>
+        <div class="typo-controls-wrap">
+          <div class="typo-control-group">
+            <label>Cỡ chữ (Kích thước phông)</label>
+            <div class="stepper-btn-row">
+              <button class="stepper-btn" id="fbtn-16" onclick="setReaderFontSize(16)">16px</button>
+              <button class="stepper-btn" id="fbtn-18" onclick="setReaderFontSize(18)">18px</button>
+              <button class="stepper-btn active" id="fbtn-19" onclick="setReaderFontSize(19)">19px (Chuẩn)</button>
+              <button class="stepper-btn" id="fbtn-22" onclick="setReaderFontSize(22)">22px</button>
+            </div>
+          </div>
+
+          <div class="typo-control-group">
+            <label>Khoảng cách giãn dòng</label>
+            <div class="stepper-btn-row">
+              <button class="stepper-btn" id="lhbtn-14" onclick="setReaderLineHeight(1.4)">1.4 (Hẹp)</button>
+              <button class="stepper-btn active" id="lhbtn-165" onclick="setReaderLineHeight(1.65)">1.65 (Chuẩn)</button>
+              <button class="stepper-btn" id="lhbtn-18" onclick="setReaderLineHeight(1.8)">1.8 (Rộng)</button>
+            </div>
+          </div>
+
+          <div class="typo-control-group">
+            <label>Kiểu phông chữ</label>
+            <div class="stepper-btn-row">
+              <button class="stepper-btn active" id="font-serif-btn" onclick="setReaderFontFamily('serif')">Có chân (Serif)</button>
+              <button class="stepper-btn" id="font-sans-btn" onclick="setReaderFontFamily('sans')">Không chân (Sans)</button>
+            </div>
+          </div>
+
+          <div class="typo-control-group">
+            <label>Lề trang đọc</label>
+            <div class="stepper-btn-row">
+              <button class="stepper-btn" id="mbtn-24" onclick="setReaderMargin(24)">24px (Hẹp)</button>
+              <button class="stepper-btn active" id="mbtn-32" onclick="setReaderMargin(32)">32px (Vừa)</button>
+              <button class="stepper-btn" id="mbtn-48" onclick="setReaderMargin(48)">48px (Rộng)</button>
+            </div>
+          </div>
+
+          <div style="margin-top: 28px;">
+            <button class="btn-primary" onclick="showFrame('fr-08')" style="width: 100%;">
+              <span>Lưu và tiếp tục đọc</span>
+              <span>[Lưu]</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         FR-12: SD File Browser
+         ==================================================================== -->
+    <div class="screen-frame" id="frame-fr-12">
+      <div class="nav-back-row">
+        <button class="nav-back-btn" onclick="showFrame('fr-01')">← Trang chủ</button>
+      </div>
+
+      <div class="fr12-canvas">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <h1 style="font-family: var(--font-serif); font-size: 30px; line-height: 38px; margin: 0;">Trình quản lý tệp</h1>
+          <span style="font-size: 13px; color: var(--secondary);">FAT32 · 32 GB</span>
+        </div>
+
+        <div class="path-crumb-box" id="file-breadcrumb">
+          /sdcard/books/tieng-viet/
+        </div>
+
+        <div id="file-browser-list">
+          <button class="file-row-btn" onclick="showToast('THƯ MỤC GỐC', 'Đang ở cấp thư mục hiện tại: /sdcard/books/tieng-viet/')">
+            <div>
+              <strong style="font-size: 14px;">[..] Thư mục cha</strong>
+            </div>
+            <span>↑</span>
+          </button>
+          <button class="file-row-btn" onclick="showFrame('fr-13')">
+            <div>
+              <span class="file-badge">EPUB</span>
+              <strong style="font-size: 14px;">noi-buon-chien-tranh.epub</strong>
+              <div style="font-size: 12px; color: var(--secondary); margin-left: 48px;">1.4 MB · 03/11/2026</div>
+            </div>
+            <span>→</span>
+          </button>
+          <button class="file-row-btn" onclick="switchToBook('nhung-nguoi-khon-kho')">
+            <div>
+              <span class="file-badge">EPUB</span>
+              <strong style="font-size: 14px;">nhung-nguoi-khon-kho-tap-1.epub</strong>
+              <div style="font-size: 12px; color: var(--secondary); margin-left: 48px;">2.8 MB · 28/10/2026</div>
+            </div>
+            <span>→</span>
+          </button>
+          <button class="file-row-btn" onclick="switchToBook('de-men-phieu-luu-ky')">
+            <div>
+              <span class="file-badge" style="background:#555;">TXT</span>
+              <strong style="font-size: 14px;">de-men-phieu-luu-ky.txt</strong>
+              <div style="font-size: 12px; color: var(--secondary); margin-left: 48px;">340 KB · 15/10/2026</div>
+            </div>
+            <span>→</span>
+          </button>
+        </div>
+
+        <div style="margin-top: 24px; padding-top: 12px; border-top: 1px solid var(--rule-light); font-size: 12px; color: var(--secondary); display: flex; justify-content: space-between;">
+          <span>Thẻ nhớ MicroSD sẵn sàng</span>
+          <span>14.2 GB đã dùng / 32.0 GB · FAT32</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         FR-13: Direct Sideload Selection
+         ==================================================================== -->
+    <div class="screen-frame" id="frame-fr-13">
+      <div class="nav-back-row">
+        <button class="nav-back-btn" onclick="showFrame('fr-12')">← Quay lại danh sách tệp</button>
+      </div>
+
+      <div class="fr13-canvas">
+        <div class="fr01-eyebrow">XÁC NHẬN MỞ TỆP</div>
+        <h1 style="font-family: var(--font-serif); font-size: 28px; margin: 4px 0 0;" id="file-inspect-heading">Thông tin tệp sách</h1>
+
+        <!-- Mode A: Valid EPUB File -->
+        <div id="file-inspect-valid">
+          <div class="file-card-inspect">
+            <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
+              <span class="file-badge" style="font-size: 13px; padding: 4px 8px;">EPUB</span>
+              <strong style="font-size: 16px;">noi-buon-chien-tranh.epub</strong>
+            </div>
+            <div style="font-size: 14px; line-height: 1.6; color: var(--ink);">
+              <div><strong>Tựa sách:</strong> Nỗi buồn chiến tranh</div>
+              <div><strong>Tác giả:</strong> Bảo Ninh</div>
+              <div><strong>Định dạng:</strong> EPUB 3.0 (Hợp lệ)</div>
+              <div><strong>Dung lượng:</strong> 1,420 KB</div>
+              <div><strong>Đường dẫn:</strong> /sdcard/books/tieng-viet/</div>
+            </div>
+            <div style="margin-top: 14px; font-size: 13px; color: var(--secondary); border-top: 1px dashed var(--rule); padding-top: 8px;">
+              Trạng thái: Tệp hợp lệ · Sẵn sàng mở trong Reader.
+            </div>
+          </div>
+
+          <div style="margin-top: 28px;">
+            <button class="btn-primary" onclick="switchToBook('noi-buon-chien-tranh')" style="width: 100%; margin-bottom: 12px;">
+              <span>Mở sách trong Reader</span>
+              <span>→</span>
+            </button>
+            <button class="action-link" onclick="showFrame('fr-12')" style="width: 100%; justify-content: center;">
+              Hủy và quay lại thư mục
+            </button>
+          </div>
+        </div>
+
+        <!-- Mode B: Unsupported File Fallback -->
+        <div id="file-inspect-unsupported" style="display: none;">
+          <div class="file-card-inspect" style="border: 2px solid var(--ink); background: #FAF9F6;">
+            <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
+              <span class="file-badge" style="font-size: 13px; padding: 4px 8px; background: var(--ink); color: #FFF;">[LỖI]</span>
+              <strong style="font-size: 16px;">firmware-update.bin</strong>
+            </div>
+            <div style="font-size: 14px; line-height: 1.6; color: var(--ink);">
+              <div><strong>Tựa sách:</strong> Không xác định (Tệp nhị phân)</div>
+              <div><strong>Định dạng:</strong> .BIN (Không hỗ trợ)</div>
+              <div><strong>Dung lượng:</strong> 4,096 KB</div>
+              <div><strong>Đường dẫn:</strong> /sdcard/firmware/</div>
+            </div>
+            <div style="margin-top: 14px; font-size: 13px; color: var(--ink); font-weight: 600; border-top: 1px solid var(--ink); padding-top: 8px;">
+              [THÔNG BÁO] Định dạng tệp không được hỗ trợ để đọc sách.<br/>
+              <span style="font-size: 12px; font-weight: 400; color: var(--secondary);">CrossPoint Reader chỉ mở các định dạng EPUB, TXT, FB2, PDF.</span>
+            </div>
+          </div>
+
+          <div style="margin-top: 28px;">
+            <button class="btn-primary" disabled style="width: 100%; margin-bottom: 12px; opacity: 0.45; cursor: not-allowed; justify-content: center;">
+              <span>Không thể mở tệp này</span>
+            </button>
+            <button class="action-link" onclick="showFrame('fr-12')" style="width: 100%; justify-content: center;">
+              ← Quay lại danh sách tệp
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         FR-14: Settings Overview
+         ==================================================================== -->
+    <div class="screen-frame" id="frame-fr-14">
+      <div class="nav-back-row">
+        <button class="nav-back-btn" onclick="showFrame('fr-01')">← Trang chủ</button>
+      </div>
+
+      <div class="fr14-canvas">
+        <h1 style="font-family: var(--font-serif); font-size: 30px; margin: 0 0 8px;">Cài đặt hệ thống</h1>
+
+        <div class="settings-group-title">MÀN HÌNH & E-PAPER</div>
+        <button class="settings-row-item" onclick="showFrame('fr-15')">
+          <div>
+            <strong>Tần suất làm mới toàn phần</strong>
+            <div style="font-size: 12px; color: #666;">Chống lưu ảnh màn hình E-paper</div>
+          </div>
+          <span id="setting-refresh-val">Mỗi 10 trang →</span>
+        </button>
+        <button class="settings-row-item" onclick="toggleSettingGhosting(this)">
+          <div>
+            <strong>Sửa mờ nắng (Sunlight Fading Fix)</strong>
+            <div style="font-size: 12px; color: #666;">Tăng độ tương phản dưới ánh sáng mạnh</div>
+          </div>
+          <span id="setting-sunlight-val">Bật</span>
+        </button>
+
+        <div class="settings-group-title">ĐỌC SÁCH & PHÔNG CHỮ</div>
+        <button class="settings-row-item" onclick="showFrame('fr-11')">
+          <div>
+            <strong>Phông chữ & Bố cục đọc</strong>
+            <div style="font-size: 12px; color: #666;">Cỡ chữ, khoảng cách dòng, lề trang</div>
+          </div>
+          <span id="setting-typography-val">19px / Giãn dòng 1.65 →</span>
+        </button>
+
+        <div class="settings-group-title">HỆ THỐNG & KẾT NỐI</div>
+        <button class="settings-row-item" onclick="showToast('KẾT NỐI WI-FI [MÔ PHỎNG]', 'Đang kết nối tới điểm truy cập XTEINK-Office. IP: 192.168.1.150.')">
+          <div>
+            <strong>Mạng Wi-Fi</strong>
+            <div style="font-size: 12px; color: #666;">Truyền sách không dây qua mạng nội bộ</div>
+          </div>
+          <span>Đã kết nối</span>
+        </button>
+
+        <div class="settings-group-title">THÔNG TIN THIẾT BỊ</div>
+        <div style="padding: 10px 0; font-size: 13px; color: var(--secondary); line-height: 1.6;">
+          Thiết bị: XTEINK X4 Pro (ESP32-S3 / 8MB PSRAM)<br/>
+          Màn hình: 480×800 Portrait E-Paper (UC8179)<br/>
+          Phần mềm: CrossPoint Reader v2.1.0-x4pro
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================================
+         FR-15: Compact Settings Modal
+         ==================================================================== -->
+    <div class="screen-frame" id="frame-fr-15">
+      <div class="nav-back-row">
+        <button class="nav-back-btn" onclick="showFrame('fr-14')">← Cài đặt</button>
+      </div>
+
+      <div class="fr14-canvas">
+        <h1 style="font-family: var(--font-serif); font-size: 24px; line-height: 32px; margin: 0 0 16px;">Cài đặt làm mới màn hình</h1>
+
+        <div class="fr15-modal-box">
+          <div style="font-size: 14px; font-weight: 700; margin-bottom: 12px;">
+            CHỌN TẦN SUẤT FULL REFRESH
+          </div>
+
+          <label class="radio-option-row">
+            <input type="radio" name="refresh-rate" value="5" onchange="selectRefreshRate(5)" />
+            <div>
+              <strong>Mỗi 5 trang</strong>
+              <div style="font-size: 12px; color: var(--secondary);">Chất lượng tốt nhất, chớp đen thường xuyên hơn</div>
+            </div>
+          </label>
+
+          <label class="radio-option-row">
+            <input type="radio" name="refresh-rate" value="10" checked onchange="selectRefreshRate(10)" />
+            <div>
+              <strong>Mỗi 10 trang (Khuyên dùng)</strong>
+              <div style="font-size: 12px; color: var(--secondary);">Cân bằng tối ưu giữa độ nét và tốc độ lật trang</div>
+            </div>
+          </label>
+
+          <label class="radio-option-row">
+            <input type="radio" name="refresh-rate" value="20" onchange="selectRefreshRate(20)" />
+            <div>
+              <strong>Mỗi 20 trang</strong>
+              <div style="font-size: 12px; color: var(--secondary);">Lật trang nhanh, có thể xuất hiện bóng mờ nhẹ</div>
+            </div>
+          </label>
+
+          <label class="radio-option-row">
+            <input type="radio" name="refresh-rate" value="never" onchange="selectRefreshRate('never')" />
+            <div>
+              <strong>Không bao giờ làm mới tự động</strong>
+              <div style="font-size: 12px; color: var(--secondary);">Chỉ làm mới khi bấm thủ công trong HUD</div>
+            </div>
+          </label>
+
+          <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--rule-light); display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <strong style="font-size: 13px;">Sửa mờ nắng (Sunlight Fading Fix)</strong>
+              <div style="font-size: 11px; color: var(--secondary);">Tăng tương phản chủ động</div>
+            </div>
+            <button class="action-link" type="button" onclick="toggleSettingGhosting(this)" style="font-weight: 700; border: 1px solid var(--ink); padding: 4px 10px; min-height: 48px; min-width: 48px;">
+              [ <span id="modal-sunlight-status">BẬT</span> ]
+            </button>
+          </div>
+
+          <div style="margin-top: 24px;">
+            <button class="btn-primary" onclick="applyRefreshRate()" style="width: 100%; margin-bottom: 8px;">
+              <span>Lưu thay đổi</span>
+              <span>[Lưu]</span>
+            </button>
+            <button class="action-link" onclick="showFrame('fr-14')" style="width: 100%; justify-content: center;">
+              Hủy bỏ
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div> <!-- /device-viewport -->
+
+</div> <!-- /prototype-shell -->
+
+<script>
+/* ==========================================================================
+   TASK B: PERSISTENT MULTI-BOOK CATALOG STATE MODEL
+   Each book preserves its own independent reading position, chapter, and text.
+   ========================================================================== */
+
+const CATALOG = {
+  'noi-buon-chien-tranh': {
+    id: 'noi-buon-chien-tranh',
+    title: 'Nỗi buồn chiến tranh',
+    author: 'Bảo Ninh',
+    currentPage: 42,
+    totalPages: 280,
+    chapter: 4,
+    chapterName: 'Chương 4: Tiếng súng xa dần',
+    coverTag: 'BẢO\nNINH',
+    isRecent: true,
+    chapters: [
+      { num: 1, page: 1, name: 'Chương 1: Những mùa thu trăn trở' },
+      { num: 2, page: 14, name: 'Chương 2: Dòng sông ký ức' },
+      { num: 3, page: 28, name: 'Chương 3: Bến nước thời gian' },
+      { num: 4, page: 42, name: 'Chương 4: Tiếng súng xa dần' },
+      { num: 5, page: 65, name: 'Chương 5: Đêm mưa Trường Sơn' },
+      { num: 6, page: 92, name: 'Chương 6: Những kỷ niệm dang dở' },
+      { num: 7, page: 130, name: 'Chương 7: Ngày trở về' }
+    ],
+    paragraphs: [
+      'Chiến tranh đã qua đi, nhưng trong tâm trí Kiên, tiếng súng vẫn chưa bao giờ dứt hẳn. Đêm rừng Trường Sơn sâu thẳm, tiếng lá rơi nghe như bước chân tuần tra của những đồng đội năm nào.',
+      'Mỗi lần ngồi trước trang giấy trắng, ký ức lại hiện về nguyên vẹn: từng gương mặt, từng tiếng cười, cả những giọt nước mắt chia tay bên bờ suối mùa khô. Ký ức không làm người ta già đi, nó chỉ làm cho nỗi nhớ trở nên bất tận.',
+      'Gió từ thung lũng thổi thốc lên triền đồi, mang theo mùi ngai ngái của đất đỏ và khói súng đã nguội tự bao giờ. Dòng sông xưa vẫn chảy xuôi, bình lặng như chưa từng có những tháng ngày khốc liệt đi qua.'
+    ]
+  },
+  'nhung-nguoi-khon-kho': {
+    id: 'nhung-nguoi-khon-kho',
+    title: 'Những người khốn khổ — Tập thứ nhất',
+    author: 'Victor Hugo',
+    currentPage: 1,
+    totalPages: 680,
+    chapter: 1,
+    chapterName: 'Chương 1: Một người công chính',
+    coverTag: 'HUGO',
+    isRecent: true,
+    chapters: [
+      { num: 1, page: 1, name: 'Chương 1: Một người công chính' },
+      { num: 2, page: 45, name: 'Chương 2: Sa ngã' },
+      { num: 3, page: 98, name: 'Chương 3: Năm 1817' },
+      { num: 4, page: 160, name: 'Chương 4: Giao phó là ruồng bỏ' }
+    ],
+    paragraphs: [
+      'Năm 1815, ông Charles-François-Bienvenu Myriel làm giám mục ở Digne. Ông là một cụ già trạc bảy mươi lăm tuổi, đã giữ giáo phận Digne từ năm 1806.',
+      'Mặc dù việc này chẳng dính líu gì trực tiếp đến câu chuyện chúng tôi sắp kể, nhưng thiết tưởng cũng nên nhắc qua những lời đồn đại về ông khi ông mới đến giáo phận.',
+      'Dù là thực hay hư, những điều người đời bàn tán về một con người cũng có một vị trí quan trọng trong số mệnh của họ và nhất là trong đời sống của họ chẳng kém gì những việc họ làm.'
+    ]
+  },
+  'de-men-phieu-luu-ky': {
+    id: 'de-men-phieu-luu-ky',
+    title: 'Dế Mèn phiêu lưu ký',
+    author: 'Tô Hoài',
+    currentPage: 48,
+    totalPages: 120,
+    chapter: 2,
+    chapterName: 'Chương 2: Những ngày đầu phiêu lưu',
+    coverTag: 'TÔ\nHOÀI',
+    isRecent: true,
+    chapters: [
+      { num: 1, page: 1, name: 'Chương 1: Tôi sống độc lập từ thuở bé' },
+      { num: 2, page: 48, name: 'Chương 2: Những ngày đầu phiêu lưu' },
+      { num: 3, page: 85, name: 'Chương 3: Thoát hiểm đầm lầy' }
+    ],
+    paragraphs: [
+      'Tôi sống độc lập từ thuở bé. Ấy là tục lệ lâu đời trong họ nhà dế chúng tôi. Mẹ tôi chỉ nuôi nấng chúng tôi đến khi nào chúng tôi đủ lông cánh, biết tự đi tìm mồi là bắt đầu cho ở riêng.',
+      'Cứ nhìn thấy chú cào cào ngơ ngác ở bờ cỏ là tôi lại nhảy tới, giương đôi càng sắc nhọn ra dọa cho một mẻ. Tính tôi vốn ngang tàng và tự phụ từ nhỏ.',
+      'Nhưng thói đời kiêu căng ắt có ngày chuốc vạ vào thân. Bài học đường đời đầu tiên đã đến với tôi một cách đau đớn như thế.'
+    ]
+  },
+  'chien-tranh-va-hoa-binh': {
+    id: 'chien-tranh-va-hoa-binh',
+    title: 'Chiến tranh và Hòa bình',
+    author: 'Lev Tolstoy',
+    currentPage: 1,
+    totalPages: 1280,
+    chapter: 1,
+    chapterName: 'Chương 1: Buổi tiếp tân tại nhà Anna Scherer',
+    coverTag: 'TOLSTOY',
+    isRecent: false,
+    chapters: [
+      { num: 1, page: 1, name: 'Chương 1: Buổi tiếp tân tại nhà Anna Scherer' },
+      { num: 2, page: 80, name: 'Chương 2: Gia đình công tước Bolkonsky' }
+    ],
+    paragraphs: [
+      'Tháng bảy năm 1805, nữ quan danh dự Anna Pavlovna Scherer mở một buổi tiếp tân sang trọng tại viện của bà ở Saint Petersburg.',
+      'Khách khứa đều là những nhân vật tai to mặt lớn trong giới quý tộc Nga, bàn tán xôn xao về những bước tiến của quân đội Napoleon tại châu Âu.'
+    ]
+  },
+  'so-do': {
+    id: 'so-do',
+    title: 'Số Đỏ',
+    author: 'Vũ Trọng Phụng',
+    currentPage: 1,
+    totalPages: 210,
+    chapter: 1,
+    chapterName: 'Chương 1: Huyên náo sân quần vợt',
+    coverTag: 'SỐ\nĐỎ',
+    isRecent: false,
+    chapters: [
+      { num: 1, page: 1, name: 'Chương 1: Huyên náo sân quần vợt' },
+      { num: 2, page: 40, name: 'Chương 2: Bước chân vào tiệm may Âu hóa' }
+    ],
+    paragraphs: [
+      'Cái xã hội thượng lưu Hà thành những năm ba mươi của thế kỷ trước đang lên cơn sốt vì phong trào Âu hóa và thể thao.',
+      'Xuân Tóc Đỏ, từ một kẻ nhặt bóng ở sân quần vợt Khán Xuân, nhờ tài lẻo mép và vận may kỳ lạ, đã từng bước bước chân vào chốn thượng lưu quyền quý.'
+    ]
+  },
+  'truyen-kieu': {
+    id: 'truyen-kieu',
+    title: 'Truyện Kiều',
+    author: 'Nguyễn Du',
+    currentPage: 1,
+    totalPages: 150,
+    chapter: 1,
+    chapterName: 'Chương 1: Trăm năm trong cõi người ta',
+    coverTag: 'NGUYỄN\nDU',
+    isRecent: false,
+    chapters: [
+      { num: 1, page: 1, name: 'Chương 1: Trăm năm trong cõi người ta' },
+      { num: 2, page: 40, name: 'Chương 2: Gặp gỡ Kim Trọng' }
+    ],
+    paragraphs: [
+      'Trăm năm trong cõi người ta, chữ tài chữ mệnh khéo là ghét nhau.',
+      'Trải qua một cuộc bể dâu, những điều trông thấy mà đau đớn lòng.'
+    ]
+  }
+};
+
+let currentState = {
+  currentFrame: 'fr-01',
+  activeBookId: 'noi-buon-chien-tranh',
+  readerSettings: {
+    fontSize: 19,
+    lineHeight: 1.65,
+    fontFamily: 'serif',
+    margin: 32
+  },
+  refreshRateSetting: 'Mỗi 10 trang',
+  pendingRefreshRate: 10
+};
+
+// Frame Names Mapping
+const frameNames = {
+  'fr-01': 'FR-01: Populated Home',
+  'fr-02': 'FR-02: Empty Home',
+  'fr-03': 'FR-03: Unstarted Home',
+  'fr-04': 'FR-04: Curated Shelf',
+  'fr-05': 'FR-05: Editorial List',
+  'fr-06': 'FR-06: Filtered Search',
+  'fr-07': 'FR-07: Empty Library',
+  'fr-08': 'FR-08: Immersive Reader',
+  'fr-09': 'FR-09: Reader HUD',
+  'fr-10': 'FR-10: TOC Drawer',
+  'fr-11': 'FR-11: Typography Settings',
+  'fr-12': 'FR-12: SD File Browser',
+  'fr-13': 'FR-13: Sideload Preview',
+  'fr-14': 'FR-14: Settings Overview',
+  'fr-15': 'FR-15: Compact Settings Modal'
+};
+
+function showFrame(frameId) {
+  document.querySelectorAll('.screen-frame').forEach(el => el.classList.remove('active'));
+  
+  const target = document.getElementById('frame-' + frameId);
+  if (target) {
+    target.classList.add('active');
+    currentState.currentFrame = frameId;
+  }
+
+  document.querySelectorAll('.frame-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('onclick').includes(frameId));
+  });
+
+  const badge = document.getElementById('current-frame-badge');
+  if (badge && frameNames[frameId]) {
+    badge.textContent = frameNames[frameId];
+  }
+
+  updateFrameData(frameId);
+}
+
+function triggerEpaperFlash() {
+  const dev = document.getElementById('device-screen');
+  dev.classList.remove('epaper-flash');
+  void dev.offsetWidth;
+  dev.classList.add('epaper-flash');
+}
+
+function showToast(title, message) {
+  const toast = document.getElementById('device-toast-box');
+  document.getElementById('device-toast-title').textContent = title;
+  document.getElementById('device-toast-body').textContent = message;
+  toast.classList.add('show');
+}
+
+function hideToast() {
+  document.getElementById('device-toast-box').classList.remove('show');
+}
+
+/* ==========================================================================
+   MULTI-BOOK CATALOG & READER ENGINE
+   ========================================================================== */
+
+function getActiveBook() {
+  return CATALOG[currentState.activeBookId] || CATALOG['noi-buon-chien-tranh'];
+}
+
+function updateFrameData(frameId) {
+  const book = getActiveBook();
+  const pct = Math.round((book.currentPage / book.totalPages) * 100);
+
+  // Update Reader (FR-08) & HUD (FR-09)
+  if (frameId === 'fr-08' || frameId === 'fr-09') {
+    applyReaderTypography();
+    // Synchronize FR-08 elements
+    const hTitle = document.getElementById('reader-header-title');
+    if (hTitle) hTitle.textContent = book.title;
+    const hCh = document.getElementById('reader-header-ch');
+    if (hCh) hCh.textContent = book.chapterName;
+    const chTitle = document.getElementById('reader-chapter-title');
+    if (chTitle) chTitle.textContent = book.chapterName;
+    const progFooter = document.getElementById('reader-progress-footer');
+    if (progFooter) progFooter.textContent = `Trang ${book.currentPage} / ${book.totalPages} (${pct}%)`;
+
+    const pContainer = document.getElementById('reader-paragraphs-container');
+    if (pContainer && book.paragraphs) {
+      pContainer.innerHTML = book.paragraphs.map(p => `<p>${p}</p>`).join('');
+    }
+
+    // Synchronize FR-09 underlying canvas elements
+    const hudHTitle = document.getElementById('reader-hud-header-title');
+    if (hudHTitle) hudHTitle.textContent = book.title;
+    const hudHCh = document.getElementById('reader-hud-header-ch');
+    if (hudHCh) hudHCh.textContent = book.chapterName;
+    const hudChTitle = document.getElementById('reader-hud-chapter-title');
+    if (hudChTitle) hudChTitle.textContent = book.chapterName;
+    const hudProgFooter = document.getElementById('reader-hud-progress-footer');
+    if (hudProgFooter) hudProgFooter.textContent = `Trang ${book.currentPage} / ${book.totalPages} (${pct}%)`;
+
+    const hudPContainer = document.getElementById('reader-hud-paragraphs-container');
+    if (hudPContainer && book.paragraphs) {
+      hudPContainer.innerHTML = book.paragraphs.map(p => `<p>${p}</p>`).join('');
+    }
+
+    // Update HUD controls
+    const hudIndicator = document.getElementById('hud-page-indicator');
+    if (hudIndicator) {
+      hudIndicator.textContent = `Trang ${book.currentPage} / ${book.totalPages} (${pct}%)`;
+    }
+    const scrubber = document.getElementById('hud-scrubber-bar');
+    if (scrubber) {
+      scrubber.style.width = pct + '%';
+    }
+    const hudBookName = document.getElementById('hud-book-name');
+    if (hudBookName) {
+      hudBookName.textContent = book.title;
+    }
+  }
+
+  // Update Typo Settings (FR-11) - match active Reader settings
+  if (frameId === 'fr-11') {
+    document.querySelectorAll('.typo-control-group:nth-child(1) .stepper-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.id === 'fbtn-' + currentState.readerSettings.fontSize);
+    });
+    const lhKey = String(currentState.readerSettings.lineHeight).replace('.', '');
+    document.querySelectorAll('.typo-control-group:nth-child(2) .stepper-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.id === 'lhbtn-' + lhKey);
+    });
+    if (currentState.readerSettings.fontFamily === 'sans') {
+      document.getElementById('font-serif-btn').classList.remove('active');
+      document.getElementById('font-sans-btn').classList.add('active');
+    } else {
+      document.getElementById('font-serif-btn').classList.add('active');
+      document.getElementById('font-sans-btn').classList.remove('active');
+    }
+    document.querySelectorAll('.typo-control-group:nth-child(4) .stepper-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.id === 'mbtn-' + currentState.readerSettings.margin);
+    });
+  }
+
+  // Update Search (FR-06)
+  if (frameId === 'fr-06') {
+    const input = document.getElementById('search-input-field');
+    const query = (input && input.value) ? input.value : 'chiến tranh';
+    if (input && !input.value) input.value = query;
+    handleSearchInput(query);
+  }
+
+  // Update Populated Home (FR-01)
+  if (frameId === 'fr-01') {
+    document.getElementById('home-hero-title').textContent = book.title;
+    document.getElementById('home-hero-author').textContent = book.author;
+    document.getElementById('home-hero-milestone').textContent = 
+      `${book.chapterName} · Trang ${book.currentPage}/${book.totalPages} (${pct}%)`;
+    
+    // Jacket update
+    const jTitle = document.getElementById('home-hero-jacket-title');
+    if (jTitle) jTitle.innerHTML = book.title.toUpperCase().replace(' — ', '<br/>');
+    const jSub = document.getElementById('home-hero-jacket-sub');
+    if (jSub) jSub.textContent = `${book.author.toUpperCase()} · ${book.totalPages} TRANG`;
+
+    // Update recent shelf progress badges
+    const khonKhoPct = Math.round((CATALOG['nhung-nguoi-khon-kho'].currentPage / CATALOG['nhung-nguoi-khon-kho'].totalPages) * 100);
+    const deMenPct = Math.round((CATALOG['de-men-phieu-luu-ky'].currentPage / CATALOG['de-men-phieu-luu-ky'].totalPages) * 100);
+    const elKhonKho = document.getElementById('rec-progress-khon-kho');
+    if (elKhonKho) elKhonKho.textContent = khonKhoPct > 0 ? khonKhoPct + '%' : 'Chưa đọc';
+    const elDeMen = document.getElementById('rec-progress-de-men');
+    if (elDeMen) elDeMen.textContent = deMenPct > 0 ? deMenPct + '%' : 'Chưa đọc';
+  }
+
+  // Update TOC (FR-10)
+  if (frameId === 'fr-10') {
+    const tocList = document.getElementById('toc-dynamic-list');
+    document.getElementById('toc-modal-title').textContent = `Mục lục: ${book.title}`;
+    if (tocList && book.chapters) {
+      tocList.innerHTML = book.chapters.map(ch => {
+        const isCurrent = (ch.num === book.chapter);
+        return `
+          <button class="toc-row-item ${isCurrent ? 'current' : ''}" onclick="selectChapter(${ch.num}, ${ch.page}, '${ch.name.replace(/'/g, "\\'")}')">
+            <span>${isCurrent ? '● ' : ''}${ch.name}${isCurrent ? ' (Đang đọc)' : ''}</span>
+            <span style="color: ${isCurrent ? 'var(--ink)' : 'var(--secondary)'}; font-weight: ${isCurrent ? '700' : '400'};">Trang ${ch.page}</span>
+          </button>
+        `;
+      }).join('');
+    }
+  }
+
+  // Update Settings (FR-14)
+  if (frameId === 'fr-14') {
+    const refVal = document.getElementById('setting-refresh-val');
+    if (refVal) refVal.textContent = currentState.refreshRateSetting + ' →';
+  }
+}
+
+function openReaderFromHome() {
+  triggerEpaperFlash();
+  showFrame('fr-08');
+}
+
+function switchToBook(bookId) {
+  if (CATALOG[bookId]) {
+    currentState.activeBookId = bookId;
+  }
+  triggerEpaperFlash();
+  showFrame('fr-08');
+}
+
+function readerNextPage() {
+  const book = getActiveBook();
+  if (book.currentPage < book.totalPages) {
+    book.currentPage++;
+    // Check if entered next chapter
+    for (let i = book.chapters.length - 1; i >= 0; i--) {
+      if (book.currentPage >= book.chapters[i].page) {
+        book.chapter = book.chapters[i].num;
+        book.chapterName = book.chapters[i].name;
+        break;
+      }
+    }
+    triggerEpaperFlash();
+    updateFrameData('fr-08');
+  }
+}
+
+function readerPrevPage() {
+  const book = getActiveBook();
+  if (book.currentPage > 1) {
+    book.currentPage--;
+    for (let i = book.chapters.length - 1; i >= 0; i--) {
+      if (book.currentPage >= book.chapters[i].page) {
+        book.chapter = book.chapters[i].num;
+        book.chapterName = book.chapters[i].name;
+        break;
+      }
+    }
+    triggerEpaperFlash();
+    updateFrameData('fr-08');
+  }
+}
+
+function toggleReaderHUD(show) {
+  if (show) {
+    showFrame('fr-09');
+  } else {
+    showFrame('fr-08');
+  }
+}
+
+function selectChapter(chNum, pageNum, chName) {
+  const book = getActiveBook();
+  book.chapter = chNum;
+  book.currentPage = pageNum;
+  book.chapterName = chName;
+  triggerEpaperFlash();
+  showFrame('fr-08');
+}
+
+/* ==========================================================================
+   TASK A: TYPOGRAPHY SETTINGS CONTROLS (SPEC COMPLIANT)
+   Tokens: Font sizes 14, 16, 18, 20px | Line-height 1.4, 1.6, 1.8 | Margins 24, 32, 48px
+   ========================================================================== */
+
+function applyReaderTypography() {
+  const { fontSize, lineHeight, fontFamily, margin } = currentState.readerSettings;
+  const fontVal = fontFamily === 'sans' ? 'var(--font-sans)' : 'var(--font-serif)';
+
+  // Synchronize both FR-08 and FR-09 prose containers
+  document.querySelectorAll('.reader-prose-wrap').forEach(el => {
+    el.style.fontSize = fontSize + 'px';
+    el.style.lineHeight = String(lineHeight);
+    el.style.fontFamily = fontVal;
+  });
+
+  // Synchronize both FR-08 and FR-09 reader body margins
+  document.querySelectorAll('.fr08-reader-body').forEach(el => {
+    el.style.paddingLeft = margin + 'px';
+    el.style.paddingRight = margin + 'px';
+  });
+
+  // Synchronize FR-14 displayed setting text
+  const valEl = document.getElementById('setting-typography-val');
+  if (valEl) {
+    valEl.textContent = `${fontSize}px / Giãn dòng ${lineHeight} →`;
+  }
+}
+
+function setReaderFontSize(size) {
+  currentState.readerSettings.fontSize = size;
+  applyReaderTypography();
+  document.querySelectorAll('.typo-control-group:nth-child(1) .stepper-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.id === 'fbtn-' + size);
+  });
+}
+
+function setReaderLineHeight(lh) {
+  currentState.readerSettings.lineHeight = lh;
+  applyReaderTypography();
+  const key = String(lh).replace('.', '');
+  document.querySelectorAll('.typo-control-group:nth-child(2) .stepper-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.id === 'lhbtn-' + key);
+  });
+}
+
+function setReaderFontFamily(family) {
+  currentState.readerSettings.fontFamily = family;
+  applyReaderTypography();
+  if (family === 'sans') {
+    const bSerif = document.getElementById('font-serif-btn');
+    const bSans = document.getElementById('font-sans-btn');
+    if (bSerif) bSerif.classList.remove('active');
+    if (bSans) bSans.classList.add('active');
+  } else {
+    const bSerif = document.getElementById('font-serif-btn');
+    const bSans = document.getElementById('font-sans-btn');
+    if (bSerif) bSerif.classList.add('active');
+    if (bSans) bSans.classList.remove('active');
+  }
+}
+
+function setReaderMargin(margin) {
+  currentState.readerSettings.margin = margin;
+  applyReaderTypography();
+  document.querySelectorAll('.typo-control-group:nth-child(4) .stepper-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.id === 'mbtn-' + margin);
+  });
+}
+
+/* ==========================================================================
+   TASK C: RELIABLE ACCESSIBLE SEARCH WITH VIETNAMESE ACCENT INSENSITIVITY
+   ========================================================================== */
+
+function stripVietnameseAccents(str) {
+  return str.normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[đĐ]/g, 'd')
+    .toLowerCase()
+    .trim();
+}
+
+function openSearch() {
+  showFrame('fr-06');
+  const input = document.getElementById('search-input-field');
+  if (input) {
+    input.focus();
+    handleSearchInput(input.value);
+  }
+}
+
+function highlightMatch(text, query) {
+  if (!query || !query.trim()) return text;
+  const rawQ = query.trim();
+  const normQ = stripVietnameseAccents(rawQ);
+  if (!normQ) return text;
+  const normText = stripVietnameseAccents(text);
+  let result = '';
+  let lastIdx = 0;
+  let idx = normText.indexOf(normQ, lastIdx);
+  if (idx === -1) {
+    return text;
+  }
+  while (idx !== -1) {
+    result += text.substring(lastIdx, idx);
+    const matchSlice = text.substring(idx, idx + normQ.length);
+    result += `<mark class="search-match">${matchSlice}</mark>`;
+    lastIdx = idx + normQ.length;
+    idx = normText.indexOf(normQ, lastIdx);
+  }
+  result += text.substring(lastIdx);
+  return result;
+}
+
+function handleSearchInput(query) {
+  const list = document.getElementById('search-results-list');
+  const countLabel = document.getElementById('search-result-count');
+  if (!list || !countLabel) return;
+  const rawQ = query ? query.trim() : '';
+  const bookList = Object.values(CATALOG);
+
+  if (!rawQ) {
+    // Restore full library catalogue
+    countLabel.textContent = `Toàn bộ danh mục (${bookList.length} cuốn)`;
+    list.innerHTML = bookList.map(b => {
+      const pct = Math.round((b.currentPage / b.totalPages) * 100);
+      const pctText = pct > 0 ? `Đang đọc ${pct}%` : 'Chưa đọc';
+      const isPaper = b.id === 'nhung-nguoi-khon-kho' || b.id === 'de-men-phieu-luu-ky' || b.id === 'so-do';
+      return `
+        <button class="book-row-item" onclick="switchToBook('${b.id}')">
+          <div class="book-thumb-small ${isPaper ? 'book-thumb-paper' : ''}">${b.coverTag.replace('\\n', '<br/>')}</div>
+          <div class="book-meta-col">
+            <strong>${b.title}</strong>
+            <span>${b.author} · ${b.totalPages} trang (${pctText})</span>
+          </div>
+          <div class="book-progress-tag">Mở →</div>
+        </button>
+      `;
+    }).join('');
+    return;
+  }
+
+  const normalizedQ = stripVietnameseAccents(rawQ);
+  const filtered = bookList.filter(b => {
+    const normTitle = stripVietnameseAccents(b.title);
+    const normAuthor = stripVietnameseAccents(b.author);
+    return normTitle.includes(normalizedQ) || normAuthor.includes(normalizedQ);
+  });
+
+  countLabel.textContent = `Tìm thấy ${filtered.length} kết quả cho "${rawQ}"`;
+
+  if (filtered.length === 0) {
+    list.innerHTML = `
+      <div style="padding: 32px 0; text-align: center; color: var(--secondary);">
+        <div style="font-size: 16px; font-weight: 600; color: var(--ink);">Không có kết quả phù hợp</div>
+        <div style="font-size: 13px; margin-top: 6px;">Thử tìm với từ khóa khác như "chiến tranh", "hugo", hoặc "tô hoài"</div>
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML = filtered.map(b => {
+    const pct = Math.round((b.currentPage / b.totalPages) * 100);
+    const pctText = pct > 0 ? `Đang đọc ${pct}%` : 'Chưa đọc';
+    const displayTitle = highlightMatch(b.title, rawQ);
+    const isPaper = b.id === 'nhung-nguoi-khon-kho' || b.id === 'de-men-phieu-luu-ky' || b.id === 'so-do';
+    return `
+      <button class="book-row-item" onclick="switchToBook('${b.id}')">
+        <div class="book-thumb-small ${isPaper ? 'book-thumb-paper' : ''}">${b.coverTag.replace('\\n', '<br/>')}</div>
+        <div class="book-meta-col">
+          <strong>${displayTitle}</strong>
+          <span>${b.author} · ${b.totalPages} trang (${pctText})</span>
+        </div>
+        <div class="book-progress-tag">Mở →</div>
+      </button>
+    `;
+  }).join('');
+}
+
+function prevChapter() {
+  const book = getActiveBook();
+  if (book.chapter > 1) {
+    const prevCh = book.chapters.find(c => c.num === book.chapter - 1);
+    if (prevCh) {
+      selectChapter(prevCh.num, prevCh.page, prevCh.name);
+    }
+  } else {
+    showToast('MỤC LỤC', 'Đang ở chương đầu tiên');
+  }
+}
+
+function nextChapter() {
+  const book = getActiveBook();
+  if (book.chapter < book.chapters.length) {
+    const nextCh = book.chapters.find(c => c.num === book.chapter + 1);
+    if (nextCh) {
+      selectChapter(nextCh.num, nextCh.page, nextCh.name);
+    }
+  } else {
+    showToast('MỤC LỤC', 'Đang ở chương cuối cùng');
+  }
+}
+
+function setFileInspectMode(isInvalid) {
+  const validBox = document.getElementById('file-inspect-valid');
+  const unsupportedBox = document.getElementById('file-inspect-unsupported');
+  const heading = document.getElementById('file-inspect-heading');
+  const btnValid = document.getElementById('dev-btn-valid');
+  const btnInvalid = document.getElementById('dev-btn-invalid');
+
+  if (isInvalid) {
+    if (validBox) validBox.style.display = 'none';
+    if (unsupportedBox) unsupportedBox.style.display = 'block';
+    if (heading) heading.textContent = 'Thông tin tệp [KHÔNG HỖ TRỢ]';
+    if (btnValid) btnValid.classList.remove('active');
+    if (btnInvalid) btnInvalid.classList.add('active');
+  } else {
+    if (validBox) validBox.style.display = 'block';
+    if (unsupportedBox) unsupportedBox.style.display = 'none';
+    if (heading) heading.textContent = 'Thông tin tệp sách';
+    if (btnValid) btnValid.classList.add('active');
+    if (btnInvalid) btnInvalid.classList.remove('active');
+  }
+}
+
+function clearSearch() {
+  const input = document.getElementById('search-input-field');
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+  handleSearchInput('');
+}
+
+let currentSortMode = 'recent';
+function sortLibrary(sortKey) {
+  currentSortMode = sortKey;
+  document.querySelectorAll('.sort-pill').forEach(p => {
+    p.classList.toggle('active', p.getAttribute('onclick') && p.getAttribute('onclick').includes(`'${sortKey}'`));
+  });
+
+  const listEl = document.getElementById('library-list-items');
+  if (!listEl) return;
+
+  const books = Object.values(CATALOG);
+  if (sortKey === 'title') {
+    // Vietnamese-aware alphabetical title comparison
+    books.sort((a, b) => a.title.localeCompare(b.title, 'vi', { sensitivity: 'base' }));
+  } else if (sortKey === 'progress') {
+    // Sort by reading progress descending
+    books.sort((a, b) => {
+      const pctA = a.currentPage / a.totalPages;
+      const pctB = b.currentPage / b.totalPages;
+      return pctB - pctA;
+    });
+  } else {
+    // Recent order (default)
+    const recentOrder = ['noi-buon-chien-tranh', 'nhung-nguoi-khon-kho', 'de-men-phieu-luu-ky', 'chien-tranh-va-hoa-binh', 'so-do', 'truyen-kieu'];
+    books.sort((a, b) => recentOrder.indexOf(a.id) - recentOrder.indexOf(b.id));
+  }
+
+  listEl.innerHTML = books.map(b => {
+    const pct = Math.round((b.currentPage / b.totalPages) * 100);
+    const pctText = pct > 0 ? `${pct}%` : 'Chưa đọc';
+    const isPaper = b.id === 'nhung-nguoi-khon-kho' || b.id === 'de-men-phieu-luu-ky' || b.id === 'so-do';
+    return `
+      <button class="book-row-item" onclick="switchToBook('${b.id}')">
+        <div class="book-thumb-small ${isPaper ? 'book-thumb-paper' : ''}">${b.coverTag.replace('\\n', '<br/>')}</div>
+        <div class="book-meta-col">
+          <strong>${b.title}</strong>
+          <span>${b.author} · ${b.totalPages} trang</span>
+        </div>
+        <div class="book-progress-tag">${pctText}</div>
+      </button>
+    `;
+  }).join('');
+}
+
+/* ==========================================================================
+   SETTINGS & WAVEFORMS
+   ========================================================================== */
+
+function selectRefreshRate(val) {
+  currentState.pendingRefreshRate = val;
+}
+
+function applyRefreshRate() {
+  if (currentState.pendingRefreshRate === 'never') {
+    currentState.refreshRateSetting = 'Không bao giờ';
+  } else {
+    currentState.refreshRateSetting = `Mỗi ${currentState.pendingRefreshRate} trang`;
+  }
+  triggerEpaperFlash();
+  showFrame('fr-14');
+  showToast('CÀI ĐẶT LÀM MỚI', `Đã lưu: ${currentState.refreshRateSetting}`);
+}
+
+function toggleSettingGhosting(btn) {
+  const span = btn.querySelector('span');
+  if (span.textContent === 'Bật') {
+    span.textContent = 'Tắt';
+  } else {
+    span.textContent = 'Bật';
+  }
+  showToast('CHỐNG LƯU ẢNH', `Chế độ chống lưu ảnh: ${span.textContent}`);
+}
+
+/* ==========================================================================
+   AUTOMATED JOURNEY PLAYBACK FOR QA & REVIEW (ZERO ALERT POPUPS)
+   ========================================================================== */
+
+function runJourneyA() {
+  showToast('HÀNH TRÌNH A', 'Bắt đầu: Tiếp tục đọc (FR-01 → Reader FR-08 → Lật trang → Trở về)');
+  showFrame('fr-01');
+  setTimeout(() => {
+    openReaderFromHome();
+    setTimeout(() => {
+      readerNextPage();
+      setTimeout(() => {
+        showFrame('fr-01');
+      }, 1000);
+    }, 1000);
+  }, 800);
+}
+
+function runJourneyB() {
+  showToast('HÀNH TRÌNH B', 'Bắt đầu: Tìm & Mở sách (FR-01 → Thư viện → Tìm kiếm → Mở Reader)');
+  showFrame('fr-01');
+  setTimeout(() => {
+    showFrame('fr-05');
+    setTimeout(() => {
+      openSearch();
+      handleSearchInput('chiến tranh');
+      setTimeout(() => {
+        switchToBook('noi-buon-chien-tranh');
+      }, 1000);
+    }, 800);
+  }, 800);
+}
+
+function runJourneyC() {
+  showToast('HÀNH TRÌNH C', 'Bắt đầu: Mục lục & Chỉnh phông (FR-08 → HUD → Mục lục → Chọn chương → Aa)');
+  showFrame('fr-08');
+  setTimeout(() => {
+    showFrame('fr-09');
+    setTimeout(() => {
+      showFrame('fr-10');
+      setTimeout(() => {
+        selectChapter(5, 65, 'Chương 5: Đêm mưa Trường Sơn');
+        setTimeout(() => {
+          showFrame('fr-11');
+          setReaderFontSize(18);
+          setTimeout(() => {
+            showFrame('fr-08');
+          }, 1000);
+        }, 800);
+      }, 1000);
+    }, 800);
+  }, 800);
+}
+
+function runJourneyD() {
+  showToast('HÀNH TRÌNH D', 'Bắt đầu: Nhập sách từ tệp (FR-02 → Thẻ nhớ SD → Chọn EPUB → Mở)');
+  showFrame('fr-02');
+  setTimeout(() => {
+    showFrame('fr-12');
+    setTimeout(() => {
+      showFrame('fr-13');
+      setTimeout(() => {
+        switchToBook('noi-buon-chien-tranh');
+      }, 1000);
+    }, 800);
+  }, 800);
+}
+
+function runJourneyE() {
+  showToast('HÀNH TRÌNH E', 'Bắt đầu: Đổi cài đặt làm mới (FR-01 → Cài đặt → Đổi thành Mỗi 5 trang)');
+  showFrame('fr-01');
+  setTimeout(() => {
+    showFrame('fr-14');
+    setTimeout(() => {
+      showFrame('fr-15');
+      selectRefreshRate(5);
+      setTimeout(() => {
+        applyRefreshRate();
+      }, 1000);
+    }, 800);
+  }, 800);
+}
+
+// Keyboard shortcuts for QA
+window.addEventListener('keydown', (e) => {
+  if (currentState.currentFrame === 'fr-08') {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown') readerNextPage();
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') readerPrevPage();
+    if (e.key === ' ') toggleReaderHUD(true);
+  }
+  if (e.key === 'Escape') {
+    if (currentState.currentFrame === 'fr-09' || currentState.currentFrame === 'fr-10' || currentState.currentFrame === 'fr-11') {
+      showFrame('fr-08');
+    }
+  }
+});
+
+// Initialize typography and default frame
+applyReaderTypography();
+showFrame('fr-01');
+
+</script>
+</body>
+</html>
