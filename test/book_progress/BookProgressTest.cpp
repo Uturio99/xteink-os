@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <BookProgress.h>
+#include <Utf8.h>
 #include "HalStorage.h"
 
 static void epub(const std::string& name, std::initializer_list<uint8_t> bytes) { fake::files["/cache/" + name] = {}; fake::files["/cache/" + name + "/progress.bin"] = bytes; }
@@ -19,9 +20,20 @@ TEST(BookProgress, RejectsMissingCorruptStaleAndInvalidEpubMetadata) {
 }
 
 TEST(BookProgress, PreservesPercentageCompatibilityAndDetails) {
+  Epub::loadRequests.clear();
   epub("details.epub", {1, 0, 2, 0, 5, 0});
   const auto m = loadBookMilestone("details.epub");
   EXPECT_EQ(m.percentage, 47); EXPECT_EQ(m.page, 3); EXPECT_EQ(m.pageCount, 5); EXPECT_EQ(m.chapterNumber, 2); EXPECT_EQ(m.chapterTitle, "Chapter");
+  ASSERT_EQ(Epub::loadRequests.size(), 1u);
+  EXPECT_EQ(Epub::loadRequests.front(), (std::pair<bool, bool>{false, true}));
+}
+
+TEST(BookProgress, BoundsUtf8ChapterTitleWithoutSplittingVietnamese) {
+  epub("vietnamese.epub", {1, 0, 2, 0, 5, 0});
+  const auto m = loadBookMilestone("vietnamese.epub");
+  EXPECT_LE(m.chapterTitle.size(), 64u);
+  EXPECT_EQ(utf8SafeTruncateBuffer(m.chapterTitle.c_str(), static_cast<int>(m.chapterTitle.size())),
+            static_cast<int>(m.chapterTitle.size()));
 }
 
 TEST(BookProgress, HandlesXtcBoundariesAndNoChapterFallback) {

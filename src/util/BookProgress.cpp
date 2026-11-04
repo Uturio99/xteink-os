@@ -5,9 +5,19 @@
 #include <HalStorage.h>
 #include <Logging.h>
 #include <Memory.h>
+#include <Utf8.h>
 #include <Xtc.h>
 
 #include <algorithm>
+
+namespace {
+constexpr size_t kMaxChapterTitleBytes = 64;
+
+std::string boundedUtf8(const std::string& value) {
+  const int limit = static_cast<int>(std::min(value.size(), kMaxChapterTitleBytes));
+  return value.substr(0, static_cast<size_t>(utf8SafeTruncateBuffer(value.data(), limit)));
+}
+}  // namespace
 
 namespace {
 uint32_t readLe32(const uint8_t* p) {
@@ -51,7 +61,7 @@ BookMilestone loadBookMilestoneImpl(const std::string& path, const bool includeD
       const int tocIndex = epub->getTocIndexForSpineIndex(spine);
       if (tocIndex >= 0 && tocIndex < epub->getTocItemsCount()) {
         result.chapterNumber = tocIndex + 1;
-        result.chapterTitle = epub->getTocItem(tocIndex).title;
+        result.chapterTitle = boundedUtf8(epub->getTocItem(tocIndex).title);
       }
     }
     const float fraction = total > 0 && page != UINT16_MAX ? std::clamp(float(page) / total, 0.0f, 1.0f) : 0;
@@ -82,7 +92,7 @@ BookMilestone loadBookMilestoneImpl(const std::string& path, const bool includeD
         const auto& chapter = xtc->getChapters()[i];
         if (page < chapter.startPage || page > chapter.endPage) continue;
         result.chapterNumber = static_cast<int>(i) + 1;
-        result.chapterTitle = chapter.name;
+        result.chapterTitle = boundedUtf8(chapter.name);
         result.page = static_cast<int>(page - chapter.startPage) + 1;
         result.pageCount = static_cast<int>(chapter.endPage - chapter.startPage) + 1;
         break;

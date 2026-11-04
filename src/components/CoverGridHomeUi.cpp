@@ -5,7 +5,9 @@
 #include <I18n.h>
 
 #include <algorithm>
+#include <cctype>
 #include <cstdio>
+#include <cstring>
 #include <utility>
 
 #include "MappedInputManager.h"
@@ -27,6 +29,18 @@ constexpr fui::ActionId SELECT = 1;
 // inset so the cover columns land on the header chrome's inset line.
 constexpr int16_t COVER_CELL_INSET = 6;
 constexpr int COVER_ROW_EXTRA_HEIGHT = 8;
+
+void formatChapterMilestone(char* output, const size_t outputSize, const int chapter, const char* separator,
+                            const char* suffix) {
+  const char* prefix = tr(STR_CHAPTER_PREFIX);
+  size_t prefixLength = strnlen(prefix, outputSize - 1);
+  memcpy(output, prefix, prefixLength);
+  while (prefixLength > 0 && std::isspace(static_cast<unsigned char>(output[prefixLength - 1]))) --prefixLength;
+  if (prefixLength > 0 && output[prefixLength - 1] == ':') --prefixLength;
+  while (prefixLength > 0 && std::isspace(static_cast<unsigned char>(output[prefixLength - 1]))) --prefixLength;
+  output[prefixLength] = '\0';
+  snprintf(output + prefixLength, outputSize - prefixLength, " %d%s%s", chapter, separator, suffix);
+}
 }  // namespace
 
 CoverGridHomeUi::CoverGridHomeUi(GfxRenderer& renderer)
@@ -50,13 +64,16 @@ void CoverGridHomeUi::begin(const std::vector<RecentBook>& recent, bool opds, bo
     progress = heroMilestone.percentage;
     if (progress >= 0) snprintf(progressText, sizeof(progressText), "%d%%", progress);
     if (heroMilestone.chapterNumber > 0 && !heroMilestone.chapterTitle.empty()) {
-      if (heroMilestone.pageCount > 0)
-        snprintf(milestoneText, sizeof(milestoneText), "%s%d: %s | %d/%d", tr(STR_CHAPTER_PREFIX),
-                 heroMilestone.chapterNumber, heroMilestone.chapterTitle.c_str(), heroMilestone.page,
+      if (heroMilestone.pageCount > 0) {
+        char suffix[96];
+        snprintf(suffix, sizeof(suffix), "%s | %d/%d", heroMilestone.chapterTitle.c_str(), heroMilestone.page,
                  heroMilestone.pageCount);
-      else
-        snprintf(milestoneText, sizeof(milestoneText), "%s%d: %s | %d", tr(STR_CHAPTER_PREFIX),
-                 heroMilestone.chapterNumber, heroMilestone.chapterTitle.c_str(), heroMilestone.page);
+        formatChapterMilestone(milestoneText, sizeof(milestoneText), heroMilestone.chapterNumber, ": ", suffix);
+      } else {
+        char suffix[96];
+        snprintf(suffix, sizeof(suffix), "%s | %d", heroMilestone.chapterTitle.c_str(), heroMilestone.page);
+        formatChapterMilestone(milestoneText, sizeof(milestoneText), heroMilestone.chapterNumber, ": ", suffix);
+      }
     } else if (heroMilestone.page > 0) {
       if (heroMilestone.pageCount > 0)
         snprintf(milestoneText, sizeof(milestoneText), "%d/%d", heroMilestone.page, heroMilestone.pageCount);
@@ -294,16 +311,29 @@ void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
       auto milestoneStyle = theme.smallText;
       milestoneStyle.align = fui::TextAlign::Left;
       milestoneStyle.maxLines = 1;
-      if (screen.target().measureText(theme.smallText.font, milestoneText, milestoneStyle).width >
+      if (screen.target().measureText(milestoneStyle.font, milestoneText, milestoneStyle).width >
           layout.milestoneLabel.width) {
         if (heroMilestone.chapterNumber > 0 && heroMilestone.page > 0) {
-          if (heroMilestone.pageCount > 0)
-            snprintf(milestoneText, sizeof(milestoneText), "%s%d | %d/%d", tr(STR_CHAPTER_PREFIX),
-                     heroMilestone.chapterNumber, heroMilestone.page, heroMilestone.pageCount);
-          else
-            snprintf(milestoneText, sizeof(milestoneText), "%s%d | %d", tr(STR_CHAPTER_PREFIX),
-                     heroMilestone.chapterNumber, heroMilestone.page);
+          if (heroMilestone.pageCount > 0) {
+            char suffix[32];
+            snprintf(suffix, sizeof(suffix), "%d/%d", heroMilestone.page, heroMilestone.pageCount);
+            formatChapterMilestone(milestoneText, sizeof(milestoneText), heroMilestone.chapterNumber, " | ", suffix);
+          } else {
+            char suffix[16];
+            snprintf(suffix, sizeof(suffix), "%d", heroMilestone.page);
+            formatChapterMilestone(milestoneText, sizeof(milestoneText), heroMilestone.chapterNumber, " | ", suffix);
+          }
         }
+        if (screen.target().measureText(milestoneStyle.font, milestoneText, milestoneStyle).width >
+            layout.milestoneLabel.width) {
+          if (heroMilestone.pageCount > 0)
+            snprintf(milestoneText, sizeof(milestoneText), "%d/%d", heroMilestone.page, heroMilestone.pageCount);
+          else
+            snprintf(milestoneText, sizeof(milestoneText), "%d", heroMilestone.page);
+        }
+        if (screen.target().measureText(milestoneStyle.font, milestoneText, milestoneStyle).width >
+            layout.milestoneLabel.width)
+          milestoneText[0] = '\0';
       }
       screen.target().text(fui::Rect{layout.milestoneLabel.x, layout.milestoneLabel.y, layout.milestoneLabel.width,
                                      layout.milestoneLabel.height}, milestoneText, milestoneStyle);
