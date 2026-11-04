@@ -227,7 +227,7 @@ void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
               button);
 
   auto title = theme.titleText;
-  title.align = fui::TextAlign::Center;
+  title.align = fui::TextAlign::Left;
   title.bold = true;
   title.maxLines = 3;
   screen.target().text(
@@ -236,7 +236,8 @@ void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
 
   if (!books->front().author.empty()) {
     auto author = theme.smallText;
-    author.align = fui::TextAlign::Center;
+    author.align = fui::TextAlign::Left;
+    author.maxLines = 1;
     screen.target().text(
         fui::Rect{layout.heroAuthor.x, layout.heroAuthor.y, layout.heroAuthor.width, layout.heroAuthor.height},
         books->front().author.c_str(), author);
@@ -244,7 +245,7 @@ void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
 
   if (progress >= 0) {
     auto progressStyle = theme.smallText;
-    progressStyle.align = fui::TextAlign::Center;
+    progressStyle.align = fui::TextAlign::Left;
     progressStyle.bold = true;
     screen.target().text(fui::Rect{layout.progressLabel.x, layout.progressLabel.y, layout.progressLabel.width,
                                    layout.progressLabel.height},
@@ -278,7 +279,7 @@ void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
   button.styles.active = button.styles.selected;
   button.styles.disabled = button.styles.normal;
   button.radius = 22;
-  button.minTouchSize = 44;
+  button.minTouchSize = 48;
   fui::button(screen.frame(), fui::Rect{layout.cta.x, layout.cta.y, layout.cta.width, layout.cta.height}, button);
 
   auto shelfHeading = theme.smallText;

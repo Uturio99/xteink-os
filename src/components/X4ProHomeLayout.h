@@ -44,33 +44,35 @@ constexpr X4ProHomeLayout makeX4ProHomeLayout(const int16_t titleLineHeight, con
                                                const int16_t requestedCtaWidth = 180) {
   constexpr int16_t CONTENT_X = 32;
   constexpr int16_t CONTENT_WIDTH = 416;
-  constexpr int16_t HERO_COVER_Y = 62;
-  constexpr int16_t HERO_COVER_WIDTH = 76;
-  constexpr int16_t HERO_COVER_HEIGHT = 114;
+  constexpr int16_t HERO_COVER_X = 340;
+  constexpr int16_t HERO_COVER_Y = 88;
+  constexpr int16_t HERO_COVER_WIDTH = 108;
+  constexpr int16_t HERO_COVER_HEIGHT = 154;
+  constexpr int16_t HERO_TEXT_WIDTH = 270;
   constexpr int16_t SHELF_COVER_WIDTH = 125;
   constexpr int16_t SHELF_COVER_HEIGHT = 188;
   constexpr int16_t SHELF_COLUMN_STEP = 145;
 
-  const int16_t titleY = HERO_COVER_Y + HERO_COVER_HEIGHT + 20;
+  const int16_t titleY = HERO_COVER_Y;
   const int16_t titleHeight = static_cast<int16_t>(titleLineHeight * 3);
   const int16_t authorY = static_cast<int16_t>(titleY + titleHeight + 8);
   const int16_t progressY = static_cast<int16_t>(authorY + smallLineHeight + 16);
   const int16_t trackY = static_cast<int16_t>(progressY + smallLineHeight + 6);
   const int16_t ctaY = static_cast<int16_t>(trackY + 2 + 22);
-  const int16_t ctaWidth = std::min<int16_t>(CONTENT_WIDTH, std::max<int16_t>(44, requestedCtaWidth));
-  const int16_t shelfHeaderY = static_cast<int16_t>(ctaY + 44 + 18);
+  const int16_t ctaWidth = std::min<int16_t>(CONTENT_WIDTH, std::max<int16_t>(48, requestedCtaWidth));
+  const int16_t shelfHeaderY = static_cast<int16_t>(ctaY + 56 + 18);
   const int16_t shelfCoverY = static_cast<int16_t>(shelfHeaderY + smallLineHeight + 12);
   const int16_t shelfTitleY = static_cast<int16_t>(shelfCoverY + SHELF_COVER_HEIGHT + 6);
   const int16_t shelfAuthorY = static_cast<int16_t>(shelfTitleY + smallLineHeight + 1);
 
   X4ProHomeLayout layout{{0, 0, 480, 40},
                          {CONTENT_X, 52, CONTENT_WIDTH, 720},
-                         {202, HERO_COVER_Y, HERO_COVER_WIDTH, HERO_COVER_HEIGHT},
-                         {CONTENT_X, titleY, CONTENT_WIDTH, titleHeight},
-                         {CONTENT_X, authorY, CONTENT_WIDTH, smallLineHeight},
-                         {CONTENT_X, progressY, CONTENT_WIDTH, smallLineHeight},
-                         {180, trackY, 120, 2},
-                         {static_cast<int16_t>((480 - ctaWidth) / 2), ctaY, ctaWidth, 44},
+                         {HERO_COVER_X, HERO_COVER_Y, HERO_COVER_WIDTH, HERO_COVER_HEIGHT},
+                         {CONTENT_X, titleY, HERO_TEXT_WIDTH, titleHeight},
+                         {CONTENT_X, authorY, HERO_TEXT_WIDTH, smallLineHeight},
+                         {CONTENT_X, progressY, HERO_TEXT_WIDTH, smallLineHeight},
+                         {CONTENT_X, trackY, 120, 2},
+                         {static_cast<int16_t>((480 - ctaWidth) / 2), ctaY, ctaWidth, 56},
                          {CONTENT_X, shelfHeaderY, CONTENT_WIDTH, smallLineHeight},
                          {},
                          {},
