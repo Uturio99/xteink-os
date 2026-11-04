@@ -12,6 +12,7 @@
 #include "components/controls/button.h"
 #include "components/media/book-card.h"
 #include "components/media/cover-grid.h"
+#include "util/BookProgress.h"
 
 class CoverGridHomeUi final : public UiAppHost {
  public:
@@ -63,9 +64,11 @@ class CoverGridHomeUi final : public UiAppHost {
   int selected = 0;
   int pending = -1;
   int progress = -1;
+  BookMilestone heroMilestone;
   bool hasOpds = false;
   bool hasContinueReading = false;
   char progressText[12]{};
+  char milestoneText[128]{};
   std::array<int, 2> shelfProgress{-1, -1};
   std::array<std::array<char, 8>, 2> shelfProgressText{};
   // Component styles and interaction tables stay off the render task's stack.

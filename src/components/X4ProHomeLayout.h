@@ -24,6 +24,7 @@ struct X4ProHomeLayout {
   HomeLayoutRect heroCover;
   HomeLayoutRect heroTitle;
   HomeLayoutRect heroAuthor;
+  HomeLayoutRect milestoneLabel;
   HomeLayoutRect progressLabel;
   HomeLayoutRect progressTrack;
   HomeLayoutRect cta;
@@ -65,22 +66,27 @@ constexpr X4ProHomeLayout makeX4ProHomeLayout(const int16_t titleLineHeight, con
   constexpr int16_t SHELF_TEXT_GAP = 16;
   constexpr int16_t SHELF_LINE_GAP = 4;
   constexpr int16_t SHELF_TAG_WIDTH = 56;
+  constexpr int16_t UTILITY_LINK_Y = 600;
+  constexpr int16_t UTILITY_LINK_HEIGHT = 48;
 
   const int16_t titleY = HERO_COVER_Y;
   const int16_t titleHeight = static_cast<int16_t>(titleLineHeight * 3);
   const int16_t authorY = static_cast<int16_t>(titleY + titleHeight + 8);
-  const int16_t progressY = static_cast<int16_t>(authorY + smallLineHeight + 16);
+  const int16_t milestoneY = static_cast<int16_t>(authorY + smallLineHeight + 4);
+  const int16_t progressY = static_cast<int16_t>(milestoneY + smallLineHeight + 8);
   const int16_t trackY = static_cast<int16_t>(progressY + smallLineHeight + 6);
   const int16_t ctaY = static_cast<int16_t>(trackY + 2 + 22);
   const int16_t ctaWidth = std::min<int16_t>(CONTENT_WIDTH, std::max<int16_t>(48, requestedCtaWidth));
   const int16_t shelfHeaderY = static_cast<int16_t>(ctaY + 56 + 18);
-  const int16_t shelfRowY = static_cast<int16_t>(shelfHeaderY + smallLineHeight + 12);
+  const int16_t shelfRowY = std::min<int16_t>(static_cast<int16_t>(shelfHeaderY + smallLineHeight + 12),
+                                              static_cast<int16_t>(UTILITY_LINK_Y - 2 * SHELF_ROW_HEIGHT - SHELF_ROW_GAP));
 
   X4ProHomeLayout layout{{0, 0, 480, 40},
                          {CONTENT_X, 52, CONTENT_WIDTH, 720},
                          {HERO_COVER_X, HERO_COVER_Y, HERO_COVER_WIDTH, HERO_COVER_HEIGHT},
                          {CONTENT_X, titleY, HERO_TEXT_WIDTH, titleHeight},
                          {CONTENT_X, authorY, HERO_TEXT_WIDTH, smallLineHeight},
+                         {CONTENT_X, milestoneY, HERO_TEXT_WIDTH, smallLineHeight},
                          {CONTENT_X, progressY, HERO_TEXT_WIDTH, smallLineHeight},
                          {CONTENT_X, trackY, 120, 2},
                          {static_cast<int16_t>((480 - ctaWidth) / 2), ctaY, ctaWidth, 56},
@@ -109,8 +115,6 @@ constexpr X4ProHomeLayout makeX4ProHomeLayout(const int16_t titleLineHeight, con
                                SHELF_TAG_WIDTH, smallLineHeight};
   }
   // Three equal text links, in the Home band's drawn order.
-  constexpr int16_t UTILITY_LINK_Y = 600;  // shelf bottom 569 + 31 px air
-  constexpr int16_t UTILITY_LINK_HEIGHT = 48;
   constexpr int16_t UTILITY_LINK_GAP = 12;
   for (size_t i = 0; i < layout.utilityLinks.size(); ++i) {
     layout.utilityLinks[i] = {CONTENT_X,

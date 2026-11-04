@@ -41,8 +41,33 @@ void CoverGridHomeUi::begin(const std::vector<RecentBook>& recent, bool opds, bo
   app.on(SELECT, &CoverGridHomeUi::onAction, this);
   app.setScreen(&CoverGridHomeUi::screenFn, this);
   refreshCoverPaths();
-  progress = hasContinueReading && !books->empty() ? loadBookProgress(books->front().path) : -1;
-  if (progress >= 0) snprintf(progressText, sizeof(progressText), "%d%%", progress);
+  progress = -1;
+  progressText[0] = '\0';
+  milestoneText[0] = '\0';
+  if (hasContinueReading && !books->empty()) {
+#if FREEINK_DEVICE_X4PRO
+    heroMilestone = loadBookMilestone(books->front().path);
+    progress = heroMilestone.percentage;
+    if (progress >= 0) snprintf(progressText, sizeof(progressText), "%d%%", progress);
+    if (heroMilestone.chapterNumber > 0 && !heroMilestone.chapterTitle.empty()) {
+      if (heroMilestone.pageCount > 0)
+        snprintf(milestoneText, sizeof(milestoneText), "%s%d: %s | %d/%d", tr(STR_CHAPTER_PREFIX),
+                 heroMilestone.chapterNumber, heroMilestone.chapterTitle.c_str(), heroMilestone.page,
+                 heroMilestone.pageCount);
+      else
+        snprintf(milestoneText, sizeof(milestoneText), "%s%d: %s | %d", tr(STR_CHAPTER_PREFIX),
+                 heroMilestone.chapterNumber, heroMilestone.chapterTitle.c_str(), heroMilestone.page);
+    } else if (heroMilestone.page > 0) {
+      if (heroMilestone.pageCount > 0)
+        snprintf(milestoneText, sizeof(milestoneText), "%d/%d", heroMilestone.page, heroMilestone.pageCount);
+      else
+        snprintf(milestoneText, sizeof(milestoneText), "%d", heroMilestone.page);
+    }
+#else
+    progress = loadBookProgress(books->front().path);
+    if (progress >= 0) snprintf(progressText, sizeof(progressText), "%d%%", progress);
+#endif
+  }
 #if FREEINK_DEVICE_X4PRO
   if (renderer.getScreenWidth() == 480 && renderer.getScreenHeight() == 800) {
     x4ProCompact = true;
@@ -265,6 +290,24 @@ void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
     auto progressStyle = theme.smallText;
     progressStyle.align = fui::TextAlign::Left;
     progressStyle.bold = true;
+    if (milestoneText[0] != '\0') {
+      auto milestoneStyle = theme.smallText;
+      milestoneStyle.align = fui::TextAlign::Left;
+      milestoneStyle.maxLines = 1;
+      if (screen.target().measureText(theme.smallText.font, milestoneText, milestoneStyle).width >
+          layout.milestoneLabel.width) {
+        if (heroMilestone.chapterNumber > 0 && heroMilestone.page > 0) {
+          if (heroMilestone.pageCount > 0)
+            snprintf(milestoneText, sizeof(milestoneText), "%s%d | %d/%d", tr(STR_CHAPTER_PREFIX),
+                     heroMilestone.chapterNumber, heroMilestone.page, heroMilestone.pageCount);
+          else
+            snprintf(milestoneText, sizeof(milestoneText), "%s%d | %d", tr(STR_CHAPTER_PREFIX),
+                     heroMilestone.chapterNumber, heroMilestone.page);
+        }
+      }
+      screen.target().text(fui::Rect{layout.milestoneLabel.x, layout.milestoneLabel.y, layout.milestoneLabel.width,
+                                     layout.milestoneLabel.height}, milestoneText, milestoneStyle);
+    }
     screen.target().text(fui::Rect{layout.progressLabel.x, layout.progressLabel.y, layout.progressLabel.width,
                                    layout.progressLabel.height},
                          progressText, progressStyle);
