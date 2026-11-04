@@ -45,6 +45,7 @@ class CoverGridHomeUi final : public UiAppHost {
   void refreshCoverPath(size_t index);
   void noteThumbHeight(int slotHeight);
   void noteThumbHeights(int heroSlotHeight, int shelfSlotHeight);
+  void loadShelfProgress();
 
   HomeCoverCache coverCache;
   GfxRenderer& renderer;
@@ -58,6 +59,8 @@ class CoverGridHomeUi final : public UiAppHost {
   bool hasOpds = false;
   bool hasContinueReading = false;
   char progressText[12]{};
+  std::array<int, 2> shelfProgress{-1, -1};
+  std::array<std::array<char, 8>, 2> shelfProgressText{};
   // Component styles and interaction tables stay off the render task's stack.
   freeink::ui::BookCardProps card;
   freeink::ui::ButtonProps button;

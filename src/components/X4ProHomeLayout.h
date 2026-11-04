@@ -28,20 +28,29 @@ struct X4ProHomeLayout {
   HomeLayoutRect progressTrack;
   HomeLayoutRect cta;
   HomeLayoutRect shelfHeader;
-  std::array<HomeLayoutRect, 3> shelfCovers;
-  std::array<HomeLayoutRect, 3> shelfTitles;
-  std::array<HomeLayoutRect, 3> shelfAuthors;
+  std::array<HomeLayoutRect, 2> shelfRows;
+  std::array<HomeLayoutRect, 2> shelfThumbs;
+  std::array<HomeLayoutRect, 2> shelfTitles;
+  std::array<HomeLayoutRect, 2> shelfAuthors;
+  std::array<HomeLayoutRect, 2> shelfProgress;
   HomeLayoutRect tabs;
 };
 
-constexpr int x4ProVisibleBookCount(const int totalBooks) { return std::min(4, std::max(0, totalBooks)); }
+constexpr int x4ProShelfRowCount(const int totalBooks) { return std::max(0, std::min(2, totalBooks - 1)); }
+
+// Row 0 shows books[1], row 1 shows books[2]; hero is books[0].
+constexpr int x4ProShelfBookIndex(const int row) { return row + 1; }
+
+constexpr int x4ProVisibleBookCount(const int totalBooks) {
+  return totalBooks > 0 ? 1 + x4ProShelfRowCount(totalBooks) : 0;
+}
 
 constexpr int x4ProHeroCtaAction(const bool hasContinueReading, const int totalBooks) {
   return hasContinueReading ? 0 : std::max(0, totalBooks) + 1;
 }
 
 constexpr X4ProHomeLayout makeX4ProHomeLayout(const int16_t titleLineHeight, const int16_t smallLineHeight,
-                                               const int16_t requestedCtaWidth = 180) {
+                                              const int16_t requestedCtaWidth = 180) {
   constexpr int16_t CONTENT_X = 32;
   constexpr int16_t CONTENT_WIDTH = 416;
   constexpr int16_t HERO_COVER_X = 340;
@@ -49,9 +58,13 @@ constexpr X4ProHomeLayout makeX4ProHomeLayout(const int16_t titleLineHeight, con
   constexpr int16_t HERO_COVER_WIDTH = 108;
   constexpr int16_t HERO_COVER_HEIGHT = 154;
   constexpr int16_t HERO_TEXT_WIDTH = 270;
-  constexpr int16_t SHELF_COVER_WIDTH = 125;
-  constexpr int16_t SHELF_COVER_HEIGHT = 188;
-  constexpr int16_t SHELF_COLUMN_STEP = 145;
+  constexpr int16_t SHELF_ROW_HEIGHT = 84;
+  constexpr int16_t SHELF_ROW_GAP = 14;
+  constexpr int16_t SHELF_THUMB_WIDTH = 40;
+  constexpr int16_t SHELF_THUMB_HEIGHT = 56;
+  constexpr int16_t SHELF_TEXT_GAP = 16;
+  constexpr int16_t SHELF_LINE_GAP = 4;
+  constexpr int16_t SHELF_TAG_WIDTH = 56;
 
   const int16_t titleY = HERO_COVER_Y;
   const int16_t titleHeight = static_cast<int16_t>(titleLineHeight * 3);
@@ -61,9 +74,7 @@ constexpr X4ProHomeLayout makeX4ProHomeLayout(const int16_t titleLineHeight, con
   const int16_t ctaY = static_cast<int16_t>(trackY + 2 + 22);
   const int16_t ctaWidth = std::min<int16_t>(CONTENT_WIDTH, std::max<int16_t>(48, requestedCtaWidth));
   const int16_t shelfHeaderY = static_cast<int16_t>(ctaY + 56 + 18);
-  const int16_t shelfCoverY = static_cast<int16_t>(shelfHeaderY + smallLineHeight + 12);
-  const int16_t shelfTitleY = static_cast<int16_t>(shelfCoverY + SHELF_COVER_HEIGHT + 6);
-  const int16_t shelfAuthorY = static_cast<int16_t>(shelfTitleY + smallLineHeight + 1);
+  const int16_t shelfRowY = static_cast<int16_t>(shelfHeaderY + smallLineHeight + 12);
 
   X4ProHomeLayout layout{{0, 0, 480, 40},
                          {CONTENT_X, 52, CONTENT_WIDTH, 720},
@@ -77,12 +88,25 @@ constexpr X4ProHomeLayout makeX4ProHomeLayout(const int16_t titleLineHeight, con
                          {},
                          {},
                          {},
+                         {},
+                         {},
                          {CONTENT_X, 744, CONTENT_WIDTH, 44}};
-  for (size_t i = 0; i < layout.shelfCovers.size(); ++i) {
-    const int16_t x = static_cast<int16_t>(CONTENT_X + i * SHELF_COLUMN_STEP);
-    layout.shelfCovers[i] = {x, shelfCoverY, SHELF_COVER_WIDTH, SHELF_COVER_HEIGHT};
-    layout.shelfTitles[i] = {x, shelfTitleY, SHELF_COVER_WIDTH, smallLineHeight};
-    layout.shelfAuthors[i] = {x, shelfAuthorY, SHELF_COVER_WIDTH, smallLineHeight};
+  for (size_t i = 0; i < layout.shelfRows.size(); ++i) {
+    const int16_t rowY = static_cast<int16_t>(shelfRowY + i * (SHELF_ROW_HEIGHT + SHELF_ROW_GAP));
+    const int16_t thumbY = static_cast<int16_t>(rowY + (SHELF_ROW_HEIGHT - SHELF_THUMB_HEIGHT) / 2);
+    const int16_t textX = static_cast<int16_t>(CONTENT_X + SHELF_THUMB_WIDTH + SHELF_TEXT_GAP);
+    const int16_t tagX = static_cast<int16_t>(CONTENT_X + CONTENT_WIDTH - SHELF_TAG_WIDTH);
+    const int16_t textWidth = static_cast<int16_t>(tagX - SHELF_TEXT_GAP - textX);
+    const int16_t textTop = static_cast<int16_t>(
+        rowY +
+        std::max<int16_t>(0, static_cast<int16_t>((SHELF_ROW_HEIGHT - 2 * smallLineHeight - SHELF_LINE_GAP) / 2)));
+    layout.shelfRows[i] = {CONTENT_X, rowY, CONTENT_WIDTH, SHELF_ROW_HEIGHT};
+    layout.shelfThumbs[i] = {CONTENT_X, thumbY, SHELF_THUMB_WIDTH, SHELF_THUMB_HEIGHT};
+    layout.shelfTitles[i] = {textX, textTop, textWidth, smallLineHeight};
+    layout.shelfAuthors[i] = {textX, static_cast<int16_t>(textTop + smallLineHeight + SHELF_LINE_GAP), textWidth,
+                              smallLineHeight};
+    layout.shelfProgress[i] = {tagX, static_cast<int16_t>(rowY + (SHELF_ROW_HEIGHT - smallLineHeight) / 2),
+                               SHELF_TAG_WIDTH, smallLineHeight};
   }
   return layout;
 }

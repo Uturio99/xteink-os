@@ -43,6 +43,9 @@ void CoverGridHomeUi::begin(const std::vector<RecentBook>& recent, bool opds, bo
   refreshCoverPaths();
   progress = hasContinueReading && !books->empty() ? loadBookProgress(books->front().path) : -1;
   if (progress >= 0) snprintf(progressText, sizeof(progressText), "%d%%", progress);
+#if FREEINK_DEVICE_X4PRO
+  if (renderer.getScreenWidth() == 480 && renderer.getScreenHeight() == 800) loadShelfProgress();
+#endif
 }
 
 void CoverGridHomeUi::refreshCoverPaths() {
@@ -192,6 +195,18 @@ void CoverGridHomeUi::draw(UiScreen& screen) {
   drawHeaderBand();
 }
 
+void CoverGridHomeUi::loadShelfProgress() {
+  shelfProgress.fill(-1);
+  for (auto& text : shelfProgressText) text.front() = '\0';
+  if (!books) return;
+  const int rowCount = x4ProShelfRowCount(static_cast<int>(books->size()));
+  for (int row = 0; row < rowCount && row < static_cast<int>(shelfProgress.size()); ++row) {
+    const int value = loadBookProgress((*books)[static_cast<size_t>(x4ProShelfBookIndex(row))].path);
+    shelfProgress[row] = value;
+    if (value >= 0) snprintf(shelfProgressText[row].data(), shelfProgressText[row].size(), "%d%%", value);
+  }
+}
+
 #if FREEINK_DEVICE_X4PRO
 void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
   coverCache.prepare();
@@ -199,11 +214,10 @@ void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
   const int16_t titleLineHeight = screen.target().lineHeight(theme.titleText.font);
   const int16_t smallLineHeight = screen.target().lineHeight(theme.smallText.font);
   const char* ctaLabel = hasContinueReading ? tr(STR_CONTINUE_READING) : tr(STR_LIBRARY);
-  const int16_t ctaWidth = static_cast<int16_t>(
-      screen.target().measureText(theme.smallText.font, ctaLabel, theme.smallText).width + 56);
+  const int16_t ctaWidth =
+      static_cast<int16_t>(screen.target().measureText(theme.smallText.font, ctaLabel, theme.smallText).width + 56);
   const auto layout = makeX4ProHomeLayout(titleLineHeight, smallLineHeight, ctaWidth);
-  screen.setContentMarginFromScreen(fui::Insets{layout.content.y,
-                                                static_cast<int16_t>(480 - layout.content.right()),
+  screen.setContentMarginFromScreen(fui::Insets{layout.content.y, static_cast<int16_t>(480 - layout.content.right()),
                                                 static_cast<int16_t>(800 - layout.content.bottom()), layout.content.x});
 
   if (books->empty()) {
@@ -213,9 +227,10 @@ void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
     return;
   }
 
-  noteThumbHeights(layout.heroCover.height, layout.shelfCovers[0].height);
+  noteThumbHeights(layout.heroCover.height, layout.shelfThumbs[0].height);
   paintFramedCover(screen.target(),
-                   fui::Rect{layout.heroCover.x, layout.heroCover.y, layout.heroCover.width, layout.heroCover.height}, 0);
+                   fui::Rect{layout.heroCover.x, layout.heroCover.y, layout.heroCover.width, layout.heroCover.height},
+                   0);
   button = {};
   button.action = SELECT;
   button.value = 0;
@@ -250,9 +265,9 @@ void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
     screen.target().text(fui::Rect{layout.progressLabel.x, layout.progressLabel.y, layout.progressLabel.width,
                                    layout.progressLabel.height},
                          progressText, progressStyle);
-    screen.target().fill(
-        fui::Rect{layout.progressTrack.x, layout.progressTrack.y, layout.progressTrack.width, layout.progressTrack.height},
-        fui::Paint::dither(fui::Color::LightGray));
+    screen.target().fill(fui::Rect{layout.progressTrack.x, layout.progressTrack.y, layout.progressTrack.width,
+                                   layout.progressTrack.height},
+                         fui::Paint::dither(fui::Color::LightGray));
     const int16_t fillWidth = static_cast<int16_t>(layout.progressTrack.width * progress / 100);
     if (fillWidth > 0) {
       screen.target().fill(
@@ -284,9 +299,9 @@ void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
 
   auto shelfHeading = theme.smallText;
   shelfHeading.bold = true;
-  screen.target().text(fui::Rect{layout.shelfHeader.x, layout.shelfHeader.y, layout.shelfHeader.width / 2,
-                                 layout.shelfHeader.height},
-                       tr(STR_LIBRARY_TAB_RECENT), shelfHeading);
+  screen.target().text(
+      fui::Rect{layout.shelfHeader.x, layout.shelfHeader.y, layout.shelfHeader.width / 2, layout.shelfHeader.height},
+      tr(STR_LIBRARY_TAB_RECENT), shelfHeading);
 
   button = {};
   button.label = tr(STR_LIBRARY);
@@ -299,56 +314,68 @@ void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
   button.minTouchSize = 44;
   const int16_t libraryLinkWidth = static_cast<int16_t>(std::min<int>(
       layout.shelfHeader.width / 2,
-      std::max<int>(44, screen.target().measureText(theme.smallText.font, tr(STR_LIBRARY), theme.smallText).width + 16)));
+      std::max<int>(44,
+                    screen.target().measureText(theme.smallText.font, tr(STR_LIBRARY), theme.smallText).width + 16)));
   fui::button(screen.frame(),
               fui::Rect{static_cast<int16_t>(layout.shelfHeader.right() - libraryLinkWidth), layout.shelfHeader.y,
                         libraryLinkWidth, layout.shelfHeader.height},
               button);
 
-  const int shelfCount = std::min<int>(GRID_COLUMNS, books->size() - 1);
-  grid.count = shelfCount;
-  grid.columns = GRID_COLUMNS;
-  grid.columnLayout = fui::CoverGridColumnLayout::EqualWidth;
-  grid.action = SELECT;
-  grid.inputMask = fui::InputTouch;
-  grid.selectedIndex = selected > 0 && selected <= shelfCount ? selected - 1 : -1;
-  grid.selectionIndicator = fui::CoverGridSelectionIndicator::CoverFrame;
-  grid.selectedCoverFrameGap = 4;
-  grid.selectedCoverFrameWidth = 3;
-  grid.cellStyles = fui::plainStyles();
-  grid.coverSize = {layout.shelfCovers[0].width, layout.shelfCovers[0].height};
-  grid.rowHeight = static_cast<int16_t>(layout.shelfAuthors[0].bottom() - layout.shelfCovers[0].y);
-  grid.gap = 20;
-  grid.rowGap = 0;
-  grid.cellInset = {};
-  grid.labelHeight = layout.shelfTitles[0].height;
-  grid.labelGap = 6;
-  grid.labelAlign = fui::TextAlign::Left;
-  grid.labelFollowsCover = true;
-  grid.titleText = theme.smallText;
-  grid.titleText.bold = true;
-  grid.titleText.maxLines = 1;
-  grid.scrollIndicator = false;
-  grid.itemProviderUserData = this;
-  grid.itemProvider = [](const uint16_t index, void* user) {
-    const auto& self = *static_cast<CoverGridHomeUi*>(user);
-    return fui::coverGridItem((*self.books)[index + 1].title.c_str(), index + 1);
-  };
-  grid.coverPainterUserData = this;
-  grid.coverPainter = [](fui::DrawTarget& target, fui::Rect cover, const fui::CoverGridItem&, const uint16_t index,
-                         void* user) {
-    return static_cast<CoverGridHomeUi*>(user)->paintFramedCover(target, cover, index + 1);
-  };
-  gridBounds = fui::Rect{layout.shelfCovers[0].x, layout.shelfCovers[0].y, layout.content.width, grid.rowHeight};
-  fui::coverGrid(screen.frame(), gridBounds, grid);
+  const int shelfCount = x4ProShelfRowCount(static_cast<int>(books->size()));
+  for (int row = 0; row < shelfCount; ++row) {
+    const int bookIndex = x4ProShelfBookIndex(row);
+    const auto& book = (*books)[static_cast<size_t>(bookIndex)];
 
-  auto shelfAuthor = theme.smallText;
-  shelfAuthor.maxLines = 1;
-  for (int i = 0; i < shelfCount; ++i) {
-    const auto& authorText = (*books)[i + 1].author;
-    if (authorText.empty()) continue;
-    const auto& rect = layout.shelfAuthors[i];
-    screen.target().text(fui::Rect{rect.x, rect.y, rect.width, rect.height}, authorText.c_str(), shelfAuthor);
+    button = {};
+    button.action = SELECT;
+    button.value = static_cast<int16_t>(bookIndex);
+    button.inputMask = fui::InputTouch;
+    button.styles = fui::plainStyles();
+    button.minTouchSize = 48;
+    fui::button(screen.frame(),
+                fui::Rect{layout.shelfRows[row].x, layout.shelfRows[row].y, layout.shelfRows[row].width,
+                          layout.shelfRows[row].height},
+                button);
+
+    const auto& thumb = layout.shelfThumbs[row];
+    if (selected == bookIndex) {
+      // Same selection ring the cover grid drew: 3 px stroke 4 px outside the cover.
+      constexpr int16_t FRAME_GAP = 4;
+      constexpr int16_t FRAME_WIDTH = 3;
+      screen.target().stroke(
+          fui::Rect{static_cast<int16_t>(thumb.x - FRAME_GAP), static_cast<int16_t>(thumb.y - FRAME_GAP),
+                    static_cast<int16_t>(thumb.width + 2 * FRAME_GAP),
+                    static_cast<int16_t>(thumb.height + 2 * FRAME_GAP)},
+          fui::Paint::solid(fui::Color::Black), FRAME_WIDTH);
+    }
+    paintFramedCover(screen.target(), fui::Rect{thumb.x, thumb.y, thumb.width, thumb.height},
+                     static_cast<size_t>(bookIndex));
+
+    auto rowTitle = theme.smallText;
+    rowTitle.align = fui::TextAlign::Left;
+    rowTitle.bold = true;
+    rowTitle.maxLines = 1;
+    screen.target().text(fui::Rect{layout.shelfTitles[row].x, layout.shelfTitles[row].y, layout.shelfTitles[row].width,
+                                   layout.shelfTitles[row].height},
+                         book.title.c_str(), rowTitle);
+
+    if (!book.author.empty()) {
+      auto rowAuthor = theme.smallText;
+      rowAuthor.align = fui::TextAlign::Left;
+      rowAuthor.maxLines = 1;
+      screen.target().text(fui::Rect{layout.shelfAuthors[row].x, layout.shelfAuthors[row].y,
+                                     layout.shelfAuthors[row].width, layout.shelfAuthors[row].height},
+                           book.author.c_str(), rowAuthor);
+    }
+
+    if (shelfProgress[row] >= 0) {
+      auto rowProgress = theme.smallText;
+      rowProgress.align = fui::TextAlign::Right;
+      rowProgress.bold = true;
+      screen.target().text(fui::Rect{layout.shelfProgress[row].x, layout.shelfProgress[row].y,
+                                     layout.shelfProgress[row].width, layout.shelfProgress[row].height},
+                           shelfProgressText[row].data(), rowProgress);
+    }
   }
 
   drawTabs(screen, fui::Rect{layout.tabs.x, layout.tabs.y, layout.tabs.width, layout.tabs.height});
