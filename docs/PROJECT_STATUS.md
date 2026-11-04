@@ -2,8 +2,8 @@
 
 > **Program Tracking Document:** Obra Superpowers Framework  
 > **Repository:** `xteink-os`  
-> **Current Active Milestone:** **M0 — Safe Project Consolidation**  
-> **Last Updated:** 2026-11-02  
+> **Current Active Milestone:** **M2 — Governance Reconciliation / WP2.4 Verification**
+> **Last Updated:** 2026-11-04
 
 ---
 
@@ -13,12 +13,12 @@
 | :---: | :--- | :---: | :--- | :--- |
 | **M0** | **Safe Project Consolidation** | **COMPLETE (100%)** | Non-destructive repository audit, baseline protection, archival of duplicates, single sources of truth. | None |
 | **M1** | **Baseline Reconciliation & Selection** | **COMPLETE (DESIGN ACCEPTED)** | Product Owner alignment on production design baseline (Concept A / H1.1A vs Concept B / XOS-DL v1.0). Design frozen for native implementation. | M0 |
-| **M2** | **Screen Architecture & Full Specs** | **QUEUED** | Comprehensive interaction and visual specs for all 5 screens (Home, Library, Reader, Files, Settings). | M1 |
+| **M2** | **Screen Architecture & Full Specs** | **ACTIVE — GOVERNANCE APPROVED** | Approved bounded decisions; WP2.1–WP2.3 checkpoints confirmed; WP2.4 is authorized for verification and firmware-handoff gating. | M1 |
 | **M3** | **Native C++ Home & Nav Architecture** | **QUEUED** | Implementing approved Home layout and navigation hierarchy in embedded C++ on X4 Pro (ESP32-S3 / 8 MB PSRAM) while maintaining ESP32-C3 compatibility. | M2 |
 | **M4** | **Font Subsystem & Typography** | **QUEUED** | Bitmap and vector font pipeline, Vietnamese glyph coverage, font metrics cache. | M3 |
 | **M5** | **Touch Driver, Hit Targets & Events** | **QUEUED** | Touch controller integration (GT911 on X4 Pro subject to SDK board-profile verification, FT6336 on Paper Mono / legacy), ≥44px hit bounds, debouncing, and input event routing. | M3 |
 | **M6** | **Waveform Modes & Refresh Pipeline** | **QUEUED** | 1-bit fast paging, 4-bit high quality rendering, ghosting mitigation, flashing reduction. | M3, M5 |
-| **M7** | **End-to-End Release & Handoff** | **QUEUED** | Hardware validation on physical X4 Pro, firmware-handoff verification, release build packaging. | M1–M6 |
+| **M7** | **End-to-End Release & Handoff** | **QUEUED** | Release packaging and final handoff after earlier separately authorized hardware validation. | M1–M6 |
 
 ---
 
@@ -71,6 +71,27 @@
   - Reader and HUD overlay (paging, progress scrubber, font size adjustments).
   - File manager / storage browser (SD card directory tree, USB transfer state).
   - Settings (refresh modes, power management, Wi-Fi configuration).
+
+#### M2 governance checkpoint
+
+- PD-1 through PD-7 are approved using the documented defaults; PD-6
+  investigation is deferred.
+- D8 and D10 are confirmed unchanged. The accepted WP1 D9 direction is
+  preserved: NotoSans fallback, SD-loaded Reader TTF, and minimal bundled UI
+  Serif evaluation. Exact subset and weight remain open.
+- D11 analysis is delegated to engineering. A measured flash-reserve
+  recommendation and later PO approval are required before bundled Serif
+  integration.
+- WP2.1–WP2.3 have task-specific implementation and checkpoint approvals.
+  WP2.4 has separate implementation and test-only authorization; its current
+  six-file patch remains uncommitted pending verification and firmware-handoff
+  requirements.
+- The delivery roadmap is five stages: (1) governance and design freeze,
+  (2) bounded implementation, (3) verification and firmware handoff,
+  (4) early hardware validation, and (5) release packaging. Existing WP
+  identifiers remain task-traceability labels.
+- Hardware validation is an early, separately authorized activity; it is not
+  postponed wholesale until release.
 
 ---
 

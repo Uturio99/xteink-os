@@ -1,15 +1,16 @@
-# XTEInk OS — M2 Technical Design Addendum (DRAFT)
+# XTEInk OS — M2 Technical Design Addendum
 
-> **Document ID:** M2-ADDENDUM-DRAFT
-> **Status:** FINAL WP0 DRAFT — PENDING PRODUCT OWNER SIGN-OFF. Not yet authoritative.
-> **Authorization state:** architecture direction ACCEPTED FOR PLANNING ONLY
-> (PO, 2026-11-03). Implementation of any WP is NOT authorized until the PO
-> signs off §2 and names the WP1 permission tiers (§4.5).
+> **Document ID:** M2-ADDENDUM
+> **Status:** GOVERNANCE RECONCILIATION APPROVED — implementation remains bounded
+> by the permissions recorded below.
+> **Authorization state:** M2 governance is approved. Existing WP2.1–WP2.3
+> checkpoint approvals and WP2.4 implementation/test-only authorizations are
+> confirmed without inventing historical approval dates. WP2.4 remains
+> uncommitted pending verification and firmware-handoff requirements.
 > **Supersedes:** nothing. This addendum amends the frozen M1 specification
 > ([`UNIFIED_UI_COLLECTION.md`](UNIFIED_UI_COLLECTION.md) @ commit `1225e580`)
 > without modifying it. Where this addendum conflicts with the M1 spec text,
-> the addendum is *proposed* to win after sign-off; until then M1 stays frozen
-> design authority.
+> this approved reconciliation governs M2; M1 remains frozen and unchanged.
 > **Repository:** `xteink-os` on branch `feat/m1-unified-ui-collection`
 > **SDK pin:** `freeink-sdk @ 946e6ac` (boox-picco-131)
 > **Date:** 2026-11-03
@@ -34,31 +35,46 @@ All evidence from the current branch at `1225e580`. "Spec fix" rows are changes
 
 ## 2. Decision Register
 
-### 2.1 Product decisions — PENDING PO sign-off (recommendations)
+### 2.1 Product decisions — PO-approved defaults
 
-Status semantics: "planning-accepted" means the PO may schedule work against
-the decision; it does NOT authorize implementation. No PD row below is marked
-approved; sign-off happens by PO naming each PD number.
+These decisions authorize only the bounded work described in this addendum;
+they do not authorize unrelated implementation or scope expansion.
 
 | ID | Recommendation | Evidence anchor | Impact if reversed |
 | :-- | :-- | :-- | :-- |
-| PD-1 | Formats: EPUB, TXT, XTC only where verified; exclude PDF/FB2 | C1 | PDF would violate `SCOPE.md` §4 and needs a new rendering engine |
-| PD-2 | Reader target typography: Serif 19px / 1.65 | C5 | Any other default is a one-line settings change, no rework |
-| PD-3 | Tap zones: left 30% / center 20% / right 50% (replacing thirds) | C6 | Firmware change is parameterized either way; affects reader muscle memory |
-| PD-4 | Full-library progress sort must NOT silently use incomplete recent-book data; defer if accuracy is not achievable | D10 | Scope of WP3 grows or shrinks |
-| PD-5 | Home curation: rule-based on existing CLIX metadata (e.g. newest unstarted) | FR-03 | Manual curation would need a new data model — significant scope |
-| PD-6 | Preserve existing touch-board handling of Sunlight Fading Fix (hidden on X4 Pro) pending investigation | C4 | Investigation task added/removed |
-| PD-7 | Reuse existing refresh-frequency options and port-80 web server; do not add "20 pages" or a port setting | C2, C3 | Small enum/setting additions |
+| PD-1 | Formats: EPUB, TXT, XTC only where verified; exclude PDF/FB2 | C1 | Approved |
+| PD-2 | Reader target typography: Serif 19px / 1.65 | C5 | Approved |
+| PD-3 | Tap zones: left 30% / center 20% / right 50% (replacing thirds) | C6 | Approved |
+| PD-4 | Full-library progress sort must NOT silently use incomplete recent-book data; defer if accuracy is not achievable | D10 | Approved |
+| PD-5 | Home curation: rule-based on existing CLIX metadata (e.g. newest unstarted) | FR-03 | Approved |
+| PD-6 | Preserve existing touch-board handling of Sunlight Fading Fix (hidden on X4 Pro); investigation explicitly deferred | C4 | Approved; investigation deferred |
+| PD-7 | Reuse existing refresh-frequency options and port-80 web server; do not add "20 pages" or a port setting | C2, C3 | Approved |
 
 ### 2.2 Resolved decision defaults (from PO directive, still require sign-off)
 
 | ID | Decision | Bound |
 | :-- | :-- | :-- |
-| D8 | Chapter-relative page numbers + whole-book percentage; no full-book pagination without measured feasibility | Bound to M2 scope (C7) |
-| D9 | Font distribution stays OPEN until WP1 measures flash, PSRAM, startup, fallback; evaluate minimal bundled UI Serif + optional SD reader fonts | Bound by WP1 gate results |
-| D10 | Implement genuine full-library progress sort only with accurate data; otherwise defer | Bound by WP3 data audit |
+| D8 | Chapter-relative page numbers + whole-book percentage; no full-book pagination without measured feasibility | Confirmed unchanged; bound to M2 scope (C7) |
+| D9 | NotoSans remains the mandatory fallback; Reader Serif remains SD-loaded TTF; evaluate only a minimal bundled UI Serif subset | Accepted WP1 direction; exact subset and weight remain open |
+| D10 | Implement genuine full-library progress sort only with accurate data; otherwise defer | Confirmed unchanged; bound by WP3 data audit |
 
-### 2.3 Verified engineering constraints (evidence, no approval needed)
+### 2.3 Governance approvals and boundaries
+
+- PD-1 through PD-7 are approved using the documented defaults; PD-6's
+  investigation is explicitly deferred.
+- D8 and D10 remain unchanged. The accepted WP1 D9 direction is preserved;
+  exact bundled-Serif subset and weight remain open.
+- D11 analysis is delegated to engineering. Engineering must provide a measured
+  flash-reserve recommendation; the PO must approve it before any bundled Serif
+  integration.
+- WP2.1–WP2.3 task-specific implementation and checkpoint approvals are
+  confirmed. WP2.4 has separate implementation and test-only authorization;
+  its current six-file patch remains uncommitted pending verification and
+  firmware-handoff requirements.
+- These approvals do not expand M2 scope. Hardware validation is an early,
+  separately authorized activity, not a release-only activity.
+
+### 2.4 Verified engineering constraints (evidence, no approval needed)
 
 | ID | Constraint | Evidence |
 | :-- | :-- | :-- |
@@ -225,18 +241,11 @@ hardware (WP7).
 5. M1 limitation "Reader dynamic reflow must be implemented by native engine" —
    closable: engine verified present (VE-10).
 
-## 7. Open Items at the Product Owner Gate
+## 7. Remaining Product Owner Decisions
 
-1. Sign off PD-1..PD-7 (§2.1) and the D8/D9/D10 bounds (§2.2). Naming a PD
-   number constitutes approval of that row; silence is not approval.
-2. Approve this addendum as the M2 authority alongside the frozen M1 spec.
-3. Authorize WP1 by naming its permission tiers (§4.5): H (host tests) and
-   F (firmware size builds). WP1 executes nothing until the tiers are named.
-4. **D11 — flash headroom threshold** for Strategy B (bundled serif): the
-   repository rules set a 16 MB flash baseline and "check the build map" but
-   no numeric headroom; the PO must set the acceptance number (e.g. "app
-   partition must retain ≥ N MB free") or delegate it to the F2 measurement.
-5. Name the X4 Pro panel variant present on PO hardware (SSD1677 / UC8179 /
-   UC8279) if known — reduces WP7 validation surface.
-6. Decide whether the Sunlight Fading Fix touch-gating investigation (PD-6)
-   is scheduled inside M2 or deferred.
+1. Engineering must complete D11 analysis and return a measured flash-reserve
+   recommendation; bundled Serif integration requires later PO approval.
+2. PO approval remains required for the exact D9 bundled-Serif subset and
+   weight after WP2 evidence.
+3. Name the X4 Pro panel variant present on PO hardware (SSD1677 / UC8179 /
+   UC8279) if known — this reduces the early hardware-validation surface.
