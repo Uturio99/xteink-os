@@ -34,7 +34,12 @@ TEST(X4ProHomeLayout, MatchesPortraitEditorialContract) {
   EXPECT_TRUE(insideContent(layout.progressTrack));
   EXPECT_TRUE(insideContent(layout.cta));
   EXPECT_TRUE(insideContent(layout.shelfHeader));
-  EXPECT_TRUE(insideContent(layout.tabs));
+  // The tab bar docks below the content column: assert screen bounds, not
+  // containment inside content.
+  EXPECT_GE(layout.tabs.x, 0);
+  EXPECT_GE(layout.tabs.y, 0);
+  EXPECT_LE(layout.tabs.right(), 480);
+  EXPECT_LE(layout.tabs.bottom(), 800);
   for (const auto& rect : layout.shelfCovers) EXPECT_TRUE(insideContent(rect));
   for (const auto& rect : layout.shelfTitles) EXPECT_TRUE(insideContent(rect));
   for (const auto& rect : layout.shelfAuthors) EXPECT_TRUE(insideContent(rect));
