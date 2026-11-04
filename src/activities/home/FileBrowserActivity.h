@@ -49,12 +49,22 @@ class FileBrowserActivity final : public UiListActivity {
   int prewarmedStart = -1;
   void prewarmRowGlyphs(int start);
 
-  int listCount() const override { return static_cast<int>(files.size()); }
+  // Pinned File Transfer shortcut occupying row 0 at SD root in Books mode.
+  // Never a filesystem entry: no delete/rename/swipe; real entries shift by
+  // fileListOffset() rows below it.
+  bool hasUtilityRow() const { return mode == Mode::Books && basepath == "/"; }
+  int fileListOffset() const { return hasUtilityRow() ? 1 : 0; }
+  // List row -> index in `files`; negative for the utility row.
+  int fileIndexFor(const int row) const { return row - fileListOffset(); }
+
+  int listCount() const override { return static_cast<int>(files.size()) + fileListOffset(); }
   void buildScreen(UiScreen& screen) override;
   void activateIndex(int index) override;
   void onRowLongPress(int index) override;
 #if FREEINK_CAP_TOUCH
-  bool canSwipeDelete(int index) const override { return mode == Mode::Books && index >= 0 && index < listCount(); }
+  bool canSwipeDelete(int index) const override {
+    return mode == Mode::Books && !(hasUtilityRow() && index == 0) && index >= 0 && index < listCount();
+  }
   void swipeDelete(int index) override;
 #endif
   // Long-press BACK goes to root; short Back goes up a directory (home/cancel at

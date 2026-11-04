@@ -21,7 +21,7 @@ TEST(X4ProHomeLayout, MatchesPortraitEditorialContract) {
   EXPECT_EQ(layout.progressTrack.width, 120);
   EXPECT_EQ(layout.progressTrack.height, 2);
   EXPECT_LE(layout.cta.bottom(), layout.shelfHeader.y);
-  EXPECT_LE(layout.shelfRows[1].bottom(), layout.tabs.y);
+  EXPECT_LE(layout.shelfRows[1].bottom(), layout.utilityLinks[0].y);
 
   const auto insideContent = [&layout](const HomeLayoutRect rect) {
     return rect.x >= layout.content.x && rect.right() <= layout.content.right() && rect.y >= layout.content.y &&
@@ -34,17 +34,16 @@ TEST(X4ProHomeLayout, MatchesPortraitEditorialContract) {
   EXPECT_TRUE(insideContent(layout.progressTrack));
   EXPECT_TRUE(insideContent(layout.cta));
   EXPECT_TRUE(insideContent(layout.shelfHeader));
-  // The tab bar docks below the content column: assert screen bounds, not
-  // containment inside content.
-  EXPECT_GE(layout.tabs.x, 0);
-  EXPECT_GE(layout.tabs.y, 0);
-  EXPECT_LE(layout.tabs.right(), 480);
-  EXPECT_LE(layout.tabs.bottom(), 800);
   for (const auto& rect : layout.shelfRows) EXPECT_TRUE(insideContent(rect));
   for (const auto& rect : layout.shelfThumbs) EXPECT_TRUE(insideContent(rect));
   for (const auto& rect : layout.shelfTitles) EXPECT_TRUE(insideContent(rect));
   for (const auto& rect : layout.shelfAuthors) EXPECT_TRUE(insideContent(rect));
   for (const auto& rect : layout.shelfProgress) EXPECT_TRUE(insideContent(rect));
+  for (const auto& rect : layout.utilityLinks) EXPECT_TRUE(insideContent(rect));
+  EXPECT_GE(layout.utilityLinks[0].height, 48);
+  EXPECT_GE(layout.utilityLinks[1].y - layout.utilityLinks[0].bottom(), 12);
+  EXPECT_GE(layout.utilityLinks[2].y - layout.utilityLinks[1].bottom(), 12);
+  EXPECT_LE(layout.utilityLinks[2].bottom(), layout.content.bottom());
   EXPECT_GE(layout.shelfRows[0].height, 72);
   EXPECT_EQ(layout.shelfThumbs[0].width, 40);
   EXPECT_EQ(layout.shelfThumbs[0].height, 56);
@@ -62,8 +61,11 @@ TEST(X4ProHomeLayout, FitsTwoShelfRowsBeforeNavigation) {
   EXPECT_EQ(layout.shelfThumbs[0], (HomeLayoutRect{32, 401, 40, 56}));
   EXPECT_EQ(layout.shelfThumbs[1], (HomeLayoutRect{32, 499, 40, 56}));
   EXPECT_GT(layout.shelfRows[1].y, layout.shelfRows[0].bottom());
-  EXPECT_LE(layout.shelfAuthors[1].bottom(), layout.tabs.y);
-  EXPECT_EQ(layout.tabs.height, 44);
+  EXPECT_LE(layout.shelfAuthors[1].bottom(), layout.utilityLinks[0].y);
+  EXPECT_GE(layout.utilityLinks[0].height, 48);
+  EXPECT_EQ(layout.utilityLinks[0], (HomeLayoutRect{32, 600, 416, 48}));
+  EXPECT_EQ(layout.utilityLinks[1], (HomeLayoutRect{32, 660, 416, 48}));
+  EXPECT_EQ(layout.utilityLinks[2], (HomeLayoutRect{32, 720, 416, 48}));
 }
 
 TEST(X4ProHomeLayout, BoundsRecentRowsByAvailableBooks) {
@@ -95,6 +97,7 @@ TEST(X4ProHomeLayout, RowsHoldUnderLargerTitleFont) {
   EXPECT_TRUE(insideContent(layout.shelfAuthors[1]));
   EXPECT_TRUE(insideContent(layout.shelfProgress[1]));
   EXPECT_LE(layout.shelfAuthors[1].bottom(), layout.shelfRows[1].bottom());
-  EXPECT_LE(layout.shelfRows[1].bottom(), layout.tabs.y);
+  EXPECT_LE(layout.shelfRows[1].bottom(), layout.utilityLinks[0].y);
+  EXPECT_TRUE(insideContent(layout.utilityLinks[2]));
   EXPECT_LE(layout.heroTitle.bottom(), layout.heroCover.y + 154);
 }

@@ -33,7 +33,7 @@ struct X4ProHomeLayout {
   std::array<HomeLayoutRect, 2> shelfTitles;
   std::array<HomeLayoutRect, 2> shelfAuthors;
   std::array<HomeLayoutRect, 2> shelfProgress;
-  HomeLayoutRect tabs;
+  std::array<HomeLayoutRect, 3> utilityLinks;
 };
 
 constexpr int x4ProShelfRowCount(const int totalBooks) { return std::max(0, std::min(2, totalBooks - 1)); }
@@ -90,7 +90,7 @@ constexpr X4ProHomeLayout makeX4ProHomeLayout(const int16_t titleLineHeight, con
                          {},
                          {},
                          {},
-                         {CONTENT_X, 744, CONTENT_WIDTH, 44}};
+                         {}};
   for (size_t i = 0; i < layout.shelfRows.size(); ++i) {
     const int16_t rowY = static_cast<int16_t>(shelfRowY + i * (SHELF_ROW_HEIGHT + SHELF_ROW_GAP));
     const int16_t thumbY = static_cast<int16_t>(rowY + (SHELF_ROW_HEIGHT - SHELF_THUMB_HEIGHT) / 2);
@@ -107,6 +107,15 @@ constexpr X4ProHomeLayout makeX4ProHomeLayout(const int16_t titleLineHeight, con
                               smallLineHeight};
     layout.shelfProgress[i] = {tagX, static_cast<int16_t>(rowY + (SHELF_ROW_HEIGHT - smallLineHeight) / 2),
                                SHELF_TAG_WIDTH, smallLineHeight};
+  }
+  // Three equal text links, in the Home band's drawn order.
+  constexpr int16_t UTILITY_LINK_Y = 600;  // shelf bottom 569 + 31 px air
+  constexpr int16_t UTILITY_LINK_HEIGHT = 48;
+  constexpr int16_t UTILITY_LINK_GAP = 12;
+  for (size_t i = 0; i < layout.utilityLinks.size(); ++i) {
+    layout.utilityLinks[i] = {CONTENT_X,
+                              static_cast<int16_t>(UTILITY_LINK_Y + i * (UTILITY_LINK_HEIGHT + UTILITY_LINK_GAP)),
+                              CONTENT_WIDTH, UTILITY_LINK_HEIGHT};
   }
   return layout;
 }

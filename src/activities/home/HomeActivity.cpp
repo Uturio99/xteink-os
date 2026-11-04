@@ -254,11 +254,26 @@ void HomeActivity::onEnter() {
   }
 
   const auto base = static_cast<int>(recentBooks.size());
-  selectorIndex = initialMenuItem == HomeMenuItem::NONE
-                      ? (coverGridUi && !hasContinueReading ? base + menuItemToIndex(HomeMenuItem::LIBRARY,
-                                                                                    hasLibrarySlot())
-                                                           : 0)
-                      : base + menuItemToIndex(initialMenuItem, hasLibrarySlot());
+  selectorIndex =
+      initialMenuItem == HomeMenuItem::NONE
+          ? (coverGridUi && !hasContinueReading ? base + menuItemToIndex(HomeMenuItem::LIBRARY, hasLibrarySlot()) : 0)
+          : base + menuItemToIndex(initialMenuItem, hasLibrarySlot());
+
+  // The X4 Pro portrait home draws only its three compact links. HomeActivity
+  // owns their values, so the component cannot drift from the menu order.
+  if (coverGridUi && coverGridUi->compactUtilityMenu()) {
+    const auto compactValue = [this, base](const HomeMenuItem item) {
+      return static_cast<int16_t>(base + menuItemToIndex(item, hasLibrarySlot()));
+    };
+    coverGridUi->setUtilityMenuValues({compactValue(HomeMenuItem::LIBRARY), compactValue(HomeMenuItem::FILE_BROWSER),
+                                       compactValue(HomeMenuItem::SETTINGS_MENU)});
+    // A deep entry aimed at a removed dock item lands on that item's new home.
+    if (initialMenuItem == HomeMenuItem::OPDS_BROWSER) {
+      selectorIndex = compactValue(HomeMenuItem::SETTINGS_MENU);
+    } else if (initialMenuItem == HomeMenuItem::FILE_TRANSFER) {
+      selectorIndex = compactValue(HomeMenuItem::FILE_BROWSER);
+    }
+  }
 
   // Trigger first update
   requestUpdate();
@@ -311,6 +326,28 @@ void HomeActivity::freeCoverBuffer() {
 
 void HomeActivity::loop() {
   const int menuCount = getMenuItemCount();
+  const bool compactLinks = coverGridUi && coverGridUi->compactUtilityMenu();
+  const auto cycleCompactLinks = [this](const int dir) {
+    const auto& values = coverGridUi->utilityMenuValues();
+    int pos = 0;
+    bool found = false;
+    for (size_t i = 0; i < values.size(); ++i) {
+      if (values[i] == selectorIndex) {
+        pos = static_cast<int>(i);
+        found = true;
+        break;
+      }
+    }
+    // A press while selection sits in the book band jumps into the links at
+    // the direction's end, matching cycleBand's band-entry semantics.
+    if (!found) {
+      pos = dir > 0 ? 0 : static_cast<int>(values.size()) - 1;
+    } else {
+      pos = (pos + dir + static_cast<int>(values.size())) % static_cast<int>(values.size());
+    }
+    selectorIndex = values[pos];
+    requestUpdate();
+  };
   const auto& metrics = UITheme::getInstance().getMetrics();
 
   auto activateSelection = [this] {
@@ -357,6 +394,10 @@ void HomeActivity::loop() {
   const auto swipe = mappedInput.wasSwipe();
   if (swipe == MappedInputManager::SwipeDir::Up) {
     const int visibleBooks = coverGridUi ? coverGridUi->visibleBookCount() : 0;
+    if (compactLinks && visibleBooks == 0) {
+      cycleCompactLinks(1);
+      return;
+    }
     const int count = visibleBooks > 0 ? visibleBooks : menuCount;
     selectorIndex = ButtonNavigator::nextIndex(selectorIndex < count ? selectorIndex : count - 1, count);
     requestUpdate();
@@ -364,6 +405,10 @@ void HomeActivity::loop() {
   }
   if (swipe == MappedInputManager::SwipeDir::Down) {
     const int visibleBooks = coverGridUi ? coverGridUi->visibleBookCount() : 0;
+    if (compactLinks && visibleBooks == 0) {
+      cycleCompactLinks(-1);
+      return;
+    }
     const int count = visibleBooks > 0 ? visibleBooks : menuCount;
     selectorIndex = ButtonNavigator::previousIndex(selectorIndex < count ? selectorIndex : 0, count);
     requestUpdate();
@@ -395,9 +440,9 @@ void HomeActivity::loop() {
       activateSelection();
       return;
     }
-    // Side page buttons walk the covers, front Left/Right walk the tabs
-    // (selectorIndex is flat: books first, then the tab items). A press while
-    // selection sits in the other band jumps into this band first.
+    // Side page buttons walk the covers, front Left/Right walk the menu band
+    // (the compact links on X4 Pro portrait). A press while selection sits in
+    // the other band jumps into this band first.
     const int bookCount = visibleBooks;
     const int menuBase = static_cast<int>(recentBooks.size());
     const auto cycleBand = [this](const int base, const int count, const int dir) {
@@ -415,12 +460,14 @@ void HomeActivity::loop() {
                                          [&cycleBand, bookCount] { cycleBand(0, bookCount, -1); });
     buttonNavigator.onPressAndContinuous({MappedInputManager::Button::Down},
                                          [&cycleBand, bookCount] { cycleBand(0, bookCount, +1); });
-    buttonNavigator.onPressAndContinuous({MappedInputManager::Button::Left}, [this, &cycleBand, menuBase] {
-      cycleBand(menuBase, getMenuItemCount() - menuBase, -1);
-    });
-    buttonNavigator.onPressAndContinuous({MappedInputManager::Button::Right}, [this, &cycleBand, menuBase] {
-      cycleBand(menuBase, getMenuItemCount() - menuBase, +1);
-    });
+    buttonNavigator.onPressAndContinuous(
+        {MappedInputManager::Button::Left}, [this, &cycleBand, &cycleCompactLinks, menuBase, compactLinks] {
+          compactLinks ? cycleCompactLinks(-1) : cycleBand(menuBase, getMenuItemCount() - menuBase, -1);
+        });
+    buttonNavigator.onPressAndContinuous(
+        {MappedInputManager::Button::Right}, [this, &cycleBand, &cycleCompactLinks, menuBase, compactLinks] {
+          compactLinks ? cycleCompactLinks(1) : cycleBand(menuBase, getMenuItemCount() - menuBase, 1);
+        });
     return;
   }
 
@@ -492,7 +539,7 @@ void HomeActivity::render(RenderLock&&) {
   if (coverGridUi) {
     coverGridUi->setSelection(selectorIndex);
     UITheme::getInstance().drawCoverGridHome(*coverGridUi);
-    // Front Left/Right walk the tabs, so their hints read Left/Right; the
+    // Front Left/Right walk the menu band, so their hints read Left/Right; the
     // side page buttons (unhinted) walk the covers.
     const auto labels = mappedInput.mapLabels(hasContinueReading ? tr(STR_RESUME) : "", tr(STR_SELECT),
                                               tr(STR_DIR_LEFT), tr(STR_DIR_RIGHT));

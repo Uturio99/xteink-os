@@ -141,18 +141,28 @@ void FileBrowserActivity::loadFiles() {
   FsHelpers::sortFileList(files);
 }
 
-// fui::ListProps::rowProvider — formats row `index` from files[index] into the
-// activity's scratch buffers on demand. Runs on the render task only for the
-// rows the list actually lays out, so nothing per-file is materialized beyond
-// `files` itself. The label/value pointers stay valid until the next call,
-// which is all the provider contract requires. The "[folder]" format is
+// fui::ListProps::rowProvider — formats list row `index` from its files entry
+// into the activity's scratch buffers on demand. Runs on the render task only
+// for the rows the list actually lays out, so nothing per-file is materialized
+// beyond `files` itself. The label/value pointers stay valid until the next
+// call, which is all the provider contract requires. The "[folder]" format is
 // theme-dependent, but it's re-derived here on every
 // repaint, so a theme change picked up while this activity was paused
 // underneath another screen needs no cache invalidation.
 void FileBrowserActivity::provideRow(void* ctx, const uint16_t index, fui::ListItem& item) {
   auto* self = static_cast<FileBrowserActivity*>(ctx);
-  if (index >= self->files.size()) return;
-  const std::string& entry = self->files[index];
+  if (self->hasUtilityRow() && index == 0) {
+    item.label = tr(STR_FILE_TRANSFER);
+    item.value = nullptr;
+    // File rows carry a 24 px icon; matching the indent keeps the pinned row
+    // on the same text column.
+    item.icon = fui::bitmapFromIcon(icon_upload_24);
+    item.actionValue = static_cast<int16_t>(index);
+    return;
+  }
+  const int fileIndex = self->fileIndexFor(index);
+  if (fileIndex < 0 || static_cast<size_t>(fileIndex) >= self->files.size()) return;
+  const std::string& entry = self->files[fileIndex];
   formatFileName(entry, self->rowNameBuf, sizeof(self->rowNameBuf));
   item.label = self->rowNameBuf;
   formatFileExtension(entry, self->rowExtBuf, sizeof(self->rowExtBuf));
@@ -167,11 +177,10 @@ void FileBrowserActivity::provideRow(void* ctx, const uint16_t index, fui::ListI
 // starting at the viewport top — one SD pass per list page (the reader TOC's
 // refreshTocWindow pattern) instead of one unbounded pass over the whole
 // folder. Getter form: no concatenated copy (a bare-new string append aborts
-// under heap pressure). The last index covers the bottom path band: basepath
-// (possibly a CJK folder name) draws in the same small font, so it must live
-// in the same batch or it would evict the rows' glyphs when the heap gate
-// disables union merging. (prewarmFallbackText appends the truncation
-// ellipsis.)
+// under heap pressure). The last indexes cover the pinned row label and the
+// bottom path band: both draw in the same small font, so they must live in the
+// same batch or they would evict the rows' glyphs when the heap gate disables
+// union merging. (prewarmFallbackText appends the truncation ellipsis.)
 void FileBrowserActivity::prewarmRowGlyphs(const int start) {
   const int total = static_cast<int>(files.size());
   int clamped = start;
@@ -180,6 +189,7 @@ void FileBrowserActivity::prewarmRowGlyphs(const int start) {
   if (clamped == prewarmedStart) return;
   prewarmedStart = clamped;
   const int count = total - clamped < PREWARM_WINDOW ? total - clamped : PREWARM_WINDOW;
+  const int extra = hasUtilityRow() ? 2 : 1;  // utility label + path band
 
   struct PrewarmCtx {
     FileBrowserActivity* self;
@@ -194,9 +204,10 @@ void FileBrowserActivity::prewarmRowGlyphs(const int start) {
           formatFileName(c->self->files[c->first + i], c->self->rowNameBuf, sizeof(c->self->rowNameBuf));
           return c->self->rowNameBuf;
         }
+        if (c->self->hasUtilityRow() && i == static_cast<uint32_t>(c->count)) return tr(STR_FILE_TRANSFER);
         return c->self->basepath.c_str();
       },
-      &prewarmCtx, static_cast<uint32_t>(count) + 1);
+      &prewarmCtx, static_cast<uint32_t>(count + extra));
 }
 
 void FileBrowserActivity::onEnter() {
@@ -220,7 +231,7 @@ void FileBrowserActivity::onEnter() {
     const auto pos = oldPath.find_last_of('/');
     const std::string fileName = oldPath.substr(pos + 1);
     // The first screen build pulls the viewport to it (ListNav follow-on-build).
-    nav.selected = static_cast<int>(findEntry(fileName));
+    nav.selected = static_cast<int>(findEntry(fileName)) + fileListOffset();
   } else {
     loadFiles();
   }
@@ -337,12 +348,16 @@ void FileBrowserActivity::swipeDelete(const int index) {
 #endif
 
 void FileBrowserActivity::activateSelected() {
+  if (hasUtilityRow() && nav.selected == 0) {
+    activityManager.goToFileTransfer();
+    return;
+  }
   if (files.empty()) return;
   // A touch activation can carry a row index captured before a delete/reload
   // shrank the list; the next render re-registers the rows.
   if (nav.selected < 0 || nav.selected >= listCount()) return;
 
-  const std::string& entry = files[nav.selected];
+  const std::string& entry = files[fileIndexFor(nav.selected)];
   bool isDirectory = (entry.back() == '/');
 
   // Firmware picker: select file -> return path; navigate into directories normally.
@@ -377,11 +392,11 @@ void FileBrowserActivity::activateSelected() {
 
 void FileBrowserActivity::showEntryActions() {
   if (mode != Mode::Books || files.empty() || optionPopup.isActive() || nav.selected < 0 ||
-      nav.selected >= listCount()) {
+      nav.selected >= listCount() || (hasUtilityRow() && nav.selected == 0)) {
     return;
   }
 
-  const bool isDirectory = files[nav.selected].back() == '/';
+  const bool isDirectory = files[fileIndexFor(nav.selected)].back() == '/';
   static constexpr StrId FILE_OPTIONS[] = {StrId::STR_OPEN, StrId::STR_DELETE, StrId::STR_RENAME};
   static constexpr StrId DIRECTORY_OPTIONS[] = {StrId::STR_OPEN, StrId::STR_DELETE};
   optionPopup.show(StrId::STR_FILENAME, isDirectory ? DIRECTORY_OPTIONS : FILE_OPTIONS, isDirectory ? 2 : 3, 0,
@@ -398,11 +413,13 @@ void FileBrowserActivity::showEntryActions() {
 }
 
 void FileBrowserActivity::deleteSelected() {
-  if (files.empty() || nav.selected < 0 || nav.selected >= listCount()) return;
+  if (files.empty() || nav.selected < 0 || nav.selected >= listCount() || (hasUtilityRow() && nav.selected == 0)) {
+    return;
+  }
 
   std::string cleanBasePath = basepath;
   if (cleanBasePath.back() != '/') cleanBasePath += "/";
-  const std::string entry = files[nav.selected];
+  const std::string entry = files[fileIndexFor(nav.selected)];
   const std::string fullPath = cleanBasePath + entry;
 
   auto handler = [this, fullPath](const ActivityResult& res) {
@@ -422,7 +439,7 @@ void FileBrowserActivity::deleteSelected() {
       RenderLock lock(*this);
       loadFiles();
       if (files.empty()) {
-        nav.selected = 0;
+        nav.selected = 0;  // the pinned utility row, when present
       } else if (nav.selected >= listCount()) {
         nav.selected = listCount() - 1;
       }
@@ -441,9 +458,11 @@ void FileBrowserActivity::deleteSelected() {
 }
 
 void FileBrowserActivity::startRename() {
-  if (files.empty() || nav.selected < 0 || nav.selected >= listCount()) return;
+  if (files.empty() || nav.selected < 0 || nav.selected >= listCount() || (hasUtilityRow() && nav.selected == 0)) {
+    return;
+  }
 
-  const std::string oldEntry = files[nav.selected];
+  const std::string oldEntry = files[fileIndexFor(nav.selected)];
   if (oldEntry.back() == '/') return;
 
   std::string cleanBasePath = basepath;
@@ -508,7 +527,7 @@ void FileBrowserActivity::renameSelectedFile(const std::string& oldPath, const s
   {
     RenderLock lock(*this);
     loadFiles();
-    nav.selected = static_cast<int>(findEntry(newEntry));
+    nav.selected = static_cast<int>(findEntry(newEntry)) + fileListOffset();
     nav.follow(listCount());
   }
   requestUpdate(true);
@@ -527,7 +546,8 @@ bool FileBrowserActivity::handleCustomInput() {
       RenderLock lock(*this);
       basepath = "/";
       loadFiles();
-      nav.selected = 0;
+      // Land on the first real entry, or the utility row when the root is empty.
+      nav.selected = files.empty() ? 0 : fileListOffset();
       nav.top = 0;
     }
     requestUpdate();
@@ -565,7 +585,7 @@ bool FileBrowserActivity::handleButtons() {
 
           const auto pos = oldPath.find_last_of('/');
           const std::string dirName = oldPath.substr(pos + 1) + "/";
-          nav.selected = static_cast<int>(findEntry(dirName));
+          nav.selected = static_cast<int>(findEntry(dirName)) + fileListOffset();
           nav.top = 0;
           nav.follow(listCount());
         }
@@ -636,7 +656,7 @@ void FileBrowserActivity::buildScreen(UiScreen& screen) {
     renderer.drawText(SMALL_FONT_ID, band.x + metrics.contentSidePadding, pathY, pathDisplay);
   }
 
-  if (files.empty()) {
+  if (listCount() == 0) {
     screen.centeredText(mode == Mode::PickFirmware ? tr(STR_NO_BIN_FILES) : tr(STR_NO_FILES_FOUND),
                         screen.theme().bodyText);
     return;
@@ -645,7 +665,7 @@ void FileBrowserActivity::buildScreen(UiScreen& screen) {
   fui::ListProps props;
   props.rowProvider = &FileBrowserActivity::provideRow;
   props.rowProviderCtx = this;
-  props.count = static_cast<uint16_t>(files.size());
+  props.count = static_cast<uint16_t>(listCount());
   props.action = ACTION_ROW;
   // Tap opens/navigates; long-press shows entry actions (physical buttons stay in loop()).
   props.inputMask = fui::InputTouch | fui::InputLongPress;
@@ -662,7 +682,7 @@ void FileBrowserActivity::buildScreen(UiScreen& screen) {
   // Prewarm the window at the final viewport (syncListViewport just applied
   // follow/clamping to nav.top) before the list resolves rows through the
   // provider.
-  prewarmRowGlyphs(nav.top);
+  prewarmRowGlyphs(nav.top - fileListOffset());
 #if FREEINK_CAP_TOUCH
   if (mode == Mode::Books) configureSwipeDelete(screen, props);
 #endif
@@ -687,10 +707,12 @@ void FileBrowserActivity::drawFooter() {
   // In PickFirmware mode, Confirm on a .bin returns the path to the caller (not "open"); show
   // STR_SELECT instead. Directories in the same picker still descend, so keep STR_OPEN there.
   const bool selectingFirmwareFile = mode == Mode::PickFirmware && !files.empty() && nav.selected >= 0 &&
-                                     nav.selected < listCount() && files[nav.selected].back() != '/';
-  const char* confirmLabel = files.empty() ? "" : (selectingFirmwareFile ? tr(STR_SELECT) : tr(STR_OPEN));
-  const auto labels = mappedInput.mapLabels(backLabel, confirmLabel, files.empty() ? "" : tr(STR_DIR_UP),
-                                            files.empty() ? "" : tr(STR_DIR_DOWN));
+                                     nav.selected < listCount() && files[fileIndexFor(nav.selected)].back() != '/';
+  // A root holding only the pinned utility row still has an actionable row.
+  const bool hasRows = listCount() > 0;
+  const char* confirmLabel = hasRows ? (selectingFirmwareFile ? tr(STR_SELECT) : tr(STR_OPEN)) : "";
+  const auto labels =
+      mappedInput.mapLabels(backLabel, confirmLabel, hasRows ? tr(STR_DIR_UP) : "", hasRows ? tr(STR_DIR_DOWN) : "");
   GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
 }
 

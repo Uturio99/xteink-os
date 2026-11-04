@@ -39,5 +39,7 @@ class OpdsServerListActivity final : public UiListActivity {
   void rebuildRowItems();
 
   int getItemCount() const;
+  // Leading Browse row in management mode, when at least one server exists.
+  int browseOffset() const;
   void handleSelection();
 };

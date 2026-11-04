@@ -47,10 +47,13 @@ StrId opdsFormatLabel(uint8_t format) {
 
 int OpdsServerListActivity::getItemCount() const {
   int count = static_cast<int>(OPDS_STORE.getCount());
-  // Picker mode appends "Add Server"; Settings also adds folder and format.
-  count += pickerMode ? 1 : 3;
+  // Picker mode appends "Add Server"; Settings also adds folder and format
+  // (plus a Browse row when at least one server exists).
+  count += pickerMode ? 1 : (OPDS_STORE.getCount() > 0 ? 4 : 3);
   return count;
 }
+
+int OpdsServerListActivity::browseOffset() const { return (!pickerMode && OPDS_STORE.getCount() > 0) ? 1 : 0; }
 
 OpdsServerListActivity::OpdsServerListActivity(GfxRenderer& renderer, MappedInputManager& mappedInput,
                                                const bool pickerMode)
@@ -78,27 +81,36 @@ void OpdsServerListActivity::rebuildRowItems() {
 
   const auto& servers = OPDS_STORE.getServers();
   const auto serverCount = static_cast<int>(servers.size());
+  const int off = browseOffset();
+  if (off > 0) {
+    // Management mode: leading row browses the servers (single server opens
+    // the browser directly, multiple opens the picker).
+    fui::ListItem browse;
+    browse.label = tr(STR_OPDS_BROWSER);
+    browse.actionValue = 0;
+    rowItems_.push_back(browse);
+  }
   for (int i = 0; i < serverCount; i++) {
     fui::ListItem item;
     item.label = servers[i].name.empty() ? servers[i].url.c_str() : servers[i].name.c_str();
     if (!servers[i].name.empty()) item.subtitle = servers[i].url.c_str();
-    item.actionValue = static_cast<int16_t>(i);
+    item.actionValue = static_cast<int16_t>(i + off);
     rowItems_.push_back(item);
   }
   fui::ListItem addServer;
   addServer.label = tr(STR_ADD_SERVER);
-  addServer.actionValue = static_cast<int16_t>(serverCount);
+  addServer.actionValue = static_cast<int16_t>(serverCount + off);
   rowItems_.push_back(addServer);
 
   if (!pickerMode) {
     fui::ListItem folder;
     folder.label = tr(STR_OPDS_DOWNLOAD_FOLDER);
-    folder.actionValue = static_cast<int16_t>(serverCount + 1);
+    folder.actionValue = static_cast<int16_t>(serverCount + off + 1);
     rowItems_.push_back(folder);  // subtitle refreshed per render below
 
     fui::ListItem format;
     format.label = tr(STR_OPDS_FILENAME_FORMAT);
-    format.actionValue = static_cast<int16_t>(serverCount + 2);
+    format.actionValue = static_cast<int16_t>(serverCount + off + 2);
     rowItems_.push_back(format);  // subtitle refreshed per render below
   }
 }
@@ -150,8 +162,14 @@ void OpdsServerListActivity::handleSelection() {
     return;
   }
 
-  // Index layout: [servers 0..serverCount-1], [Add Server], [Download folder], [Filename format].
-  if (nav.selected == serverCount + 1) {
+  // Index layout: [Browse], [servers 0..serverCount-1], [Add Server],
+  // [Download folder], [Filename format].
+  if (!pickerMode && serverCount > 0 && nav.selected == 0) {
+    activityManager.goToBrowser();
+    return;
+  }
+  const int off = browseOffset();
+  if (nav.selected == serverCount + off + 1) {
     auto folderHandler = [this](const ActivityResult& result) {
       if (!result.isCancelled) {
         const auto& kb = std::get<KeyboardResult>(result.data);
@@ -170,7 +188,7 @@ void OpdsServerListActivity::handleSelection() {
   }
 
   // "Filename format": picker like every other multi-option setting.
-  if (nav.selected == serverCount + 2) {
+  if (nav.selected == serverCount + off + 2) {
     static constexpr StrId formatLabels[] = {StrId::STR_FMT_AUTHOR_TITLE, StrId::STR_FMT_TITLE_AUTHOR,
                                              StrId::STR_FMT_TITLE};
     optionPopup.show(StrId::STR_OPDS_FILENAME_FORMAT, formatLabels, static_cast<int>(OpdsFilenameFormat::Count),
@@ -190,8 +208,9 @@ void OpdsServerListActivity::handleSelection() {
     rebuildRowItems();
   };
 
-  if (nav.selected < serverCount) {
-    startActivityForResult(std::make_unique<OpdsSettingsActivity>(renderer, mappedInput, nav.selected), resultHandler);
+  if (nav.selected - off < serverCount) {
+    startActivityForResult(std::make_unique<OpdsSettingsActivity>(renderer, mappedInput, nav.selected - off),
+                           resultHandler);
   } else {
     startActivityForResult(std::make_unique<OpdsSettingsActivity>(renderer, mappedInput, -1), resultHandler);
   }
@@ -221,9 +240,10 @@ void OpdsServerListActivity::buildScreen(UiScreen& screen) {
   // reassignment onto already-owned strings — no allocation).
   if (!pickerMode) {
     const auto serverCount = static_cast<int>(OPDS_STORE.getServers().size());
-    rowItems_[serverCount + 1].subtitle =
+    const int off = browseOffset();
+    rowItems_[serverCount + off + 1].subtitle =
         SETTINGS.opdsDownloadFolder[0] ? SETTINGS.opdsDownloadFolder : tr(STR_OPDS_SD_ROOT);
-    rowItems_[serverCount + 2].subtitle = I18N.get(opdsFormatLabel(SETTINGS.opdsFilenameFormat));
+    rowItems_[serverCount + off + 2].subtitle = I18N.get(opdsFormatLabel(SETTINGS.opdsFilenameFormat));
   }
 
   fui::ListProps props;

@@ -7,6 +7,7 @@
 #include "HomeCoverCache.h"
 #include "RecentBooksStore.h"
 #include "UiAppHost.h"
+#include "X4ProHomeLayout.h"
 #include "components/bars/tab-bar.h"
 #include "components/controls/button.h"
 #include "components/media/book-card.h"
@@ -25,6 +26,11 @@ class CoverGridHomeUi final : public UiAppHost {
   void setSelection(int selection) { selected = selection; }
   int selectedAction(const MappedInputManager& input);
   int visibleBookCount() const;
+  bool compactUtilityMenu() const { return x4ProCompact; }
+  // Values for the compact band, in the drawn order: Library, Files, Settings.
+  // HomeActivity owns the menu-item mapping behind these values.
+  void setUtilityMenuValues(const std::array<int16_t, 3>& values) { utilityValues = values; }
+  const std::array<int16_t, 3>& utilityMenuValues() const { return utilityValues; }
   // Exact generation height recorded for each slot. Thumbs must be generated
   // at the drawn size: rescaling a dithered 1-bit image aliases badly.
   int thumbHeightFor(size_t index = 0) const;
@@ -41,6 +47,7 @@ class CoverGridHomeUi final : public UiAppHost {
   void drawGrid(UiScreen& screen);
   freeink::ui::Rect layoutGrid(freeink::ui::Rect rect);
   void drawTabs(UiScreen& screen, freeink::ui::Rect rect);
+  void drawUtilityLinks(UiScreen& screen, const X4ProHomeLayout& layout);
   bool paintFramedCover(freeink::ui::DrawTarget& target, freeink::ui::Rect rect, size_t index);
   void refreshCoverPath(size_t index);
   void noteThumbHeight(int slotHeight);
@@ -68,4 +75,6 @@ class CoverGridHomeUi final : public UiAppHost {
   freeink::ui::Rect gridBounds{};
   freeink::ui::TabBarProps tabs;
   std::array<freeink::ui::TabItem, 5> tabItems;
+  bool x4ProCompact = false;
+  std::array<int16_t, 3> utilityValues{};
 };

@@ -34,6 +34,7 @@
 #include "StatusBarSettingsActivity.h"
 #include "TextSettingsActivity.h"
 #include "activities/network/WifiSelectionActivity.h"
+#include "activities/plugins/PluginCatalogActivity.h"
 #include "activities/util/IntervalSelectionActivity.h"
 #include "components/UITheme.h"
 #include "components/UIThemeTokens.h"
@@ -137,6 +138,9 @@ void SettingsActivity::rebuildSettings() {
   addAction(SettingsSection::Network, StrId::STR_KOREADER_SYNC, SettingAction::KOReaderSync);
   addAction(SettingsSection::Network, StrId::STR_OPDS_SERVERS, SettingAction::OPDSBrowser);
   addAction(SettingsSection::Network, StrId::STR_PLUGINS, SettingAction::Plugins);
+  if (BoardConfig::isX4Pro() && SETTINGS.pluginsEnabled) {
+    addAction(SettingsSection::Network, StrId::STR_PLUGIN_HUB, SettingAction::PluginCatalog);
+  }
 
   // OTA fetches this board's own release asset (see OtaUpdater); boards whose
   // asset isn't published yet just report no update available. The Picco's
@@ -310,7 +314,15 @@ void SettingsActivity::toggleSelectedSetting() {
         startActivityForResult(std::make_unique<KOReaderSettingsActivity>(renderer, mappedInput), resultHandler);
         break;
       case SettingAction::OPDSBrowser:
+        // Non-blocking UX limitation: Browse currently returns to Home on exit.
         startActivityForResult(std::make_unique<OpdsServerListActivity>(renderer, mappedInput), resultHandler);
+        break;
+      case SettingAction::PluginCatalog:
+        if (auto activity = makeUniqueNoThrow<PluginCatalogActivity>(renderer, mappedInput, false, false)) {
+          startActivityForResult(std::move(activity), resultHandler);
+        } else {
+          LOG_ERR("SETTINGS", "OOM: PluginCatalogActivity");
+        }
         break;
       case SettingAction::Network: {
         auto activity = makeUniqueNoThrow<WifiSelectionActivity>(renderer, mappedInput, false);
