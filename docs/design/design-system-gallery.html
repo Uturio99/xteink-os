@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NoveOS Design System 2.0 · Review gallery</title>
+<style>
+:root {
+  --screen-w:480px; --screen-h:800px; --inset-top:29px; --inset-x:31px; --inset-bottom:22px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px;
+  --paper:#fff; --ink:#121212; --muted:#555; --rule:#767676;
+  --edge:1px; --focus:2px; --selected-rule:3px; --structure:0; --dialog-radius:8px; --pill:9999px; --circle:50%;
+  --target:44px; --tab-h:48px; --action-h:50px; --setting-h:64px; --book-h:107px;
+  --icon:16px; --battery-w:19px; --battery-h:9px;
+  --hero-w:145px; --hero-h:210px; --recent-w:42px; --recent-h:61px; --cover-w:57px; --cover-h:80px;
+  --hero-gap:19px; --hero-top:28px; --shelf-top:37px; --reader-top:57px;
+  --serif:Georgia,"Times New Roman",serif; --sans:Arial,"Helvetica Neue",sans-serif;
+  --display:43px/1.05 var(--serif); --hero-title:28px/1.09 var(--serif); --chapter:27px/1.2 var(--serif);
+  --section-title:23px/1.2 var(--serif); --book-title:20px/1.1 var(--serif); --recent-title:17px/1.2 var(--serif);
+  --brand:700 20px/1.2 var(--serif); --reader:20px/1.62 var(--serif);
+  --body:13px/1.5 var(--sans); --setting:17px/1.25 var(--sans); --meta:11px/1.45 var(--sans);
+  --label:700 11px/1.45 var(--sans); --display-track:-.05em; --label-track:.125em;
+}
+* { box-sizing:border-box; }
+body { margin:0; color:var(--ink); background:#e7e7e5; font:var(--body); }
+main { max-width:1080px; margin:auto; padding:var(--s4); }
+h1,h2,h3,p,figure { margin:0; }
+h1,h3 { font:var(--display); letter-spacing:var(--display-track); }
+h2,h4 { font:var(--section-title); }
+h4 { margin:0; }
+p + p { margin-top:var(--s2); }
+[hidden] { display:none !important; }
+#binary[aria-pressed="true"] ~ .samples { --ink:#000; --paper:#fff; --muted:#000; --rule:#000; }
+.samples { color:var(--ink); }
+.panel { background:var(--paper); padding:var(--s5); border:var(--edge) solid var(--rule); }
+.stack { display:grid; gap:var(--s2); }
+.group { display:grid; gap:var(--s2); align-content:start; }
+.inline,.status-bar,.telemetry,.battery-group,.progress-copy { display:flex; align-items:center; gap:var(--s2); }
+.inline { flex-wrap:wrap; }
+.kicker { font:var(--label); letter-spacing:var(--label-track); text-transform:uppercase; }
+small,.meta { font:var(--meta); color:var(--muted); }
+small { display:block; }
+.brand { font:var(--brand); }
+.status-bar { justify-content:space-between; min-height:var(--target); border-bottom:var(--edge) solid var(--ink); }
+.telemetry { font:var(--meta); white-space:nowrap; }
+.battery { display:inline-block; position:relative; inline-size:var(--battery-w); block-size:var(--battery-h);
+  border:var(--edge) solid var(--ink); }
+.battery::before { content:""; position:absolute; inset:var(--focus) var(--s1) var(--focus) var(--focus); background:var(--ink); }
+.battery::after { content:""; position:absolute; inset-inline-start:100%; inset-block-start:var(--focus);
+  inline-size:var(--focus); block-size:var(--selected-rule); background:var(--ink); }
+button,input,select,a { color:inherit; font:inherit; }
+button,a[href],input,select { min-inline-size:var(--target); min-block-size:var(--target); }
+button,a[href] { cursor:pointer; touch-action:manipulation; }
+a[href] { text-decoration:none; }
+:where(button,a,input,select,[role="tabpanel"]):focus-visible,.is-focused {
+  outline:var(--focus) solid var(--ink); outline-offset:calc(-1 * var(--s1));
+}
+.action,.field,.toggle { border-radius:var(--pill); }
+.action,.toggle { --fill:var(--ink); --text:var(--paper); min-height:var(--action-h);
+  display:inline-flex; align-items:center; justify-content:center; gap:var(--s2); padding:var(--s2) var(--s4);
+  border:var(--edge) solid var(--ink); background:var(--fill); color:var(--text);
+  font-weight:bold; text-align:center; }
+.secondary { --fill:var(--paper); --text:var(--ink); }
+.toggle { --fill:var(--paper); --text:var(--ink); }
+.toggle[aria-pressed="true"] { --fill:var(--ink); --text:var(--paper); }
+.action:focus-visible,.action.is-focused,.toggle:focus-visible { outline-color:var(--text); }
+.action.compact,.action.icon-action { min-height:var(--target); }
+.action.icon-action {
+  inline-size:var(--target); block-size:var(--target); flex:none;
+  padding:0; border-radius:var(--circle);
+}
+.icon { display:inline-grid; place-items:center; inline-size:var(--icon); block-size:var(--icon); flex:none; }
+:is(.action:not(:disabled),.toggle,.row,.tab,.nav-link):active,.action.is-pressed { background:var(--ink); color:var(--paper);
+  outline:var(--focus) solid var(--paper); outline-offset:calc(-1 * var(--s1)); }
+.row:active small { color:var(--paper); }
+.action:disabled { --fill:var(--paper); --text:var(--muted); border-style:dashed; cursor:default; }
+.fields { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:var(--s2); align-items:end; }
+.fields label { display:grid; gap:var(--s1); font:var(--meta); }
+.field { border:var(--edge) solid var(--rule); padding:0 var(--s4); background:var(--paper); width:100%; }
+.field:disabled { color:var(--muted); border-style:dashed; cursor:default; opacity:1; }
+.field[aria-invalid="true"] { border:var(--focus) solid var(--ink); }
+.field[type="search"]::-webkit-search-cancel-button { appearance:none; }
+.select-trigger { position:relative; display:block; }
+.select-trigger .field { appearance:none; padding-inline-end:calc(var(--s4) + var(--icon)); }
+.select-trigger .icon { position:absolute; inset-inline-end:var(--s3); top:50%; transform:translateY(-50%); pointer-events:none; }
+.tabs,.root-nav { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--s2); }
+.nav-link,.tab {
+  display:flex; align-items:center; gap:var(--s2); border:0; border-radius:var(--structure);
+  background:transparent; padding-inline:var(--s2);
+}
+.tab,.root-nav .nav-link { justify-content:center; }
+.tab { min-height:var(--tab-h); }
+.nav-back { align-self:stretch; }
+.inline-link { justify-self:start; text-decoration:underline; }
+.root-nav { position:relative; margin-top:auto; border-top:var(--edge) solid transparent; }
+.root-nav::before {
+  content:""; position:absolute; inset-inline:0; inset-block-start:calc(-1 * var(--s1));
+  border-top:var(--edge) solid var(--ink);
+}
+.tab[aria-selected="true"],.nav-link[aria-current="page"] {
+  font-weight:bold; text-decoration:underline;
+  text-decoration-thickness:var(--selected-rule); text-underline-offset:var(--s1);
+}
+.row { width:100%; display:grid; align-items:center; text-align:left; gap:var(--s3); padding:var(--s2) 0;
+  border:0; border-radius:var(--structure); border-bottom:var(--edge) solid var(--rule); background:var(--paper); }
+.book { grid-template-columns:var(--cover-w) minmax(0,1fr) var(--icon); min-height:var(--book-h); }
+.recent { grid-template-columns:var(--recent-w) minmax(0,1fr) var(--icon); min-height:var(--target); }
+.setting { grid-template-columns:minmax(0,1fr) var(--icon); min-height:var(--setting-h); font:var(--setting); }
+.book-title { font:var(--book-title); }
+.recent .book-title { font:var(--recent-title); }
+.cover { min-height:var(--cover-h); display:grid; place-items:center; text-align:center; padding:var(--s1);
+  background:var(--ink); color:var(--paper); font:var(--recent-title); border-radius:var(--structure); }
+.recent .cover { min-height:var(--recent-h); }
+.hero { display:grid; grid-template-columns:var(--hero-w) minmax(0,1fr); gap:var(--hero-gap); margin-top:var(--hero-top); }
+.hero .cover { min-height:var(--hero-h); font:var(--chapter); }
+.hero .group { align-content:center; }
+.hero strong { font:var(--hero-title); }
+.shelf { margin-top:var(--shelf-top); }
+.shelf h4,.group-title { border-bottom:var(--edge) solid var(--ink); padding-bottom:var(--s2); }
+.progress-copy { justify-content:space-between; }
+progress { display:block; width:100%; height:var(--selected-rule); appearance:none; border:0; background:var(--paper); }
+progress::-webkit-progress-bar { background:var(--paper); box-shadow:inset 0 0 0 var(--edge) var(--rule); }
+progress::-webkit-progress-value { background:var(--ink); }
+progress::-moz-progress-bar { background:var(--ink); }
+.notice { padding:var(--s3) 0; border-block:var(--edge) solid var(--rule); }
+.notice strong { display:block; }
+.dialog { border:var(--edge) solid var(--ink); border-radius:var(--dialog-radius); padding:var(--s5); color:var(--ink);
+  background:var(--paper); max-inline-size:min(100% - var(--s5), var(--screen-w)); }
+.dialog::backdrop { background:rgb(0 0 0 / 40%); }
+#binary[aria-pressed="true"] ~ .samples .dialog::backdrop { background:transparent; }
+#binary[aria-pressed="true"] ~ .samples .dialog { --ink:#000; --paper:#fff; --muted:#000; --rule:#000; }
+.scroll { overflow-x:auto; }
+.artboard { display:flex; flex-direction:column; gap:var(--s2); overflow:hidden;
+  inline-size:var(--screen-w); block-size:var(--screen-h); padding:var(--inset-top) var(--inset-x) var(--inset-bottom);
+  background:var(--paper); }
+.intro { display:grid; gap:var(--s2); padding-top:var(--s4); }
+.intro p { color:var(--muted); }
+.list { min-height:0; overflow:auto; padding-inline-end:var(--s1); scrollbar-gutter:stable; }
+.reader-text { flex:1; min-height:0; overflow:auto; margin-top:var(--reader-top); padding-inline:var(--s2);
+  font:var(--reader); text-align:justify; }
+.reader-text h4 { font:var(--chapter); text-align:center; margin-bottom:var(--s6); }
+.reader-text small { margin:var(--s4) 0 var(--s1); }
+.footer { border-top:var(--edge) solid var(--rule); padding-top:var(--s3); font:var(--meta); }
+.boards,.specimens { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,var(--screen-w)),1fr)); gap:var(--s5); }
+figure { min-inline-size:0; }
+figcaption { padding-block:var(--s2); font:var(--label); }
+.review-header { padding-block:var(--s4); }
+.review-header p { margin-top:var(--s2); }
+#binary { margin-bottom:var(--s2); }
+.swatch { min-width:var(--target); padding:var(--s2); border:var(--edge) solid var(--rule); }
+.swatch.ink { background:var(--ink); color:var(--paper); }
+.swatch.muted { color:var(--muted); }
+.swatch.rule { background:var(--rule); color:var(--paper); }
+</style>
+</head>
+<body>
+<main>
+<header class="review-header">
+  <p class="kicker">NoveOS · Design System 2.0 · Proposed</p>
+  <h1>Hybrid Editorial Index</h1>
+  <p>Soft Editorial foundations and 1:1 screen specimens. Links jump between specimens. Settings and Import actions demonstrate feedback in the browser.</p>
+</header>
+<button class="toggle" id="binary" aria-pressed="false">1-bit palette</button>
+<div class="samples stack">
+<h2>Foundations and controls</h2>
+<div class="specimens">
+<section class="panel stack" aria-labelledby="type-heading">
+  <h3 id="type-heading">Type &amp; rules</h3>
+  <div class="inline"><span class="swatch">Paper</span><span class="swatch ink">Ink</span>
+    <span class="swatch muted">Muted</span><span class="swatch rule">Rule</span></div>
+  <p class="kicker">Group label · Metadata</p>
+  <p class="book-title" lang="vi">Rừng Na Uy · Nhà giả kim</p>
+  <p>Spacing in logical pixels: 4 / 8 / 12 / 16 / 24 / 32.</p>
+  <p><strong>Intent → role → behavior → tokens.</strong> Pills identify commands and form controls. Borderless navigation, editorial rows and a separate focus outline give movement, content and keyboard focus their own cues.</p>
+  <progress value="40" max="100" aria-label="Sample reading progress"></progress>
+  <p class="meta">40% read</p>
+</section>
+<section class="panel stack" aria-labelledby="state-heading">
+  <h3 id="state-heading">Control states</h3>
+  <div class="inline">
+    <button class="action" data-preview="Primary specimen activated.">Primary</button>
+    <button class="action secondary" data-preview="Secondary specimen activated.">Secondary</button>
+    <button class="action secondary icon-action" aria-label="Preview refresh" data-preview="Refresh specimen activated."><span class="icon" aria-hidden="true">↻</span></button>
+    <button class="action is-pressed" data-preview="Pressed specimen activated.">Pressed</button>
+    <button class="action secondary is-focused" data-preview="Focus specimen activated.">Focus</button>
+    <button class="action secondary" disabled>Unavailable</button>
+    <button class="action secondary" id="dialog-trigger">Open dialog</button>
+  </div>
+  <div class="fields">
+    <label>Text input<input class="field" type="text" value="Reading list"></label>
+    <label>Unavailable sort<span class="select-trigger"><select class="field" disabled><option>Title A–Z</option></select><span class="icon" aria-hidden="true">⌄</span></span></label>
+  </div>
+  <label class="stack">Invalid text input<input class="field" type="text" value="?" aria-invalid="true" aria-describedby="field-error"></label>
+  <p class="meta" id="field-error">Enter a name for the list.</p>
+  <p class="notice" id="feedback" role="status">Use Tab to inspect live focus. Press a control to see feedback.</p>
+  <dialog class="dialog" id="sample-dialog" aria-labelledby="dialog-title">
+    <form method="dialog" class="stack">
+      <h4 id="dialog-title">Discard sample changes?</h4>
+      <p>Keep editing or discard the example changes.</p>
+      <div class="inline"><button class="action secondary" value="keep" autofocus>Keep editing</button><button class="action destructive" value="discard">Discard changes</button></div>
+    </form>
+  </dialog>
+</section>
+<section class="panel stack" aria-labelledby="feedback-heading">
+  <h3 id="feedback-heading">Feedback</h3>
+  <p class="notice"><strong>Loading</strong>Checking for books…</p>
+  <p class="notice"><strong>Empty Home</strong>No books yet. Import a book to get started.</p>
+  <p class="notice"><strong>Empty Library</strong>No books in the catalog. Browse import options.</p>
+  <p class="notice"><strong>No matching books</strong>Clear or change the search.</p>
+  <p class="notice"><strong>Offline</strong>Check the connection and retry. Local books are still available.</p>
+  <p class="notice"><strong>Sign-in required</strong>Sign in to access this service.</p>
+  <p class="notice"><strong>Book unavailable</strong>The last book could not be opened. Choose a book from Library.</p>
+  <p class="notice"><strong>Unsupported file</strong>Choose a supported file. The source file was kept.</p>
+  <p class="notice"><strong>File could not be read</strong>Check the file and try again. The source file was kept.</p>
+  <p class="notice"><strong>Transfer incomplete</strong>Nothing was imported. Check the connection and retry.</p>
+  <p class="notice"><strong>Import complete</strong>Rescan finished. The sample book is ready in Library.</p>
+  <a class="nav-link inline-link" href="#import">Review import options</a>
+</section>
+</div>
+
+<h2>Screen specimens · 480 × 800</h2>
+<div class="boards">
+<figure id="home"><figcaption>01 · Home</figcaption><div class="scroll"><section class="artboard" aria-label="Home specimen">
+  <header class="status-bar"><span class="brand">NoveOS.</span><span class="telemetry"><span class="battery-group" aria-label="Battery 82%"><i class="battery" aria-hidden="true"></i><span aria-hidden="true">82%</span></span><time datetime="09:41">09:41</time></span></header><div class="intro"><h3>Your library.</h3><p>A quiet place for your reading journeys.</p></div>
+  <div class="hero">
+    <span class="cover" aria-hidden="true" lang="vi">Rừng<br>Na Uy</span>
+    <div class="group"><span class="kicker">Currently reading</span><strong lang="vi">Rừng Na Uy</strong>
+      <small>Haruki Murakami</small><progress value="40" max="100" aria-label="Reading progress"></progress>
+      <div class="progress-copy meta"><span>40% read</span><span>Position 128</span></div></div>
+  </div>
+  <a class="action" href="#reader" data-specimen="resume-action">Resume reading <span aria-hidden="true">→</span></a>
+  <section class="shelf stack" aria-label="Recent books"><h4>On your shelf</h4>
+    <a class="row book recent" href="#reader" data-book data-title="1984" data-author="George Orwell"><span class="cover" aria-hidden="true">1984</span><span><strong class="book-title" lang="en">1984</strong><small>George Orwell · Not started</small></span><span class="icon" aria-hidden="true">›</span></a>
+    <a class="row book recent" href="#reader" data-book data-title="Nhà giả kim" data-author="Paulo Coelho"><span class="cover" aria-hidden="true">N</span><span><strong class="book-title" lang="vi">Nhà giả kim</strong><small>Paulo Coelho · 18%</small></span><span class="icon" aria-hidden="true">›</span></a>
+  </section>
+  <nav class="root-nav" aria-label="Screen destinations"><a class="nav-link" href="#home" aria-current="page">Home</a><a class="nav-link" href="#library">Library</a><a class="nav-link" href="#settings">Settings</a></nav>
+</section></div></figure>
+
+<figure id="library"><figcaption>02 · Library</figcaption><div class="scroll"><section class="artboard" aria-label="Library specimen">
+  <header class="status-bar"><span class="brand">NoveOS.</span><span class="telemetry"><span class="battery-group" aria-label="Battery 82%"><i class="battery" aria-hidden="true"></i><span aria-hidden="true">82%</span></span><time datetime="09:41">09:41</time></span></header><div class="intro"><h3>Library</h3><p>Books waiting to be read.</p></div>
+  <div class="tabs" role="tablist" aria-label="Provisional Library tabs">
+    <button class="tab" id="tab-1" role="tab" aria-selected="true" aria-controls="panel-1">Tab 01</button>
+    <button class="tab" id="tab-2" role="tab" aria-selected="false" aria-controls="panel-2" tabindex="-1">Tab 02</button>
+    <button class="tab" id="tab-3" role="tab" aria-selected="false" aria-controls="panel-3" tabindex="-1">Tab 03</button>
+  </div>
+  <div class="fields">
+    <label>Search books or authors<input class="field" id="query" type="search"></label>
+    <label>Sort sample books<span class="select-trigger"><select class="field" id="sort"><option value="title">Title A–Z</option><option value="author">Author A–Z</option></select><span class="icon" aria-hidden="true">⌄</span></span></label>
+  </div>
+  <button class="action compact secondary" id="clear-search" hidden>Clear search</button>
+  <div class="list" id="panel-1" role="tabpanel" aria-labelledby="tab-1" tabindex="0">
+    <div class="stack" id="books">
+      <a class="row book" href="#reader" data-book data-title="1984" data-author="George Orwell"><span class="cover" aria-hidden="true">1984</span><span><strong class="book-title" lang="en">1984</strong><small>George Orwell · Not started</small></span><span class="icon" aria-hidden="true">›</span></a>
+      <a class="row book" href="#reader" data-book data-title="Nhà giả kim" data-author="Paulo Coelho"><span class="cover" aria-hidden="true">N</span><span><strong class="book-title" lang="vi">Nhà giả kim</strong><small>Paulo Coelho · Reading · 18%</small></span><span class="icon" aria-hidden="true">›</span></a>
+      <a class="row book" href="#reader" data-book data-title="Rừng Na Uy" data-author="Haruki Murakami"><span class="cover" aria-hidden="true">R</span><span><strong class="book-title" lang="vi">Rừng Na Uy</strong><small>Haruki Murakami · Reading · 40%</small></span><span class="icon" aria-hidden="true">›</span></a>
+    </div>
+    <p class="notice" id="no-matches" role="status" hidden>No matching books. Clear or change the search.</p>
+  </div>
+  <p class="notice" id="panel-2" role="tabpanel" aria-labelledby="tab-2" tabindex="0" hidden>Tab content awaits mapping approval.</p>
+  <p class="notice" id="panel-3" role="tabpanel" aria-labelledby="tab-3" tabindex="0" hidden>Tab content awaits mapping approval.</p>
+  <nav class="root-nav" aria-label="Screen destinations"><a class="nav-link" href="#home">Home</a><a class="nav-link" href="#library" aria-current="page">Library</a><a class="nav-link" href="#settings">Settings</a></nav>
+</section></div></figure>
+
+<figure id="reader"><figcaption>03 · Reader · Mock pagination</figcaption><div class="scroll"><section class="artboard" aria-label="Reader specimen">
+  <header class="status-bar"><a class="nav-link nav-back" href="#library"><span aria-hidden="true">←</span> Back to Library</a><span class="telemetry"><span class="battery-group" aria-label="Battery 82%"><i class="battery" aria-hidden="true"></i><span aria-hidden="true">82%</span></span><time datetime="09:41">09:41</time></span></header>
+  <article class="reader-text" aria-label="Vietnamese reading samples">
+    <h4 lang="vi">Chương 3</h4>
+    <small>NFC sample</small><p lang="vi" id="nfc">Buổi sáng đến thật chậm. Ánh sáng tràn qua ô cửa sổ, chạm vào những trang sách còn mở trên bàn.</p>
+    <small>NFD sample</small><p lang="vi" id="nfd">Buổi sáng đến thật chậm. Ánh sáng tràn qua ô cửa sổ, chạm vào những trang sách còn mở trên bàn.</p>
+  </article>
+  <footer class="footer progress-copy"><span>Page 128 / 320</span><span>40%</span></footer>
+</section></div></figure>
+
+<figure id="settings"><figcaption>04 · Settings</figcaption><div class="scroll"><section class="artboard" aria-label="Settings specimen">
+  <header class="status-bar"><span class="brand">NoveOS.</span><span class="telemetry"><span class="battery-group" aria-label="Battery 82%"><i class="battery" aria-hidden="true"></i><span aria-hidden="true">82%</span></span><time datetime="09:41">09:41</time></span></header><div class="intro"><h3>Settings</h3><p>Adjust your reading experience.</p></div>
+  <div class="stack">
+    <p class="kicker group-title">Reading experience</p>
+    <button class="row setting" data-preview="Display is represented here as a Settings row."><span>Display<small>Text, layout and refresh</small></span><span class="icon" aria-hidden="true">›</span></button>
+    <button class="row setting" data-preview="Controls is represented here as a Settings row."><span>Controls<small>Touch and physical buttons</small></span><span class="icon" aria-hidden="true">›</span></button>
+    <p class="kicker group-title">Connectivity &amp; data</p>
+    <button class="row setting" data-preview="Network is represented here as a Settings row."><span>Network<small>Wi-Fi and file transfer</small></span><span class="icon" aria-hidden="true">›</span></button>
+    <button class="row setting" data-preview="OPDS is represented here as a Settings row."><span>OPDS<small>Online catalog</small></span><span class="icon" aria-hidden="true">›</span></button>
+    <button class="row setting" data-preview="Extensions is represented here as a Settings row."><span>Extensions<small>Manage extensions</small></span><span class="icon" aria-hidden="true">›</span></button>
+  </div>
+  <p class="meta" id="settings-feedback" role="status">NoveOS · CrossPoint foundation</p>
+  <nav class="root-nav" aria-label="Screen destinations"><a class="nav-link" href="#home">Home</a><a class="nav-link" href="#library">Library</a><a class="nav-link" href="#settings" aria-current="page">Settings</a></nav>
+</section></div></figure>
+
+<figure id="import"><figcaption>05 · Import · Simulation specimen</figcaption><div class="scroll"><section class="artboard" aria-label="Import specimen">
+  <header class="status-bar"><a class="nav-link nav-back" href="#home"><span aria-hidden="true">←</span> Back to Home</a><span class="telemetry"><span class="battery-group" aria-label="Battery 82%"><i class="battery" aria-hidden="true"></i><span aria-hidden="true">82%</span></span><time datetime="09:41">09:41</time></span></header>
+  <div class="intro"><h3>Import books</h3><p>Choose a source. Device actions are simulated.</p></div>
+  <div class="stack">
+    <button class="action secondary" data-preview="Local file route preview. No files were opened.">Browse local files</button>
+    <button class="action secondary" data-preview="Wi-Fi route preview. No service was started.">Wi-Fi transfer</button>
+    <button class="action secondary" disabled aria-describedby="usb-reason">USB storage · Unavailable</button>
+    <p class="meta" id="usb-reason">USB storage requires device and runtime support.</p>
+    <p class="notice" id="import-feedback" role="status"><strong>Waiting for a source</strong>No transfer is active.</p>
+  </div>
+</section></div></figure>
+</div>
+</div>
+</main>
+<script>
+const binary = document.querySelector('#binary');
+binary.addEventListener('click', () => {
+  binary.setAttribute('aria-pressed', String(binary.getAttribute('aria-pressed') !== 'true'));
+});
+
+const dialog = document.querySelector('#sample-dialog');
+const trigger = document.querySelector('#dialog-trigger');
+trigger.addEventListener('click', () => {
+  dialog.returnValue = '';
+  dialog.showModal();
+});
+dialog.addEventListener('close', () => {
+  document.querySelector('#feedback').textContent =
+    dialog.returnValue === 'discard' ? 'Sample changes discarded.' : 'Sample changes kept.';
+  trigger.focus();
+});
+document.querySelectorAll('[data-preview]').forEach(button => {
+  button.addEventListener('click', () => {
+    const target = button.closest('#settings') ? '#settings-feedback' :
+      button.closest('#import') ? '#import-feedback' : '#feedback';
+    document.querySelector(target).textContent = button.dataset.preview;
+  });
+});
+
+const tabs = [...document.querySelectorAll('.tab')];
+const fields = document.querySelector('.fields');
+const query = document.querySelector('#query');
+const sort = document.querySelector('#sort');
+const clear = document.querySelector('#clear-search');
+const books = document.querySelector('#books');
+const rows = [...books.children];
+const noMatches = document.querySelector('#no-matches');
+function searchKey(value) {
+  return value.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('vi').replaceAll('đ','d');
+}
+function updateBooks() {
+  const term = searchKey(query.value.trim());
+  rows.sort((a,b) => a.dataset[sort.value].localeCompare(b.dataset[sort.value], 'vi'));
+  rows.forEach(row => {
+    row.hidden = !searchKey(row.dataset.title + ' ' + row.dataset.author).includes(term);
+    books.append(row);
+  });
+  noMatches.hidden = rows.some(row => !row.hidden);
+  clear.hidden = fields.hidden || !query.value;
+}
+function selectTab(active) {
+  tabs.forEach((tab, index) => {
+    const selected = index === active;
+    tab.setAttribute('aria-selected', String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+    document.getElementById(tab.getAttribute('aria-controls')).hidden = !selected;
+  });
+  fields.hidden = active !== 0;
+  clear.hidden = fields.hidden || !query.value;
+}
+tabs.forEach((tab, index) => {
+  tab.addEventListener('click', () => selectTab(index));
+  tab.addEventListener('keydown', event => {
+    const next = {ArrowRight:(index + 1) % tabs.length, ArrowLeft:(index + tabs.length - 1) % tabs.length,
+      Home:0, End:tabs.length - 1}[event.key];
+    if (next === undefined) return;
+    event.preventDefault();
+    selectTab(next);
+    tabs[next].focus();
+  });
+});
+query.addEventListener('input', updateBooks);
+sort.addEventListener('change', updateBooks);
+clear.addEventListener('click', () => {
+  query.value = '';
+  updateBooks();
+  query.focus();
+});
+updateBooks();
+</script>
+</body>
+</html>
