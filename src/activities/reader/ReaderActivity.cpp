@@ -158,7 +158,12 @@ void ReaderActivity::flushReaderSession() {
 
 bool ReaderActivity::handleBackNavigation() {
   return ReaderUtils::handleBackNavigation(mappedInput, activityManager, bookPath.c_str(),
-                                           {this, [](void* ctx) { static_cast<ReaderActivity*>(ctx)->onGoHome(); }});
+                                           {this, [](void* ctx) { static_cast<ReaderActivity*>(ctx)->onGoHome(); }},
+                                           returnToCallerOnShortBack
+                                               ? ReaderUtils::BackNavCallback{this, [](void* ctx) {
+                                                   static_cast<ReaderActivity*>(ctx)->finish();
+                                                 }}
+                                               : ReaderUtils::BackNavCallback{});
 }
 
 void ReaderActivity::clearEndOfBookOptionsIfNeeded() {

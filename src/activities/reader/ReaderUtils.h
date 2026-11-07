@@ -255,7 +255,8 @@ struct BackNavCallback {
 // - default: go home
 // - with backShortToFileBrowser: go to file browser.
 inline bool handleBackNavigation(const MappedInputManager& mappedInput, ActivityManager& activityManager,
-                                 const char* filePath, BackNavCallback goHome) {
+                                 const char* filePath, BackNavCallback goHome,
+                                 BackNavCallback returnToCaller = {}) {
   // The reading surface deliberately has no left-edge swipe-to-exit path: in
   // swipe page-turn mode a right swipe must page back instead. Home remains
   // available through the board's dedicated Home gesture/key. Back swipes stay
@@ -271,6 +272,10 @@ inline bool handleBackNavigation(const MappedInputManager& mappedInput, Activity
   if (!backTriggered) return false;
 
   const bool longPress = mappedInput.getHeldTime() >= GO_BACK_OR_HOME_MS;
+  if (!longPress && returnToCaller.fn) {
+    returnToCaller.fn(returnToCaller.ctx);
+    return true;
+  }
   if (longPress != SETTINGS.backShortToFileBrowser) {
     activityManager.goToFileBrowser(filePath);
   } else {

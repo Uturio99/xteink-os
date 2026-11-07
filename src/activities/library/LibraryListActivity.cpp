@@ -17,6 +17,7 @@
 #include "CrossPointSettings.h"
 #include "MappedInputManager.h"
 #include "RecentBooksStore.h"
+#include "activities/reader/ReaderActivity.h"
 #include "activities/util/ConfirmationActivity.h"
 #include "activities/util/KeyboardEntryActivity.h"
 #include "components/UIScale.h"
@@ -160,6 +161,12 @@ int LibraryListActivity::pinnedCount() const {
 }
 
 void LibraryListActivity::resolvePinned() {
+  if (activeTabIndex != RECENT_TAB || !query.empty() || !isDescending(sortOrder)) {
+    pinnedTotal = 0;
+    overlapCount = 0;
+    return;
+  }
+
   const auto& books = RECENT_BOOKS.getBooks();
   pinnedTotal = static_cast<uint8_t>(std::min<size_t>(books.size(), RecentBooksStore::MAX_RECENT_BOOKS));
   for (int i = 0; i < pinnedTotal; i++) pinnedAscRows[i] = 0xFFFF;
@@ -224,8 +231,89 @@ void LibraryListActivity::openSelectedBook() {
 // hold a file open at a time, and the reader is about to open files of its own.
 void LibraryListActivity::openBookByPath(const std::string& path) {
   app.clearTapFlash();
+  auto reader = ReaderActivity::create(renderer, mappedInput, path, false);
+  if (!reader) {
+    LOG_ERR("LIB", "cannot open reader; keeping library active");
+    return;
+  }
+  reader->setReturnToCallerOnShortBack();
   index.close();
-  onSelectBook(path);
+  startActivityForResult(std::move(reader), [this, path](const ActivityResult&) { resumeAfterReader(path); });
+}
+
+void LibraryListActivity::resumeAfterReader(const std::string& path) {
+  swallowHeldReleases();
+  RenderLock lock(*this);
+
+  const bool tabsWereFocused = tabsFocused();
+  const bool groupsWereCollapsed = groupsCollapsed;
+  const bool missingBook = !Storage.exists(path.c_str());
+  bool opened = index.open(library::libraryIndexPath());
+  const bool stale = missingBook || library::isLibraryIndexDirty() || !opened ||
+                     index.header().metadataEnabled != (SETTINGS.libraryUseMetadata != 0);
+  if (stale) {
+    index.close();
+    if (missingBook && RECENT_BOOKS.removeByPath(path)) RECENT_BOOKS.saveToFile();
+    if (!rebuildIndex() || !index.open(library::libraryIndexPath())) {
+      index.close();
+      degraded = true;
+      pinnedTotal = 0;
+      overlapCount = 0;
+      applyFilter();
+      auto& nav = activeNav();
+      nav.selected = std::min(nav.selected.load(std::memory_order_relaxed), listCount());
+      nav.followOnBuild = true;
+      LOG_ERR("LIB", "library index unavailable after reader return");
+      return;
+    }
+    degraded = index.ranksDegraded();
+    resetAfterRebuild();
+    if (!tabsWereFocused) selectBookPath(path);
+    if (groupsWereCollapsed && !tabsWereFocused && listCount() > 0) collapseGroups(selectedEntry());
+  }
+  if (!stale) {
+    degraded = index.ranksDegraded();
+    resolvePinned();
+  }
+
+  const auto& recentBooks = RECENT_BOOKS.getBooks();
+  auto& nav = activeNav();
+  if (!tabsWereFocused && activeTabIndex == RECENT_TAB && query.empty() && isDescending(sortOrder) &&
+      pinnedCount() > 0 && !recentBooks.empty() && recentBooks.front().path == path &&
+      nav.selected.load(std::memory_order_relaxed) != 1) {
+    nav.selected = 1;
+    nav.followOnBuild = true;
+  }
+}
+
+bool LibraryListActivity::selectBookPath(const std::string& path) {
+  const uint64_t targetHash = library::clixPathHash(path.data(), path.size());
+  for (int entry = 0; entry < bookRowCount(); ++entry) {
+    if (entry < pinnedCount()) {
+      const auto& books = RECENT_BOOKS.getBooks();
+      if (entry < static_cast<int>(books.size()) && books[static_cast<size_t>(entry)].path == path) {
+        activeNav().selected = entry + 1;
+        activeNav().followOnBuild = true;
+        return true;
+      }
+      continue;
+    }
+
+    const uint16_t ordinal = index.ordinalForRow(sortOrder, static_cast<uint16_t>(rowFor(entry)));
+    library::ClixRecord record{};
+    uint64_t rowHash = 0;
+    if (ordinal == 0xFFFF || !index.readRecord(ordinal, record) || !index.readPathHash(record, rowHash) ||
+        rowHash != targetHash) {
+      continue;
+    }
+    std::string rowPath;
+    if (index.readPath(record, rowPath) && rowPath == path) {
+      activeNav().selected = entry + 1;
+      activeNav().followOnBuild = true;
+      return true;
+    }
+  }
+  return false;
 }
 
 void LibraryListActivity::activateIndex(const int index) {
@@ -451,6 +539,7 @@ void LibraryListActivity::openSearch() {
     if (result.isCancelled) return;
     query = std::get<KeyboardResult>(result.data).text;
     applyFilter();
+    resolvePinned();
     auto& nav = activeNav();
     if (!query.empty() && filteredCount == 0 && !degraded) {
       // Up from the tab bar reopens Search even with no results.
@@ -486,7 +575,7 @@ void LibraryListActivity::selectTab(const int index, const bool toggleIfActive) 
   // must be rebuilt.
   applyFilter();
   activeTabIndex = index;
-  refreshOverlap();
+  resolvePinned();
   // Tab changes happen only while the bar owns focus. A tab's remembered row
   // must not pull focus back into the list after the switch.
   auto& nav = activeNav();
@@ -676,6 +765,7 @@ void LibraryListActivity::handleBackAction() {
   if (!query.empty()) {
     query.clear();
     applyFilter();
+    resolvePinned();
     nav.selected = 0;
     nav.top = 0;
     requestUpdate();

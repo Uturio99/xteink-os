@@ -22,6 +22,7 @@ class ReaderActivity : public Activity {
   ReaderSession readerSession;
   std::atomic<bool> pageRendered{false};
   bool bookRemembered = false;
+  bool returnToCallerOnShortBack = false;
   void markPageRendered() { pageRendered.store(true, std::memory_order_release); }
   void rememberBookOnceRendered();
 
@@ -84,6 +85,7 @@ class ReaderActivity : public Activity {
   void render(RenderLock&& lock) override;
 
   bool isReaderActivity() const final { return true; }
+  void setReturnToCallerOnShortBack() { returnToCallerOnShortBack = true; }
   bool acceptsRemoteInput() const final { return pageRendered.load(std::memory_order_acquire); }
   bool handleForcedRefresh() final;
 };
