@@ -9,7 +9,7 @@
   --screen-w:480px; --screen-h:800px; --inset-top:29px; --inset-x:31px; --inset-bottom:22px;
   --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px;
   --paper:#fff; --ink:#121212; --muted:#555; --rule:#767676;
-  --edge:1px; --focus:2px; --selected-rule:3px; --structure:0; --dialog-radius:8px; --pill:9999px; --circle:50%;
+  --edge:1px; --focus:2px; --selected-rule:3px; --structure:0; --dialog-radius:12px; --pill:9999px; --circle:50%;
   --target:44px; --tab-h:48px; --action-h:50px; --setting-h:64px; --book-h:107px;
   --icon:16px; --battery-w:19px; --battery-h:9px;
   --hero-w:145px; --hero-h:210px; --recent-w:42px; --recent-h:61px; --cover-w:57px; --cover-h:80px;
@@ -156,7 +156,7 @@ figcaption { padding-block:var(--s2); font:var(--label); }
 <body>
 <main>
 <header class="review-header">
-  <p class="kicker">NoveOS · Design System 2.0 · Proposed</p>
+  <p class="kicker">NoveOS · Design System 2.0 · Approved architecture</p>
   <h1>Hybrid Editorial Index</h1>
   <p>Soft Editorial foundations and 1:1 screen specimens. Links jump between specimens. Settings and Import actions demonstrate feedback in the browser.</p>
 </header>
@@ -188,7 +188,7 @@ figcaption { padding-block:var(--s2); font:var(--label); }
   </div>
   <div class="fields">
     <label>Text input<input class="field" type="text" value="Reading list"></label>
-    <label>Unavailable sort<span class="select-trigger"><select class="field" disabled><option>Title A–Z</option></select><span class="icon" aria-hidden="true">⌄</span></span></label>
+    <label>Unavailable choice<span class="select-trigger"><select class="field" disabled><option>Unavailable</option></select><span class="icon" aria-hidden="true">⌄</span></span></label>
   </div>
   <label class="stack">Invalid text input<input class="field" type="text" value="?" aria-invalid="true" aria-describedby="field-error"></label>
   <p class="meta" id="field-error">Enter a name for the list.</p>
@@ -213,7 +213,7 @@ figcaption { padding-block:var(--s2); font:var(--label); }
   <p class="notice"><strong>Unsupported file</strong>Choose a supported file. The source file was kept.</p>
   <p class="notice"><strong>File could not be read</strong>Check the file and try again. The source file was kept.</p>
   <p class="notice"><strong>Transfer incomplete</strong>Nothing was imported. Check the connection and retry.</p>
-  <p class="notice"><strong>Import complete</strong>Rescan finished. The sample book is ready in Library.</p>
+  <p class="notice"><strong>Wi-Fi import complete · simulated</strong>Only a successful transfer and completed rescan can enable Open Library. USB MSC follows safe disconnect, SD ownership restoration and restart to Home.</p>
   <a class="nav-link inline-link" href="#import">Review import options</a>
 </section>
 </div>
@@ -238,14 +238,14 @@ figcaption { padding-block:var(--s2); font:var(--label); }
 
 <figure id="library"><figcaption>02 · Library</figcaption><div class="scroll"><section class="artboard" aria-label="Library specimen">
   <header class="status-bar"><span class="brand">NoveOS.</span><span class="telemetry"><span class="battery-group" aria-label="Battery 82%"><i class="battery" aria-hidden="true"></i><span aria-hidden="true">82%</span></span><time datetime="09:41">09:41</time></span></header><div class="intro"><h3>Library</h3><p>Books waiting to be read.</p></div>
-  <div class="tabs" role="tablist" aria-label="Provisional Library tabs">
-    <button class="tab" id="tab-1" role="tab" aria-selected="true" aria-controls="panel-1">Tab 01</button>
-    <button class="tab" id="tab-2" role="tab" aria-selected="false" aria-controls="panel-2" tabindex="-1">Tab 02</button>
-    <button class="tab" id="tab-3" role="tab" aria-selected="false" aria-controls="panel-3" tabindex="-1">Tab 03</button>
+  <div class="tabs" role="tablist" aria-label="Library sort modes">
+    <button class="tab" id="tab-1" data-label="Recent" role="tab" aria-selected="true" aria-controls="panel-1">Recent ↓</button>
+    <button class="tab" id="tab-2" data-label="Title" role="tab" aria-selected="false" aria-controls="panel-2" tabindex="-1">Title</button>
+    <button class="tab" id="tab-3" data-label="Author" role="tab" aria-selected="false" aria-controls="panel-3" tabindex="-1">Author</button>
   </div>
   <div class="fields">
     <label>Search books or authors<input class="field" id="query" type="search"></label>
-    <label>Sort sample books<span class="select-trigger"><select class="field" id="sort"><option value="title">Title A–Z</option><option value="author">Author A–Z</option></select><span class="icon" aria-hidden="true">⌄</span></span></label>
+
   </div>
   <button class="action compact secondary" id="clear-search" hidden>Clear search</button>
   <div class="list" id="panel-1" role="tabpanel" aria-labelledby="tab-1" tabindex="0">
@@ -256,8 +256,8 @@ figcaption { padding-block:var(--s2); font:var(--label); }
     </div>
     <p class="notice" id="no-matches" role="status" hidden>No matching books. Clear or change the search.</p>
   </div>
-  <p class="notice" id="panel-2" role="tabpanel" aria-labelledby="tab-2" tabindex="0" hidden>Tab content awaits mapping approval.</p>
-  <p class="notice" id="panel-3" role="tabpanel" aria-labelledby="tab-3" tabindex="0" hidden>Tab content awaits mapping approval.</p>
+  <div class="notice" id="panel-2" role="tabpanel" aria-labelledby="tab-2" tabindex="0" hidden><strong>Title order</strong>Activate Title again to reverse the order.</div>
+  <div class="notice" id="panel-3" role="tabpanel" aria-labelledby="tab-3" tabindex="0" hidden><strong>Author order</strong>Activate Author again to reverse the order.</div>
   <nav class="root-nav" aria-label="Screen destinations"><a class="nav-link" href="#home">Home</a><a class="nav-link" href="#library" aria-current="page">Library</a><a class="nav-link" href="#settings">Settings</a></nav>
 </section></div></figure>
 
@@ -328,17 +328,19 @@ document.querySelectorAll('[data-preview]').forEach(button => {
 const tabs = [...document.querySelectorAll('.tab')];
 const fields = document.querySelector('.fields');
 const query = document.querySelector('#query');
-const sort = document.querySelector('#sort');
+let activeTab = 0, descending = [true, false, false];
 const clear = document.querySelector('#clear-search');
 const books = document.querySelector('#books');
 const rows = [...books.children];
+rows.forEach((row,index) => row.dataset.recent = index);
 const noMatches = document.querySelector('#no-matches');
+const panels = tabs.map(tab => document.getElementById(tab.getAttribute('aria-controls')));
 function searchKey(value) {
   return value.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('vi').replaceAll('đ','d');
 }
 function updateBooks() {
   const term = searchKey(query.value.trim());
-  rows.sort((a,b) => a.dataset[sort.value].localeCompare(b.dataset[sort.value], 'vi'));
+  rows.sort((a,b) => activeTab === 0 ? (Number(a.dataset.recent)-Number(b.dataset.recent)) * (descending[0] ? 1 : -1) : a.dataset[activeTab === 1 ? 'title' : 'author'].localeCompare(b.dataset[activeTab === 1 ? 'title' : 'author'], 'vi') * (descending[activeTab] ? -1 : 1));
   rows.forEach(row => {
     row.hidden = !searchKey(row.dataset.title + ' ' + row.dataset.author).includes(term);
     books.append(row);
@@ -346,18 +348,23 @@ function updateBooks() {
   noMatches.hidden = rows.some(row => !row.hidden);
   clear.hidden = fields.hidden || !query.value;
 }
-function selectTab(active) {
+function selectTab(active, toggle = false) {
+  if (toggle && active === activeTab) descending[active] = !descending[active];
+  activeTab = active;
+  tabs[active].textContent = tabs[active].dataset.label + ' ' + (descending[active] ? '↓' : '↑');
   tabs.forEach((tab, index) => {
     const selected = index === active;
     tab.setAttribute('aria-selected', String(selected));
     tab.tabIndex = selected ? 0 : -1;
-    document.getElementById(tab.getAttribute('aria-controls')).hidden = !selected;
+    panels[index].hidden = !selected;
   });
-  fields.hidden = active !== 0;
-  clear.hidden = fields.hidden || !query.value;
+  fields.hidden = false;
+  panels[active].append(books, noMatches);
+  clear.hidden = !query.value;
+  updateBooks();
 }
 tabs.forEach((tab, index) => {
-  tab.addEventListener('click', () => selectTab(index));
+  tab.addEventListener('click', () => selectTab(index, true));
   tab.addEventListener('keydown', event => {
     const next = {ArrowRight:(index + 1) % tabs.length, ArrowLeft:(index + tabs.length - 1) % tabs.length,
       Home:0, End:tabs.length - 1}[event.key];
@@ -368,7 +375,7 @@ tabs.forEach((tab, index) => {
   });
 });
 query.addEventListener('input', updateBooks);
-sort.addEventListener('change', updateBooks);
+
 clear.addEventListener('click', () => {
   query.value = '';
   updateBooks();
