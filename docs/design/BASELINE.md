@@ -7,6 +7,8 @@
 
 ---
 
+> **Current scope clarification — NoveOS V2:** This file preserves the historical H1.1A native Home baseline record and its approval status. It is separate from the Product Owner-approved NoveOS V2 visual authority, which is the [Hybrid Editorial Index reference](step07a/xteink-hybrid-demo.html), with current interaction decisions in the [Design System V2 proposal](DESIGN-SYSTEM-V2-PROPOSAL.md). This note clarifies scope and does not revise the historical records below.
+
 ## 1. Executive Summary
 
 This document establishes the official status of all design specifications, HTML prototypes, and user interface implementations across the `xteink-os` project.
