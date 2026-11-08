@@ -1,0 +1,21 @@
+diff --git a/src/SimLog.cpp b/src/SimLog.cpp
+index 478e7b8..82cde70 100644
+--- a/src/SimLog.cpp
++++ b/src/SimLog.cpp
+@@ -20,3 +20,3 @@
+-std::mutex mutex;
+-std::deque<Line> lines;
+-std::string partial;
++std::mutex &logMutex() { static std::mutex value; return value; }
++std::deque<Line> &logLines() { static std::deque<Line> value; return value; }
++std::string &logPartial() { static std::string value; return value; }
+@@ -27 +27,3 @@
+-  const std::lock_guard<std::mutex> lock(mutex);
++  const std::lock_guard<std::mutex> lock(logMutex());
++  auto &lines = logLines();
++  auto &partial = logPartial();
+@@ -43,2 +45,2 @@
+-  const std::lock_guard<std::mutex> lock(mutex);
+-  for (const Line &entry : lines) {
++  const std::lock_guard<std::mutex> lock(logMutex());
++  for (const Line &entry : logLines()) {

@@ -108,6 +108,32 @@ the default Linux/macOS PlatformIO directory; on Windows use
 Keep both core pins aligned with CI when updating the toolchain. After setup,
 use the [normal build command](#build).
 
+## X4 Pro desktop simulator (Linux/WSL2)
+
+The native simulator builds this repository's firmware sources against the
+CrossPoint Simulator revision pinned in `platformio.ini`. On Ubuntu/WSL2, install
+the host compiler and SDL/OpenSSL development packages:
+
+```sh
+sudo apt-get update
+sudo apt-get install -y build-essential g++ libsdl2-dev libssl-dev curl
+```
+
+Clone this repository, initialize the pinned SDK submodule, and use the same
+pioarduino Core setup described above. Then build and launch the X4 Pro profile:
+
+```sh
+git submodule update --init --recursive
+pio run -e simulator_x4_pro -t run_simulator
+```
+
+The build downloads the simulator at the exact revision recorded in
+`platformio.ini` and applies the small host-only startup compatibility patch in
+`scripts/simulator-simlog-init.patch`. Generated executables and PlatformIO
+caches stay under `.pio/` and are not shared. This exercises the current native
+firmware UI and simulator HAL; it does not verify the physical panel, refresh,
+input, memory, USB, or recovery behavior of an X4 Pro device.
+
 ## Flash
 
 ```sh
