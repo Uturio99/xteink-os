@@ -1,5 +1,7 @@
 # XTEInk OS — Unified UI/UX Collection Specification (M1)
 
+> HISTORICAL — superseded as an execution/design target by [NoveOS V2](../DESIGN-SYSTEM-V2-PROPOSAL.md) and the [execution contract](../../EXECUTION_CONTRACT.md). Decisions, measurements and old statuses below retain their original scope; they do not authorize new work. In particular, old “no simulator” statements predate 2dbf8155.
+
 > **Document ID:** UNIFIED-UI-COLLECTION-SPEC-M1  
 > **Status:** Candidate Production Design Specification (M1 Review Gate)  
 > **Target Device:** XTEINK X4 Pro (ESP32-S3, 8 MB PSRAM, 480×800 Portrait E-Paper Display, GT911 Capacitive Touch)  

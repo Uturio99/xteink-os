@@ -1,5 +1,7 @@
 # STEP 07B.1R — UX decisions
 
+> Decision history: the later [V2 Authority](../DESIGN-SYSTEM-V2-PROPOSAL.md#authority) closes the old unresolved Library mapping with Recent/Title/Author and per-mode reversal, expands rounded controls, fixes dialog radius at 12 px, and distinguishes Wi-Fi completion from USB restart to Home. The chronological records below do not reopen those decisions.
+
 - **BRAND-001 — NoveOS:** Approved product name for user-facing prototype branding. CrossPoint remains the underlying foundation and attribution. Repository, SDK, identifiers, and boot assets retain their existing names.
 - **INPUT-001 — parity:** Keep touch interactions and preserve existing CrossPoint physical-button behavior. Reader configuration remains reachable through the existing Reader menu contract: physical Confirm release opens it; touch devices also use the existing center-third tap/menu gesture; home-key boards use the configured Home-button ReaderMenu action. No firmware event or new mapping is defined here. The current STEP 07B browser prototype is illustrative and does not simulate those physical inputs.
 - **CLOCK-001 — native clock:** Reuse the native Reader clock in product implementation; the HTML time is static visual placeholder only.

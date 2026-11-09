@@ -1,7 +1,7 @@
 # XTEInk OS — STEP 06 UX Flows & Controls
 
-> **Status:** Reconstructed working contract for Product Owner review
-> **Provenance:** Reconstructed from verified local repository evidence; no unpublished Company PC STEP 03–05 files were available.
+> **Status:** Behavioral contract reconciled with later approved V2 decisions, 2026-11-09; native implementation and acceptance remain separate.
+> **Provenance:** Initially reconstructed without STEP 03–05. Those source artifacts were recovered from another worktree during the [recovery audit](../../superpowers/audits/EXECUTION-RECOVERY.md). Their baseline claims are not current native/device acceptance.
 > **Scope:** UX flows and controls only. No firmware, SDK, prototype, build, or dependency changes.
 > **Target:** Xteink X4 Pro, logical portrait viewport 480×800, monochrome E-Ink, Vietnamese Unicode.
 
@@ -9,18 +9,18 @@
 
 The following evidence is verified locally:
 
-- `docs/design/BASELINE.md` identifies H1.1A as the approved prototyping baseline, keeps DESIGN-002 as historical reference, and prohibits unapproved promotion of experimental designs.
-- `docs/design/specs/UNIFIED_UI_COLLECTION.md` defines the 15 representative frames, the 480×800 logical canvas, Vietnamese typography rules, touch-target rules, and prototype journeys.
+- [BASELINE](../BASELINE.md) indexes current NoveOS V2 / Hybrid Editorial Index authority and historical H1.1A/M1 references; it prohibits unapproved promotion of experiments.
+- [V2](../DESIGN-SYSTEM-V2-PROPOSAL.md) supplies current visual/interaction decisions. UNIFIED_UI_COLLECTION.md preserves the historical 15-frame review; its obsolete typography, tabs and gesture proposals do not override V2.
 - `docs/design/specs/M2-WP2-HOME-PLAN.md` records the existing Home implementation, the existing navigation conflict, and the requirement to preserve the existing activity/`fui::` stack.
 - `docs/superpowers/audits/M1-UI-COLLECTION-RECONCILIATION.md` and `docs/superpowers/audits/M1-UI-COLLECTION-QA.md` record the prior prototype reconciliation and browser QA claims. They are evidence of the M1 prototype work, not proof of physical-device acceptance.
 - `test/button_press_navigation/ButtonPressNavigationTest.cpp` verifies press-vs-hold behavior for the shared physical-button navigator.
 - `c9d12b52` preserves historical DESIGN-002 assets and a local handoff, but it is local-only and is not treated as a remote approval record.
 
-STEP 03 (inventory), STEP 04 (route trace), and STEP 05 (navigation contract) were not found as formal local artifacts. The contract below therefore labels reconstructed rules as **R-CONSTRUCTED**. The user-supplied product contract is treated as the current authority for NAV-001 and the required capabilities.
+Recovered [STEP 03](../../superpowers/audits/STEP-03-FEATURE-INVENTORY.md), [STEP 04](../../superpowers/audits/STEP-04-ROUTE-TRACE.md) and [STEP 05](../../superpowers/audits/STEP-05-NAVIGATION-CONTRACT.md) provide baseline source evidence and original F01–F44 identifiers. Historical reconstructed detail is superseded where later V2 approval is explicit. [Execution contract](../../EXECUTION_CONTRACT.md) defines precedence; [STEP 09](STEP-09-NATIVE-INTEGRATION-PLAN.md) records current implementation differences and PO gates.
 
 ## 2. Product and interaction invariants
 
-The rules in this section combine the user-supplied approved product contract with **R-CONSTRUCTED** operational detail where the missing STEP 03–05 documents would normally have supplied it.
+These rules preserve the approved product outcomes and incorporate the later explicit V2 decisions. Source-derived operational proposals and native authorization remain separately identified in STEP 09.
 
 These are fixed for STEP 06:
 
@@ -43,7 +43,7 @@ These are fixed for STEP 06:
 
 ### Library
 
-- **Unapproved tab mapping:** preserve three Library tabs. Exact tab names, ordering, and mapping are pending source verification and Product Owner design review; no mapping is approved by this document.
+- **Approved tab mapping:** Recent, Title, Author, with per-mode direction and a direction indicator on the active tab; activate the same tab again to reverse it. No redundant Sort dropdown. Authority: V2 approved decisions.
 - **Catalog:** title/author/progress rows, selection/focus, search, and sorting.
 - **Search:** query, clear, diacritic-insensitive matching, zero-result state, and return to the prior catalog viewport.
 - **Empty:** distinguish an empty library from a query with zero matches; offer rescan/import without losing the surrounding Library context.
@@ -60,9 +60,9 @@ These are fixed for STEP 06:
 
 - **File browser:** storage root, folders, supported files, parent-folder navigation, and a stable selection.
 - **Import source:** local SD/file browser, Wi-Fi transfer, or USB MSC only when the capability is available and enabled.
-- **USB MSC lifecycle:** before leaving USB MSC, require a safe disconnect/eject acknowledgement or equivalent completion signal, restore SD ownership to the firmware, rescan storage, and only then transition to Library.
+- **USB MSC lifecycle:** preserve the native exclusive-ownership, eject/disconnect, failure/timeout teardown and restart-to-Home paths. Restore firmware SD ownership and rescan through that lifecycle; no direct Library transition.
 - **Unsupported/corrupt file:** explain the failure, preserve the browser location, and offer Back/retry. Do not remove or rewrite the source file.
-- **Successful import:** rescan/register the book, preserve the import result, and return to Library with the new book discoverable.
+- **Successful import:** Wi-Fi may report success and offer Open Library only after transfer completion and successful rescan. USB requires safe eject/disconnect, firmware SD ownership restoration and rescan through its native restart-to-Home lifecycle; never offer direct USB→Library. Local Files preserves its existing origin/path behavior.
 
 ### Settings and services
 
@@ -88,12 +88,12 @@ These are fixed for STEP 06:
 4. Explicit Home remains independent and does not count as contextual Back.
 5. If the originating Library item disappeared during reading, return to the nearest valid viewport and show a non-blocking localized notice.
 
-### Journey C — Empty Home → Import → Wi-Fi/USB → Library
+### Journey C — Empty Home → Import → Wi-Fi completion / USB restart to Home
 
 1. Empty Home explains that no books are present and offers local file browsing plus capability-gated Wi-Fi/USB routes.
 2. Wi-Fi transfer preserves the existing CrossPoint transfer service and shows unavailable/offline/error states without pretending transfer succeeded.
 3. USB MSC is shown only when the board/profile and runtime capability permit it.
-4. After a successful copy, USB MSC must be safely disconnected, SD ownership restored to firmware, and storage rescanned before registering supported formats and returning to Library. Wi-Fi/local imports must complete their own write/close operation and rescan before the same transition.
+4. Wi-Fi must complete write/close and successful rescan before success/Open Library. USB must be safely ejected/disconnected, release exclusive host ownership and follow native SD restoration/rescan and restart to Home; no direct Library transition. Preserve native local Files return/path semantics.
 5. Unsupported, duplicate, corrupt, or interrupted imports remain recoverable and do not delete source content.
 
 ### Journey D — Settings → Network/OPDS/Extensions → Back
@@ -141,13 +141,13 @@ Required distinctions include: empty Home vs empty Library, zero search results 
 
 ## 7. STEP 07 acceptance criteria
 
-STEP 07 remains unstarted and unaccepted. These are acceptance criteria for a future verification phase only:
+STEP 07 browser artifacts and later V2 migration exist. These criteria apply to the candidate being verified; they do not erase earlier work or imply whole-design/native/hardware acceptance.
 
 ### Contract and navigation
 
 - A: Resume opens the correct book/location and explicit Home returns to Home.
 - B: Reader contextual Back restores Library tab, viewport, focused book, and search/sort context.
-- C: Empty Home import works through each available source; unavailable Wi-Fi/USB paths are hidden or clearly disabled; successful import reaches Library.
+- C: Empty Home import works through each available source; unavailable Wi-Fi/USB paths are hidden or clearly disabled. Wi-Fi offers Library only after transfer/rescan; USB safely releases SD and restarts to Home.
 - D: Settings service flows preserve focus and return correctly through network, OPDS, and extensions/plugins.
 - Existing CrossPoint format, reader, storage, recovery, and localization capabilities remain reachable.
 
@@ -172,7 +172,7 @@ STEP 07 remains unstarted and unaccepted. These are acceptance criteria for a fu
 
 ### Later simulator and hardware gate
 
-- Simulator verification separately covers activity transitions, storage ownership/rescan behavior, partial/full refresh state, and input edge cases.
+- Simulator verification covers only supported native rendering/activity/input paths. Host storage/display shims do not verify real SD/USB ownership, transfer durability, physical input, MCU resources or E-Ink refresh/ghosting; those remain device checks.
 - Human hardware verification separately covers panel rendering, ghosting, latency, touch, physical buttons, USB MSC disconnect, SD ownership restoration, Wi-Fi, storage, and recovery.
 - Browser, simulator, and hardware results must remain separately identified; passing one gate does not imply passing another.
 
@@ -182,13 +182,9 @@ STEP 07 remains unstarted and unaccepted. These are acceptance criteria for a fu
 - This 44-feature parity check is deferred from STEP 06 and is not satisfied by prototype/browser evidence.
 - Any parity gap blocks firmware integration and requires Product Owner disposition.
 
-## 8. Open decisions for Product Owner review
+## 8. Settled decisions and remaining gates
 
-1. **Library tab mapping:** verify the historical source and approve the exact names, ordering, and mapping of the three Library tabs during Product Owner design review.
-2. **Navigation presentation:** choose the visual presentation of the approved navigation semantics, including whether to use a dock, header links, menus, or another treatment. No persistent dock is locked by STEP 06; this does not reopen NAV-001.
-3. **Import completion policy:** confirm whether successful Wi-Fi/USB imports should automatically open Library or show a completion confirmation first. The contract requires reaching Library but does not choose the intermediate acknowledgement.
-
-No other product decision is reopened here. In particular, NAV-001 is fixed as written above.
+Library mapping/direction, navigation presentation, English system UI, contextual upper-left Back, Wi-Fi completion and USB restart-to-Home are settled by V2 and STEP 07B decisions. Do not ask again. NAV-001 and independent Home remain fixed. Native font selection needs measured evidence; native Back binding must preserve the existing logical mapping and approved V2 placement; ledger disposition, implementation acceptance and integration authorization are the bounded gates in STEP 09. They do not reopen the approved visual direction.
 
 ## 9. Explicit non-goals
 
@@ -196,4 +192,4 @@ No other product decision is reopened here. In particular, NAV-001 is fixed as w
 - No changes to the HTML prototype, build files, translations, dependencies, or partition configuration.
 - No new feature, format, service, network connector, or navigation model.
 - No claim that STEP 03–05 were previously approved or that STEP 07D runtime QA passed.
-- No STEP 07 execution.
+- This document correction does not execute or reauthorize STEP 07.

@@ -1,118 +1,26 @@
-# XTEInk OS — Project Status & Milestone Roadmap
+# NoveOS project status
 
-> **Program Tracking Document:** Obra Superpowers Framework  
-> **Repository:** `xteink-os`  
-> **Current Active Milestone:** **M0 — Safe Project Consolidation**  
-> **Last Updated:** 2026-11-02  
+**Evidence snapshot: 2026-11-09, 7d63f480e779df702cc861437b331fccc960bb29.**
+[Execution contract](EXECUTION_CONTRACT.md) defines authority; [STEP 09](design/specs/STEP-09-NATIVE-INTEGRATION-PLAN.md) owns the delivery path and gates. Git presence, recorded approval, executed checks and physical acceptance are separate states.
 
----
+| Work | Evidence / classification | Current disposition |
+|---|---|---|
+| M0 consolidation | VERIFIED artifacts: [M0 closeout](superpowers/audits/M0-CLOSEOUT.md), bfe6140a | Historical documentation work completed; does not prove product acceptance. |
+| M1 unified UI | [M1 review](superpowers/audits/M1-UI-COLLECTION-REVIEW.md), 1225e580, historical design acceptance records | Historical accepted design checkpoint; superseded as current product visual authority by Hybrid/V2. Old browser QA applies only to its candidate. |
+| M2 WP1 font feasibility | [Results §14](design/specs/M2-WP1-RESULTS.md), cc31d678/f9b6e526 record PO engineering acceptance | APPROVED feasibility only. Historical host/build measurements; no hardware verification or final V2 font selection. |
+| M2 WP2 / WP2.4 Home | 19f46d45, f6c9151e, 8a36e75e and separate dirty candidates | Implemented candidates; acceptance UNKNOWN/incomplete. Do not rerun the obsolete M2 plan or merge WIP wholesale. |
+| STEP 01–02 | Baseline/checkpoint identities recovered; formal artifacts not present in this assessed checkout | UNKNOWN formal completion/acceptance. Their current Git-inventory purpose is covered by the recovery audit; no need to repeat historical archaeology. |
+| STEP 03–05 | VERIFIED recovery from original worktree: 44 F-IDs, seven routes and navigation contract | Historical source work exists. Current-head reconciliation complete: 44/44 disposition rows appended to [STEP 03](superpowers/audits/STEP-03-FEATURE-INVENTORY.md) at 7d63f480 (REC-01, 2026-11-09, source-verified); G1 ledger adoption/disposition remains; no 44/44 runtime claim. |
+| STEP 06 | Reconciled [flow contract](design/specs/STEP-06-UX-FLOWS.md) | Core constraints documented; later V2 decisions close old tab/import/presentation questions. Whole-design/native/device acceptance not established. |
+| STEP 07A / 07B / V2 | [V2 Authority](design/DESIGN-SYSTEM-V2-PROPOSAL.md), [decisions](design/step07b/STEP-07B.1R-DECISIONS.md), 56804ed5/92914ddf/8d1c0861 | APPROVED visual direction and named interactions; browser migration/code exists. Final rendered/current-candidate acceptance remains UNKNOWN; browser evidence is not firmware evidence. |
+| STEP 08 | No formal STEP 08 artifact found in inspected docs/reachable paths | UNKNOWN; do not invent a completed stage or make an unnamed stage a dependency. |
+| STEP 09 | 8bd39511/7d63f480 planning; recovered/reconciled by this documentation change | Planning updated; broad native implementation remains BLOCKED. |
+| NAV-001 | VERIFIED source in 372ccca1: retained Library, callback, short Back and source assertions | Implemented **partially**, unaccepted as complete NAV-001. Same-book relaunch, reversed Back setting, touch reachability and state/resource evidence remain open. |
+| X4 Pro simulator | VERIFIED configuration in 2dbf8155 and pinned simulator revision | Configured. Clean-head compilation, launch and native behavior evidence UNKNOWN; physical behavior NOT TESTED here. |
+| Native typography worktree | Detached 7d63f480 plus dirty firmware/font/test files; bake-off review explicitly NOT TESTED | Experiment in progress; no chosen face or production acceptance inferred. Reuse evidence only after revision/provenance checks. |
+| M3–M6 legacy milestones | Mixed existing native capabilities, experiments and unverified target behavior | Old queued-stage schedule retired in favor of STEP 09 slices. No whole native UI, typography, touch or waveform milestone declared DONE. |
+| M7 / release | No complete current-candidate parity/hardware/handoff evidence recovered | BLOCKED on G5; no release, flash or publishing authorization. |
 
-## Milestone Progress Overview
+**REC-01 current-head reconciliation is complete** (44/44 rows in STEP 03; source-verified, runtime unverified). Remaining REC-01 closure: the G1 adoption/disposition packet and the G2 short-Back authorization record; the copy-ready handoff is in STEP 09. **No firmware builder is READY.** PO gate conditions are G1–G4; recovery/USB, device behavior and full parity remain required at acceptance.
 
-| Milestone | Title | Status | Primary Focus | Dependencies |
-| :---: | :--- | :---: | :--- | :--- |
-| **M0** | **Safe Project Consolidation** | **COMPLETE (100%)** | Non-destructive repository audit, baseline protection, archival of duplicates, single sources of truth. | None |
-| **M1** | **Baseline Reconciliation & Selection** | **COMPLETE (DESIGN ACCEPTED)** | Product Owner alignment on production design baseline (Concept A / H1.1A vs Concept B / XOS-DL v1.0). Design frozen for native implementation. | M0 |
-| **M2** | **Screen Architecture & Full Specs** | **QUEUED** | Comprehensive interaction and visual specs for all 5 screens (Home, Library, Reader, Files, Settings). | M1 |
-| **M3** | **Native C++ Home & Nav Architecture** | **QUEUED** | Implementing approved Home layout and navigation hierarchy in embedded C++ on X4 Pro (ESP32-S3 / 8 MB PSRAM) while maintaining ESP32-C3 compatibility. | M2 |
-| **M4** | **Font Subsystem & Typography** | **QUEUED** | Bitmap and vector font pipeline, Vietnamese glyph coverage, font metrics cache. | M3 |
-| **M5** | **Touch Driver, Hit Targets & Events** | **QUEUED** | Touch controller integration (GT911 on X4 Pro subject to SDK board-profile verification, FT6336 on Paper Mono / legacy), ≥44px hit bounds, debouncing, and input event routing. | M3 |
-| **M6** | **Waveform Modes & Refresh Pipeline** | **QUEUED** | 1-bit fast paging, 4-bit high quality rendering, ghosting mitigation, flashing reduction. | M3, M5 |
-| **M7** | **End-to-End Release & Handoff** | **QUEUED** | Hardware validation on physical X4 Pro, firmware-handoff verification, release build packaging. | M1–M6 |
-
----
-
-## Detailed Milestone Status
-
-### M0: Safe Project Consolidation
-- **Objective:** Establish a clean, well-documented, non-destructive foundation across all branches, documentation, and design assets without losing historical work.
-- **Key Deliverables:**
-  - [x] Full baseline inventory (`docs/superpowers/audits/M0-INVENTORY.md`)
-  - [x] Cryptographic move manifest (`docs/superpowers/audits/M0-MOVE-MANIFEST.md`)
-  - [x] Bounded execution plan (`docs/superpowers/plans/M0-project-consolidation.md`)
-  - [x] Project navigation guide (`docs/PROJECT_MAP.md`)
-  - [x] Milestone status dashboard (`docs/PROJECT_STATUS.md`)
-  - [x] Design baseline specification (`docs/design/BASELINE.md`)
-  - [x] Non-destructive archival of redundant root duplicates into `docs/design/experiments/EXP-001-quiet-modular/archive/root-spec-duplicates/`
-  - [x] Final verification and Product Owner handoff report (docs/superpowers/audits/M0-CLOSEOUT.md).
-- **Current Blocker:** None. M0 complete and ready for Product Owner review and transition to M1.
-
----
-
-### M1: Baseline Reconciliation & Target Selection
-- **Objective:** Reconcile differences between the approved production baseline (Concept A / H1.1A Native Home) and the experimental explorations (Concept B / EXP-001 / XOS-DL v1.0) to select the definitive architectural direction.
-- **Status:** **COMPLETE & DESIGN ACCEPTED (Design Freeze Checkpoint)**
-- **Design Acceptance Record:**
-  - Complete 15-frame UI Collection and interactive HTML prototype approved by Product Design Review.
-  - Authentic TrueType reference fonts bundled with SIL OFL 1.1 license for reproducible typography across host environments.
-  - Automated Playwright QA verification suite confirmed 100% PASS across dimensions, frame integrity, overflow, 99 evaluated touch targets, state persistence, search reset, sorting, Reader ↔ HUD typography synchronization, and all 5 user journeys.
-- **Key Deliverables:**
-  - [x] Baseline Reconciliation Matrix ([docs/superpowers/audits/M1-UI-COLLECTION-RECONCILIATION.md](superpowers/audits/M1-UI-COLLECTION-RECONCILIATION.md))
-  - [x] Unified UI Collection Specification ([docs/design/specs/UNIFIED_UI_COLLECTION.md](design/specs/UNIFIED_UI_COLLECTION.md))
-  - [x] Complete 15-Frame Navigable HTML Prototype ([docs/design/prototype/unified-ui-prototype.html](design/prototype/unified-ui-prototype.html))
-  - [x] 15-Frame Visual Inspection Gallery ([docs/design/prototype/gallery.html](design/prototype/gallery.html))
-  - [x] 15 Pixel-Exact 480×800 Captures ([docs/design/prototype/captures/](design/prototype/captures/))
-  - [x] Comprehensive QA & Verification Report ([docs/superpowers/audits/M1-UI-COLLECTION-QA.md](superpowers/audits/M1-UI-COLLECTION-QA.md))
-  - [x] Product Owner Review Package ([docs/superpowers/audits/M1-UI-COLLECTION-REVIEW.md](superpowers/audits/M1-UI-COLLECTION-REVIEW.md))
-- **Documented Implementation Limitations (Deferred to Native Implementation):**
-  - **Reader dynamic reflow/pagination:** Text formatting is styled via CSS in the reference prototype, but true book dynamic reflow and pagination calculations across custom font sizes (14–22px) must be implemented by the native C++ EPUB layout engine in firmware.
-  - **Search demo query initialization:** The search frame initializes with a deterministic demo query (`chiến tranh`) for automated capture reproducibility; native firmware will initialize with empty query and live SQLite/catalog index.
-  - **Hardware e-paper behavior:** 1-bit thresholding and high-contrast styling validated in browser reference, but physical refresh waveforms, ghosting clearing, and panel partial updates require on-device validation on XTEINK X4 Pro hardware.
-  - **DESIGN-002 historical provenance:** Components derived from historical DESIGN-002 explorations remain categorized as unverified design heritage, preserved for visual guidance rather than proven firmware implementation.
-- **Current Blocker:** None. Ready for M2 (Screen Architecture & Full Specs).
-
----
-
-### M2: Screen Architecture & Full Specifications
-- **Objective:** Establish pixel-exact, interaction-complete specifications for all core screens.
-- **Deliverables:**
-  - Definitive state matrix for Home (populated, empty, first-run).
-  - Library browsing (grid, list, sorting, metadata filtering).
-  - Reader and HUD overlay (paging, progress scrubber, font size adjustments).
-  - File manager / storage browser (SD card directory tree, USB transfer state).
-  - Settings (refresh modes, power management, Wi-Fi configuration).
-
----
-
-### M3: Native C++ Home & Navigation Architecture
-- **Objective:** Transition approved screen specifications into production C++ firmware within `src/activities/` and `src/components/`.
-- **Target Subsystems:**
-  - `src/components/CoverGridHomeUi.cpp` / `X4ProHomeLayout.h`
-  - Activity navigation stack and transition lifecycle.
-  - Memory budget compliance: zero dynamic heap growth in hot paths, stack usage < 4 KB per task.
-
----
-
-### M4: Font Subsystem & Typographic Hierarchy
-- **Objective:** Optimize font rendering for e-paper legibility and resource limits.
-- **Deliverables:**
-  - Font rasterization pipeline supporting Vietnamese diacritics without clipping.
-  - Runtime font glyph caching strictly bounded to allocated RAM pool.
-  - Fallback font chains for Latin and extended Unicode ranges.
-
----
-
-### M5: Touch Driver, Hit Targets & Event Bus
-- **Objective:** Ensure responsive, ergonomic touch input on physical hardware.
-- **Deliverables:**
-  - GT911 I2C touch controller tuning on X4 Pro (subject to SDK board-profile verification; FT6336 on Paper Mono / legacy).
-  - Minimum touch target bounds (≥44×44 CSS equivalent; 56px for primary reading actions).
-  - Edge swipe rejection and reading gesture zones.
-
----
-
-### M6: Waveform Modes & Refresh Pipeline
-- **Objective:** Minimize e-paper visual fatigue and ghosting while maximizing paging speed.
-- **Deliverables:**
-  - Rapid 1-bit waveform mode for page turns (<300ms latency).
-  - 4-bit grayscale waveform mode for cover art and home dashboard rendering.
-  - Configurable full-refresh counter (e.g., full clean refresh every 5–10 pages).
-
----
-
-### M7: End-to-End Release & Handoff
-- **Objective:** Complete physical validation on Xteink X4 Pro hardware, finalize documentation, and package release binaries.
-- **Deliverables:**
-  - PlatformIO release build verification (`pio run -e x4pro`).
-  - Serial console diagnostic logs verifying heap stability over 2+ hours continuous reading.
-  - Execution of `.agents/skills/firmware-handoff/SKILL.md` checklist with human sign-off.
+This snapshot does not replace Beads. No active Beads workspace was found; no issue was created, claimed or closed. Dirty work and the exact fetch/SDK state are recorded once in the [recovery audit](superpowers/audits/EXECUTION-RECOVERY.md).

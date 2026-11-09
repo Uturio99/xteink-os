@@ -7,14 +7,16 @@ CrossPoint Reader is open-source e-reader firmware for Xteink and other FreeInk-
 The [FreeInk SDK](freeink-sdk/) supplies the board profiles, hardware drivers,
 and shared UI components. Before adding an API or device-specific code, check
 the firmware HAL and the SDK source at the revision pinned by this repository.
-Use the [SDK documentation](freeink-sdk/docs/README.md) and
-[FreeInk SDK index](https://freeink.org/llms.txt) to find the relevant contract.
+After initializing the pinned checkout, read `freeink-sdk/docs/README.md`; the
+[FreeInk SDK index](https://freeink.org/llms.txt) helps locate the relevant contract.
 Check `git submodule status`: a different local SDK revision must be accounted
 for, not silently treated as the pinned firmware dependency.
 
 ## Start here
 
-At session start, run `uname -s`, `git branch --show-current`, `git remote -v`, and `git status --short`. Integration work targets `develop`.
+For NoveOS work, read [the execution contract](docs/EXECUTION_CONTRACT.md), then the assigned [STEP 09 package](docs/design/specs/STEP-09-NATIVE-INTEGRATION-PLAN.md). V2 / Hybrid Editorial Index is the current design target; H1.1A and M1 are historical references.
+
+Use shell-appropriate commands with an explicit checkout path. Record branch, HEAD, remotes, status and SDK gitlink/actual checkout. Select the authorized base from current evidence; do not automatically target `develop`. Preserve unrelated work. Use Beads when an active workspace exists; the execution contract covers the currently missing workspace and concise handoffs.
 
 Act as a senior embedded C++ engineer. Base claims on repository evidence: cite the paths and line numbers that justify a proposed change. Explain the mechanism behind performance or memory claims and justify every new heap allocation. For every fix, tell the human how to verify it.
 

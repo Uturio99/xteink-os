@@ -1,150 +1,192 @@
-# STEP 09 — NoveOS V2 native integration plan
+# STEP 09 — Native integration and bounded delivery
 
-**Status: PLANNING ONLY. No firmware work is authorized.** Baseline reviewed: `noveos-home` at `8bd395116e905bab62c1c67f616b34611e147bcd`; source snapshot named by the original proposal: `feat/xteink-os-refoundation` at `8d1c0861c79f3f57b1cdd68504fccba75bd80ea6`. Visual authority remains [Design System V2](../DESIGN-SYSTEM-V2-PROPOSAL.md), its approved [Hybrid Editorial Index demo](../step07a/xteink-hybrid-demo.html), and the behavioral requirements in [STEP 06](STEP-06-UX-FLOWS.md). Browser evidence is not native or hardware evidence.
+**Reconciled 2026-11-09 against 7d63f480e779df702cc861437b331fccc960bb29.**
+This replaces the stale implementation assumptions in the version at that commit; Git preserves the earlier plan. [Execution contract](../../EXECUTION_CONTRACT.md) governs operation. **No new firmware work is authorized by this document.** Existing code is evidence of implementation only; no acceptance or authorization is inferred from its presence.
 
-## Review decision and evidence boundary
+## Current architecture: reuse, do not rebuild
 
-- Keep the existing CrossPoint activity, UI, reader, storage/HAL and SDK architecture. The native component mapping below identifies current owners; no new UI framework, navigation manager, theme registry, reader engine, or SDK API is proposed.
-- `freeink-sdk` is present in this worktree and its checked-out commit exactly matches the parent gitlink: `946e6ac3d7a9d590ba3224428e6183d55ac7917c`. The SDK evidence below is therefore from the pinned source, not an assumption that the checkout is absent. Do not change the SDK or dependency pin as part of STEP 09.
-- The canonical STEP 03 inventory with 44 feature descriptions/IDs has not been recovered. Search covered all local branches and remotes, reachable Git object paths, commit subjects, and repository documentation. STEP 06 itself says STEP 03–05 were not found as formal artifacts. The source-backed inventory below is deliberately provisional and is **not** a reconstructed 44-item checklist. **PO approval of the canonical ledger or an explicitly approved replacement is required before firmware integration.**
-- There is no PlatformIO simulator environment in this repository (the inspected M2 addendum records this at `docs/design/specs/M2-ADDENDUM.md:73`). Use the named host suites below for bounded logic checks; use X4 Pro hardware for panel/input/storage evidence. Do not claim simulator results.
-- “Found in source” means an existing implementation/route was located. It does not prove NoveOS parity, capability availability on every profile, or successful hardware behavior. All verification statuses in the inventory remain pending for the NoveOS change.
+| Outcome | Existing owner and current source evidence | Limit / required action |
+|---|---|---|
+| Root destinations and explicit Home | [ActivityManager](../../../src/activities/ActivityManager.cpp), goHome/replaceActivity/stack cleanup | Reuse root replacement for explicit Home and unrelated origins. No second navigation manager or persisted origin store. |
+| Home / Resume / recent shelf | [HomeActivity](../../../src/activities/home/HomeActivity.cpp), [CoverGridHomeUi](../../../src/components/CoverGridHomeUi.cpp), RecentBooksStore, BookProgress | Existing Home work and dirty candidates are not accepted V2. Preserve stored identity and reliable progress; inspect candidate diffs before reuse. |
+| Library → Reader → parent | [LibraryListActivity.cpp](../../../src/activities/library/LibraryListActivity.cpp):232–287, ReaderActivity::create, Activity::startActivityForResult | Commit 372ccca1 already creates Reader before closing CLIX, pushes with a one-shot result callback, and reopens/reconciles on return under RenderLock. Do not implement this again. |
+| Reader Back | [ReaderUtils.h](../../../src/activities/reader/ReaderUtils.h):257–284, [ReaderActivity](../../../src/activities/reader/ReaderActivity.cpp):159–166 | Current return flag substitutes **every short logical Back**, even with backShortToFileBrowser=true. Recovered STEP 05 instead substitutes the Home-bound branch. Source mismatch against preserved mapping: correct only in an authorized package (G2). |
+| Same-book sync / loan relaunch | [EpubReaderActivity](../../../src/activities/reader/EpubReaderActivity.cpp):1314–1369,1519–1554; [KOReaderSyncActivity](../../../src/activities/reader/KOReaderSyncActivity.cpp):104 | replaceActivity/goToReader still clear the retained parent. Source-level gap against NAV-001; runtime reproduction not run. Preserve parent via existing manager ownership only after approval. Different-book suggestion and explicit root exits intentionally end the visit. |
+| Native rendering and input | [UITheme](../../../src/components/UITheme.h), [UIThemeTokens](../../../src/components/UIThemeTokens.h), BaseTheme, UiAppHost, UiTabListActivity, MappedInputManager, existing fui components | Reuse current owners. Header taps/left-edge gestures remain ignored by Reader's Back handler. No approved native visible contextual target is wired by 372ccca1. Preserve page-turn gestures and modal/input ownership. |
+| Transfer and recovery | [UsbDriveActivity](../../../src/activities/network/UsbDriveActivity.cpp), [CrossPointWebServerActivity](../../../src/activities/network/CrossPointWebServerActivity.cpp), [CrossPointWebServer](../../../src/network/CrossPointWebServer.cpp), Settings, boot/crash owners | Preserve capability guards, exclusive SD ownership, failure cleanup and restart-to-Home. V2 Wi-Fi success requires completed transfer and rescan; it does not authorize new backend semantics. |
 
-## Native component mapping
+**NAV-001 target is APPROVED:** Library-origin contextual Back restores the visit, query, mode/direction, focused book and viewport; explicit Home remains independent. Recovered STEP 05 covers missing/reordered books, empty/no-match/degraded index, same-book detours, child-first input and independent Files/root routes. Latest [V2](../DESIGN-SYSTEM-V2-PROPOSAL.md) supplies the approved upper-left Back visual. The later approved upper-left placement supersedes the older off-page-only visual restriction; do not ask the PO to select the placement again. The native binding must preserve disabled page-touch/menu settings, child ownership and page swipes. Do not add an extra Back control.
 
-| Intent | Existing native owner | Evidence and boundary |
-| --- | --- | --- |
-| Root routing and independent Home | `ActivityManager`, `Activity`, `MappedInputManager` | `ActivityManager::goHome()` replaces the root activity and clears the activity stack (`src/activities/ActivityManager.cpp:210–222, 363–378`). The main loop dispatches the Home gesture separately (`:120–126`). Reuse these owners. |
-| Home, Resume, recent shelf | `HomeActivity`, `CoverGridHomeUi`, `RecentBooksStore` | `src/activities/home/HomeActivity.cpp:233–267, 585–597`; keep progress and book identity sourced from existing state. |
-| Library tabs, query, rows and focus | `LibraryListActivity`, `UiTabListActivity`, `UiListActivity`, CLIX | `src/activities/library/LibraryListActivity.cpp:43–69, 221–228, 438–498, 626–689`; tab-specific `ListNav` lives in `src/activities/UiTabListActivity.h:10–11, 47` and `.cpp:18–40`. |
-| Reader and Back | `ReaderActivity`, EPUB/XTC subclasses, `ReaderUtils` | `ReaderActivity::onEnter()/onExit()` load and release the reader session (`src/activities/reader/ReaderActivity.cpp:57–124`). Back currently routes by short/long press and setting (`ReaderUtils.h:250–279`). |
-| Shared drawing, geometry and controls | `UITheme`, `ThemeMetrics`, `uiThemeTokens()`, `BaseTheme`, existing `fui::` components | `src/components/UITheme.h`, `src/components/UIThemeTokens.h`, `src/components/themes/BaseTheme.cpp`; use board-oriented safe geometry and existing token bridge. Add only a demonstrated missing token after confirming pinned SDK support. |
-| Files, services and recovery | Existing File Browser, web server, USB Drive, Settings, Boot and Crash activities | Keep lifecycle and capability decisions in existing owners: `src/activities/ActivityManager.cpp:283–345, 376–378`, `src/activities/UsbDriveActivity.cpp`, `src/network/CrossPointWebServer.cpp`, and settings activities. |
+Current callback performs rebuild/reset/selection work, but exact viewport, grouping, query and nearest-valid fallback have not been demonstrated. A missing-item nonblocking notice is an approved UX requirement, not established by the source-string test. Construction failure currently leaves the Library index open because allocation precedes close; do not retain the old plan's instruction to reopen it in that branch. Reader load failure after push must use normal child exit and callback cleanup. Measure peak retained Library plus Reader/children, including query/group storage.
 
-V2 browser dimensions are layout references, not panel calibration. STEP 06 sets 44×44 logical px as the minimum touch baseline; larger targets and 56 px primary actions are preferences. Validate actual hit rectangles against the selected board's viewable area. Preserve text bytes/source semantics; `library::fold()` is a derived search/sort key, not a replacement for displayed text. Existing Unicode tests do not establish X4 Pro glyph placement or clipping.
+## Recovered parity authority
 
-## NAV-001: minimum safe transition contract
+[STEP 03](../../superpowers/audits/STEP-03-FEATURE-INVENTORY.md) contains the recovered **F01–F44** records; [STEP 04](../../superpowers/audits/STEP-04-ROUTE-TRACE.md) contains seven routes; [STEP 05](../../superpowers/audits/STEP-05-NAVIGATION-CONTRACT.md) maps those IDs and corrects guide/source discrepancies. These are original recovered IDs, not invented canonical replacements. They were untracked in another checkout, at baseline ad53eb645f27b76c8c4594fafe58479932234bf2. Provenance and hashes are in the [audit](../../superpowers/audits/EXECUTION-RECOVERY.md).
 
-### Source trace
+**VERIFIED:** the artifacts and 44 distinct records exist. **UNKNOWN:** complete PO acceptance as the canonical integration ledger, and current-head/device parity. Use the recovered records as a provisional working ledger pending G1; do not create another grouped inventory or claim 44/44. STEP 05's corrections take precedence over STEP 03's historical labels: three Library tabs, no Added tab; local single-item operations versus web bulk/move; root versus Settings plugin catalog; real progress/recovery behavior.
 
-1. `LibraryListActivity::openBookByPath()` clears tap flash, closes its CLIX reader, then calls `onSelectBook(path)` (`src/activities/library/LibraryListActivity.cpp:221–228`). `Activity::onSelectBook()` calls `ActivityManager::goToReader()` (`src/activities/Activity.cpp:13–15`). `goToReader()` creates the format-specific reader and calls `replaceActivity()` (`src/activities/ActivityManager.cpp:327–346`). The current route therefore destroys the Library rather than retaining it.
-2. `replaceActivity()` removes the current activity, calls `onExit()`, clears the stack and installs the new root (`ActivityManager.cpp:247–270, 210–222`). Thus the current Library object and its in-memory query/tab/selection/viewport are discarded on this route.
-3. `LibraryListActivity::onExit()` closes its index (`LibraryListActivity.cpp:119–124`). `LibraryIndexFile` owns a `HalFile`, closes on explicit `close()` and destruction (`lib/LibraryIndex/LibraryIndexFile.cpp:14–47`, `.h:39–53,100`). Library already closes before opening a book because the reader also needs the SD card (`LibraryListActivity.cpp:221–224`). Keep that ordering: never retain an open CLIX `HalFile` across Reader entry.
-4. `ActivityManager::pushActivity()` retains the current `unique_ptr<Activity>` on its existing stack (`ActivityManager.cpp:378–389`); `popActivity()` returns to that same object (`:159–203,391–398`). Pop does **not** invoke a parent resume/enter callback. `Activity` exposes only `onEnter()`/`onExit()` (`Activity.h:27–30`), and `LibraryListActivity::onEnter()` owns its index open/rebuild path (`LibraryListActivity.cpp:88–119`). Retention therefore needs one narrowly scoped way for the returned Library to revalidate/reopen CLIX before it accepts input or renders; it cannot rely on `onEnter()` being called again. Reuse an existing callback if found during implementation; otherwise this missing lifecycle seam is an explicit bounded addition, not a new manager/framework.
-5. Reader `onExit()` flushes its session, releases SD font caches and restores portrait orientation (`ReaderActivity.cpp:97–124`). A failed/missing book uses `finish()` from Reader `onEnter()` (`:57–85`), which pops to a retained parent if one exists.
-6. Explicit Home remains a separate command: the X4 Pro profile identifies a capacitive Home key, `ActivityManager` dispatches `wasHomeGesture()` independently, and `goHome()` root replacement clears retained activities (`ActivityManager.cpp:120–126, 210–222`; pinned SDK `BoardConfig.h:1864–1936`).
-7. Reader Back has distinct sources and edge behavior. A header-back tap or left-edge swipe makes `wasBackGesture()` true (`MappedInputManager.cpp:335–353`); `wasPressed(Back)` and `wasReleased(Back)` both report the gesture (`:387–410`). But `ReaderUtils::handleBackNavigation()` immediately returns false for `wasBackGesture()` (`ReaderUtils.h:257–267`), so current Reader behavior intentionally does not route touch Back/left-edge swipe through its Home/File Browser short/long logic. `ReaderActivity::loop()` asks format-specific input first, then this Back handler (`ReaderActivity.cpp:218–224`); EPUB footnote Back short-release restores the saved footnote position before generic Back (`EpubReaderActivity.cpp:933–940`). For non-gesture logical Back, a hold at `GO_BACK_OR_HOME_MS` fires once and suppresses the following release (`MappedInputManager.cpp:415–430`); otherwise release routes short Back. `ReaderUtils` chooses Home or File Browser from `SETTINGS.backShortToFileBrowser` (`ReaderUtils.h:250–279`; setting defaults false at `CrossPointSettings.h:385`). On X4 Pro, the profile has no dedicated GPIO Back or Confirm key: it lists Left/Right/Power and capacitive Home (`BoardConfig.h:1889–1895, 1936`). Preserve that physical mapping and the configured logical/remote behavior; contextual touch Back requires an explicit routing change.
+Fresh spot checks establish these predicates; they do not certify the entire ledger:
 
-### Decision: retain the Library activity; no snapshot by default
+| Capability | Exact predicate / route evidence at current head |
+|---|---|
+| USB MSC | FREEINK_CAP_USB_MSC guards ActivityManager::goToUsbDrive and NetworkModeSelectionActivity; env:x4pro enables it. |
+| OPDS | ActivityManager::goToBrowser chooses direct browser when server count == 1, otherwise picker; Settings server management remains available. |
+| Plugins | SETTINGS.pluginsEnabled controls Home plugin routing; Settings opens the enable popup. A Settings catalog entry must use a child route, not root goToPlugins. |
+| Reader touch / Back setting | BoardConfig::hasTouch gates touch settings; !hasTouch gates backShortToFileBrowser's setting row. Hiding that setting does not justify breaking stored/shared-board mappings. |
+| Clock | halClock.isAvailable gates the Settings Clock entry; profile declaration is not proof the physical RTC probe succeeded. |
+| Fonts / BLE | Vector font support requires CROSSPOINT_VECTOR_FONTS and usable PSRAM; standard x4pro does not extend the optional ble_page_turner mixin. Do not advertise unavailable capabilities. |
 
-Retain the Library activity on the existing stack for a Library-origin open; do not add a snapshot manager. Close CLIX before pushing Reader. The retained Library object owns query, tab/sort direction, per-tab `ListNav` viewport/selection, focus and related state; copying those values duplicates authoritative state. On contextual Back, Reader finishes/pops. Before Library accepts input or renders, it must reopen/revalidate CLIX through the smallest existing lifecycle seam or a narrowly scoped return callback. If selected identity vanished or the index cannot be reopened, follow the existing invalid-index recovery path, clamp to a valid row/viewport, and surface recoverable failure; never trust a stale ordinal. Parent resume is not implemented today, so this lifecycle seam is a known first-slice requirement.
+REC-01 adds one current-revision disposition table to the recovered STEP 03 file, keeping its original record descriptions. Each F-ID needs current owner/symbol, entry/return, exact build/runtime predicate, changed/unchanged/blocked disposition, regression case, existing test or NOT TESTED, and missing evidence. UNKNOWN routes or predicates block their affected integration until resolved; no feature silently disappears.
 
-The stack does add the retained Library object's heap to the Reader peak. Its exact retained footprint is not recorded; it includes bounded list/window buffers and may include query/filter/group storage (`LibraryListActivity.h:144–180`). Measure internal and PSRAM free/largest blocks on X4 Pro at the transition. Do not assume C3 limits or assume X4 Pro headroom eliminates fragmentation. If measured peak or lifecycle constraints make retention unsafe, return to PO with the smallest serializable snapshot of only necessary state; no general navigation context or manager.
+## SDK and simulator evidence
 
-### Exact input and cleanup contract
+Parent SDK gitlink is **946e6ac3d7a9d590ba3224428e6183d55ac7917c**. The refoundation and font-gate Windows SDK directories were empty during this audit; running Git there returned the parent repository. The initialized, clean SDK under the original xteink-os worktree matched the gitlink and supplied read-only BoardConfig evidence. Before native work, initialize/verify the chosen checkout at the existing pin, never update it.
 
-- A Reader-origin **short logical Back release** returns to the retained Library visit, preserving tab/sort, query, selected book identity, viewport and focus where the item still exists. It is contextual only when Library is the retained caller; other Reader entry routes keep their current root behavior.
-- Preserve **long logical Back** at/after the existing threshold, including its one-shot long event and suppressed release, plus the `backShortToFileBrowser` setting for non-Library Reader origins. For Library-origin visits, PO must decide whether long Back also returns to the caller or retains the current File Browser route; the smallest predictable slice preserves long-hold→File Browser and contextualizes short Back only. Do not change Left/Right/Power bindings or page-turn behavior.
-- **Touch Back trace:** the clean Reader page does not draw a titled header/back target; `HeaderBackTapTarget` is set only when a component draws a titled header (`src/components/themes/BaseTheme.cpp:405–453`). `MappedInputManager::wasBackGesture()` recognizes that target and left-edge swipe (`src/MappedInputManager.cpp:335–353`), but the Reader Back handler returns early for either gesture (`src/activities/reader/ReaderUtils.h:257–267`; called after format input at `ReaderActivity.cpp:218–224`). Thus touch header taps/left-edge swipes do not currently exit the clean page. Do not route left-edge swipe to Back because it conflicts with horizontal page-turn handling. Nested screens with a drawn header and Reader menu/modal retain their own existing Back/pop behavior. Clean-page touch Back is unavailable in this behavior slice unless an already-approved visible target exists.
-- **Explicit Home** remains independent: the X4 Pro capacitive key’s tap is Home by default, but tap/double/long actions are configurable (`CrossPointSettings.h:304–306`). When the resolved action is Home, `ActivityManager` root replacement exits Reader, clears the retained Library stack and leaves CLIX closed. Other configured Home-key actions keep their existing Reader/menu behavior.
-- Back from a top child/modal is owned by that top activity first; existing `startActivityForResult()` stack order already gives child ownership. EPUB footnote short Back restores the saved position before generic Back (`EpubReaderActivity.cpp:933–940`); preserve it. Reader menu handles Home by cancelling/popping (`EpubReaderMenuActivity.cpp:126–129`).
-- Press/hold/release must produce one action only: no duplicate release after long press, and no simultaneous touch Back/page turn. Reader missing/unreadable file and Reader allocation failure must leave Library usable; because CLIX is closed before create, allocation failure must reopen/revalidate it. Explicit Home while Reader is active must clear retained Library. CLIX and Reader must never hold overlapping SD file handles.
-- Existing `ActivityManager::replaceActivity()` clears all stacked parents. Do not use it for Library-context Back. Do not push Reader for unrelated entry routes (Home Resume, Files, OPDS) as part of this slice.
+Pinned BoardConfig's X4 Pro profile declares ESP32-S3, 800×480 panel mapped to portrait, GT911, Left/Right/Power plus capacitive Home, SDMMC and RTC/frontlight. Panel mount and USB/VBUS detection remain explicitly unconfirmed in that source. Device observations still belong to the actual PO unit. Use HalStorage/HalFile locking and HalMemory internal/PSRAM/largest-block accounting; C3's limits do not describe X4 Pro headroom.
 
-## CrossPoint feature parity: provisional source-backed inventory
+| Simulator state | Current evidence |
+|---|---|
+| Configured | **VERIFIED**: 2dbf8155, platformio.ini env:simulator and env:simulator_x4_pro; simulator pin 6730fe5fe576c9d924e44096a9e267d8538d184c; host-only compatibility script/patch. |
+| Compiled | **UNKNOWN for this exact clean revision**: no matching build log was recovered in inspected Windows checkouts. Separate font experiment reports are not clean-head evidence. |
+| Launched | **UNKNOWN for this exact clean revision**: launch instructions exist; no reproducible run record recovered. |
+| Native behavior tested | **NOT TESTED by this audit**. No activity lifecycle acceptance follows from configuration. |
+| Physical X4 Pro verified | **NOT TESTED**. Simulator shims cannot prove panel, physical input, MCU memory, real USB/SD/Wi-Fi or boot recovery. |
 
-No canonical IDs are assigned below. These rows are capabilities found in current source/docs while searching for the missing ledger; they are **not** claimed to total 44. “Capability predicate” records a discovered gate where source-backed and marks unresolved conditions unknown instead of inventing one. Each regression check remains pending until an authorized implementation and appropriate verification exist.
+Use [existing Linux/WSL setup and launch instructions](../../contributing/getting-started.md#x4-pro-desktop-simulator-linuxwsl2) when an authorized package needs it. Do not create another simulator or require a new simulator project before NAV work. Source/host checks remain useful if simulator runtime is unavailable; mandatory device acceptance remains open.
 
-| Provisional capability (not a canonical ledger item) | Native owner / route | Capability predicate evidence | Required regression check | Verification status |
-| --- | --- | --- | --- | --- |
-| Home destinations (Library, Files, Settings, transfer/services) | `HomeActivity` → `ActivityManager` routes | Route and visibility by device/profile are in Home/manager; reconcile every destination against ledger. | Every current destination remains reachable; capability-gated destinations reflect runtime/profile. | Source located; parity and device pending. |
-| Resume active book and progress | `HomeActivity`, `APP_STATE`, `ReaderActivity` | Active book/path must exist and open; missing path is a recoverable case (`ReaderActivity.cpp:57–85`). Exact NoveOS source of “active” identity requires row-level reconciliation. | Correct book/location; missing/unreadable book leaves Home usable; no fabricated progress. | Route located; scenario pending. |
-| Recent-books shelf/store | `HomeActivity`, `RecentBooksStore`, Library Recent | Uses resident store and prunes missing paths (`LibraryListActivity.cpp:90–98, 156–180`). | Removed file is pruned safely; order and progress survive reader exit. | Source located; regression pending. |
-| CLIX catalog open/rebuild and metadata mode | `LibraryListActivity`, `LibraryBuilder`, `LibraryIndexFile` | Rebuild when dirty, absent/invalid, or metadata mode differs (`LibraryListActivity.cpp:90–110`). | Invalid/missing index, interrupted rebuild and large library recover without corruption or unbounded RAM. | Source/test suite located; NoveOS regression pending. |
-| Recent/Title/Author sort and per-mode direction | `LibraryListActivity`, `UiTabListActivity` | Three tabs and direction bits are explicit (`LibraryListActivity.cpp:43–69, 478–498`). | Sort direction and selected identity remain correct through Reader round-trip and index rebuild. | Source located; return behavior currently absent. |
-| Library query and diacritic-insensitive match | `LibraryListActivity`, `lib/LibraryIndex/LibraryText.cpp` | Query is optional; `library::fold()` derives a comparison key (`LibraryListActivity.cpp:626–689`). | NFC/NFD query matches without altering displayed source; empty vs zero results distinct. | Source/tests located; device rendering pending. |
-| Library grouping/collapse | `LibraryListActivity` | Group behavior depends on active sort and list size (`LibraryListActivity.cpp:164–170, 595–618`; exact predicates to reconcile). | Group selection/expansion and viewport remain correct; no stale row index after sort. | Source located; exact ledger predicate unresolved. |
-| Book delete/remove from recents/rebuild | `LibraryListActivity`, confirmation activities, `LibraryBuilder` | Delete availability depends on grouping/query/sort paths (`LibraryListActivity.cpp:240–270`). | Cancel preserves file; confirmed delete rebuilds index; storage failures remain visible/recoverable. | Source located; device/storage regression pending. |
-| Local file browse and image view | `FileBrowserActivity`, `ActivityManager::goToFileBrowser/goToReader` | Supported-file dispatch is extension based; image path selects `BmpViewerActivity` (`ActivityManager.cpp:300–345`). | Directory navigation, unsupported/corrupt file and image dispatch; preserve source files on failure. | Route located; full format list still needs reconciliation. |
-| EPUB/TXT/XTC reader dispatch | `ReaderActivity`, `EpubReaderActivity`, `XtcReaderActivity`, format libraries | Reader factory dispatches XTC specially and otherwise EPUB reader; exact extensions must be checked against `FsHelpers`/format registry and ledger. | Every supported extension opens its existing reader; invalid/missing file returns to origin safely. | Source located; complete format parity not certified. |
-| Reading location, TOC, bookmarks and typography | Reader subclasses and reader child activities | Existing activity/setting registrations; per-format and board behavior must be reconciled item by item. | Location preserved through child settings/TOC; bookmark create/delete and font fallback. | Source located; no NoveOS regression run. |
-| Refresh and reader status/progress | `ReaderActivity`, `BaseTheme`, `HalDisplay` | Refresh cadence is settings-driven; EPUB page total may be estimated (plan’s cited reader lines). | No inaccurate exact total; partial/full refresh leaves stable frame; repeated page turns do not lose sync. | Source located; hardware-only portions pending. |
-| Settings and display/input/language options | `SettingsListActivity`, `SettingsActivity`, settings child activities | Feature rows use board/compile-time gates; verify each predicate in settings source before parity assertion. | All supported options remain reachable and values persist; unsupported options are not advertised as active. | Source located; per-setting ledger mapping pending. |
-| Wi-Fi join/web transfer | `CrossPointWebServerActivity`, `CrossPointWebServer` | Requires available Wi-Fi/runtime service; transfer completion must be after successful close/rescan. | Abort, partial upload, success, rescan and open; unrelated local reading works offline. | Source located; native end-to-end/device pending. |
-| USB MSC / SD ownership | `UsbDriveActivity`, `ActivityManager`, profile capability | Compile-time `FREEINK_CAP_USB_MSC` plus runtime activity lifecycle; X4 Pro build enables it (`platformio.ini:392–412`). | Safe eject, exclusive host ownership, firmware SD reacquisition and documented restart route. | Source located; hardware gate pending. |
-| OPDS server/browser | `ActivityManager::goToBrowser`, OPDS activities, Settings routes | Existing configured-server route; network/server availability predicates need row-level source mapping. | Empty/configured/offline/auth/error and return to Settings/root correctly. | Source located; service regression pending. |
-| Plugins/extensions | `ActivityManager::goToPlugins`, `PluginCatalogActivity`, Settings routes | Existing plugin/capability/opt-in gates; exact predicates must be reconciled with plugin contracts. | Disabled/unavailable states, network/auth/error and plugin isolation. | Source located; contract regression pending. |
-| Boot, crash and recovery | `BootActivity`, `CrashActivity`, `ActivityManager` | Recovery route depends on startup/crash state; enumerate actual triggers from source and ledger. | Boot failure, crash report, restart and recoverable SD state. | Source located; device recovery pending. |
-| Localization and Unicode text | `I18N`, translation resources, UTF-8/rendering path | Language/translation availability and glyph path depend on build assets/fonts. | English UI plus Vietnamese NFC/NFD rendered without clipping, lost marks or changed source text. | Host Unicode suites exist; X4 Pro display verification pending. |
+## Gates and shortest safe path
 
-**Ledger coverage limit:** the rows above are discovered capability families, not a complete feature-by-feature ledger. README and USER_GUIDE claims do not establish exact per-setting/service route guards or a canonical enumeration. The canonical STEP 03 artifact was not recovered in local refs, remotes, reachable Git objects, or repository docs; STEP 06 records it missing. Do not claim 44/44, invent IDs, or treat these grouped rows as complete.
+| Gate | Owner / exact closure condition |
+|---|---|
+| G1 — pre-integration parity | REC-01 resolves the 44 current-source rows; PO identifies/accepts the recovered ledger or explicitly adopts it as replacement and dispositions all remaining pre-integration evidence gaps under STEP 06. This audit does not weaken STEP 06's parity prerequisite or count source equality as runtime parity. If that gate requires measurements before code, obtain them on the existing candidate in REC-02. |
+| G2 — implementation provenance and permission | Record scope-specific authorization/acceptance for existing 372ccca1/2dbf8155 if available, and explicit permission for the bounded verification/correction package. The preservation contract supplies the expected logical mapping: default short→Library/long→Files; reversed short→Files/long→Library for a Library parent, while explicit Home stays independent. Upper-left V2 Back is already approved. Missing permission stays UNKNOWN; any contrary approval must be identified before changing that behavior, not invented. Firmware handoff still requires human acceptance of the concrete implementation/ownership. |
+| G3 — candidate/environment/resource | Pin chosen clean candidate/diff, SDK and simulator/toolchain; separate dirty Home/font experiments. Obtain explicit authorization for bounded baseline verification, diagnostic changes if needed, and any device/flash action. Human X4 Pro evidence must establish parent+Reader/child headroom and SD lifetime before retained-parent changes are accepted. No MCU memory values inferred from simulator. |
+| G4 — native fonts/visual acceptance | Reuse M2-WP1 feasibility and existing font-gate experiment; PO selects native face/roles only after current glyph/layout/fallback and linked flash evidence. Explicitly set or accept measured flash reserve and memory budget; do not invent numeric thresholds. V2 visual direction itself stays settled. |
+| G5 — product acceptance | All adopted capability rows and affected journeys have applicable source/host/build/simulator/device evidence; no unresolved safety or parity failure; firmware-handoff and explicit human acceptance complete. Publishing/flashing remain separately authorized. |
 
-**Ledger closure procedure:** PO supplies/approves the canonical STEP 03 ledger. For every canonical item, retain its source ID/description verbatim and add: native symbol, route, exact capability predicate, unchanged/changed/blocked disposition, relevant regression test, host/build evidence, and X4 Pro evidence or `NOT TESTED`. A missing route or unknown predicate is `BLOCKED`. Until then this inventory is provisional and parity is unverified.
+**Critical path:** REC-01 → G2 and bounded REC-02 authorization → REC-02 → G1 final disposition → REC-03 → REC-04 → REC-06, with REC-05 joining before REC-06. G1/G2 records and existing font evidence collection can proceed independently of one another. REC-05 does not require new Home cosmetics; it needs the common gates and its own approved route scope. Simulator diagnosis can run alongside ledger work when separately assigned; it is not a substitute for device gates. Defer additional browser prototypes, other-device redesign, speculative caches and CI expansion. Shared-board regressions and recovery cannot be deferred.
 
-## SDK and X4 Pro evidence
+## Work-package contracts
 
-### Verified at the pinned SDK revision
+These statuses are the recovery snapshot, not invented Beads issue IDs. Changes to status belong in active Beads when available; package specifications remain here.
 
-- Parent gitlink and `git -C freeink-sdk rev-parse HEAD` both report `946e6ac3d7a9d590ba3224428e6183d55ac7917c`; `git submodule status` shows no `+`/`-` mismatch.
-- `platformio.ini:392–412` selects ESP32-S3 `x4pro`, 16 MB flash / 8 MB octal PSRAM devkit, USB MSC capability, and block-device SD interface. This is not the C3 baseline.
-- `freeink-sdk/libs/hardware/BoardConfig/include/BoardConfig.h:1864–1936, 1949–1983` defines X4 Pro panel 800×480 with portrait touch coordinates, GT911, physical digital Left/Right/Power buttons, and capacitive Home via touch controller. SD is native 1-bit SDMMC on CLK41/CMD42/DAT0=40, with GPIO5 power control (`:1950–1955`). Hardware-profile comments mark panel mount transform and USB/VBUS detection as unconfirmed; do not state those as proven.
-- `lib/hal/HalStorage.h:82,87–122` and `lib/hal/HalStorage.cpp:30–45,165–215` establish the recursive `storageMutex` and `HalFile` wrapper. Keep CLIX and reader file operations through `HalStorage`/`HalFile`; do not bypass the storage lock or keep a file open across the transition.
-- Pinned SDK `InputManager.h:28–44` exposes per-update press/release/level state; `InputManager.cpp:605–675` updates and queries edge state. Firmware’s `MappedInputManager` is the contract activities must use; do not introduce a second input poller.
-- Pinned SDK `FreeInkUI.cpp` is present and the existing firmware bridge `src/components/UIThemeTokens.h` populates its theme. Use existing APIs actually present at this pin; no API additions are requested.
-- `freeink-sdk/docs/xteink-x4pro-support.md` documents the hardware bring-up facts and explicitly distinguishes hardware-confirmed values from open items. Hardware verification in this plan means the actual PO device/panel, not this source document.
+### REC-00 — Execution recovery
 
-### Still unverified
+| Field | Contract |
+|---|---|
+| Objective | One discoverable, source-backed execution authority. |
+| Status | DONE — documentation deliverable only; checks in the recovery audit. |
+| Dependencies | Supplied recovery request; existing repository evidence. |
+| Authority | Current PO recovery scope and EXECUTION_CONTRACT. |
+| Scope | AGENTS/routing rule, project map/status, design authority links, STEP 06/09, recovered STEP 03–05, audit. |
+| Implementation | Reconcile stale instructions; retain provenance and approval boundaries. |
+| Acceptance | One next task; no active baseline conflict; no firmware/SDK/pipeline changes; usable references. |
+| Verification | Final diff, links/paths, dependency/field checks, provenance hashes, original WIP preservation. |
+| Exclusions | Firmware changes, new UX, commits/push/flash/cleanup. |
+| Completion evidence | Recovery audit with actual commands/results and unverified limits. |
 
-- The physical X4 Pro panel/controller variant and its refresh/ghosting behavior on the PO unit; the profile uses a boot/default controller with supported variant detection described by SDK comments.
-- Touch edge accuracy and usable physical hit size for proposed logical coordinates; corner transform evidence is not a substitute for NoveOS screen verification.
-- Vietnamese NFC/NFD font coverage, diacritic placement, wrapping and clipping on the actual X4 Pro render path.
-- Peak internal/PSRAM usage and largest contiguous blocks while retaining Library under Reader, including caches and worst-case query/group state.
-- Real Wi-Fi transfer, USB safe eject, SD ownership reacquisition, recovery and screen refresh behavior.
+### REC-01 — Reconcile the recovered ledger to current source
 
-## Test and verification contract
+| Field | Contract |
+|---|---|
+| Objective | Give the PO a complete, current F01–F44 preservation map without reconstructing history. |
+| Status | DONE — 44/44 current-head disposition rows appended to STEP 03 (source-verified; runtime unverified). G1 adoption and G2 authorization remain PO actions. |
+| Dependencies | REC-00; recovered STEP 03–05 and baseline/current Git objects exist; pinned SDK readable in original checkout. |
+| Authority | STEP 03 IDs + STEP 05 corrections; current V2/STEP 06; G1. |
+| Scope | Append current disposition table to STEP-03-FEATURE-INVENTORY.md; link gate results from this plan. Read changed owners/callers, SettingsList, format/service/boot guards and pinned SDK as needed. |
+| Implementation | Compare ad53eb64..7d63f480 (26 source/build/test files, including generated fonts). Reuse unchanged owner evidence; trace reachable changed callers. Preserve original IDs/descriptions and mark corrected interpretations. Account for uncommitted candidates separately. |
+| Acceptance | Exactly F01–F44, each with owner, route/return, exact predicate, change disposition, observable regression case and evidence layer. No unknown hidden behind PASS; every gap has owner and closure condition; PO adoption request is concrete. |
+| Verification | Git delta plus targeted source checks; count unique IDs; verify file/symbol references and baseline-vs-current labels. No firmware build required. |
+| Exclusions | Firmware/test/pipeline edits, new features/IDs, parity acceptance, hardware claims, repeated full-history audit. |
+| Completion evidence | Updated 44-row table; affected routes; exact unresolved G1 evidence and G2 authorization provenance; source checks and NOT TESTED runtime cases. |
 
-No test, build, simulator, flash or hardware run is claimed by this planning review. Existing named host suites that can be reused after implementation authorization:
+### REC-02 — Validate the existing native candidate
 
-| Concern | Existing host test | Bounded coverage / limit |
-| --- | --- | --- |
-| Home layout | `test/x4pro_home_layout/X4ProHomeLayoutTest` | Existing pure layout math only; not Home activity routing, progress, panel or touch. |
-| Missing/stale CLIX and handle lifecycle | `test/library_index_file/LibraryIndexFileTest` | Existing fake-HAL CLIX validity/read tests; add the minimum close/reopen assertion only if the selected transition lacks coverage. Does not exercise real SD ownership. |
-| Button press/hold/release | `test/button_press_navigation/ButtonPressNavigationTest` | Existing navigator confirms press step, repeat threshold and no extra release step. Reader-specific short/long Back routing has no identified host suite. |
-| Capacitive Home gesture | `test/home_button/HomeButtonInputTest` | Existing gesture debounce/action tests; it does not validate ActivityManager navigation on hardware. |
-| Unicode search/normalization helpers | `test/library_text/LibraryTextTest`, `test/utf8_compose/Utf8ComposeTest`, `test/combining_marks/CombiningMarkAnchorTest` | Helper-level Unicode behavior only; not full X4 Pro font rasterization/layout. |
-| Format dispatch support | `test/library_format/LibraryFormatTest`, `test/library_builder/LibraryBuilderTest` | Existing format/catalog coverage; reconcile exact supported extensions before asserting parity. |
+| Field | Contract |
+|---|---|
+| Objective | Establish whether the existing retained-parent implementation is a safe base to finish. |
+| Status | BLOCKED — G3 verification/device authorization and reproducible candidate required. |
+| Dependencies | REC-01 evidence for affected F03/F05/F20/F28/F30/F31/F43/F44; the preservation input matrix above; G3 setup and authorization. |
+| Authority | NAV-001, STEP 05 lifecycle, existing resource/input rules; no new UX. |
+| Scope | Existing Library/Reader/ActivityManager paths and named tests; initialized pinned SDK; simulator_x4_pro; human X4 Pro observations. Diagnostic modifications only if explicitly included in its authorization. |
+| Implementation | Run existing tests; build/launch the pinned candidate as authorized; execute normal/filtered/reordered/missing-index/missing-book/child/sync/Home cases. Compare replacement baseline and retained-parent memory on the same card/book. |
+| Acceptance | Reproducible results for each case, known mismatches localized, no false success. Internal/PSRAM free/minimum/largest blocks and SD lifetime recorded through load/children/return/repeat; passing resource budget reviewed before native continuation. A failed behavioral case is evidence for REC-03, not acceptance of that behavior. |
+| Verification | Existing host suites + actual native transitions where supported; human device evidence for resources/input/storage. If no production lifecycle test seam exists, report NOT TESTED rather than create a generic framework. |
+| Exclusions | Visual redesign, general test harness, dependency updates, destructive testing or unapproved flash. |
+| Completion evidence | Candidate/SDK hashes, commands/logs, separate build/launch/scenario/device results and bounded defect list. Unknown required resource evidence leaves REC-02 incomplete. |
 
-| Required first-slice case | Bounded test or device procedure | Pass condition |
-| --- | --- | --- |
-| NAV-001 normal return | One Library→Reader→Back activity integration scenario; no such ActivityManager harness currently exists. Add only a focused host fixture if production push/pop can be exercised without a new manager abstraction; otherwise mark host integration `NOT TESTED` and require device evidence. | Same Library object returns; prior tab, query, sort, selected book, viewport and focus are usable. |
-| Parent return / CLIX reopen | Existing activity stack has no resume callback; smallest candidate is `LibraryListActivity::startActivityForResult()` (`Activity.cpp:17–20`) with `ReaderActivity::create()` (`ReaderActivity.cpp:32–45`) and reopen/revalidate in its return callback; manager restores parent before invoking callback (`ActivityManager.cpp:159–203`). If Reader creation fails, reopen/revalidate immediately before accepting input. | Same Library instance returns; index is open before render/input, or recovery prevents stale-index use. No parallel index/reader handle. |
-| Explicit Home | Reuse `HomeButtonInputTest` for gesture recognition; verify the root transition on X4 Pro because no host ActivityManager integration harness exists. | Home is shown, retained Library is destroyed and CLIX stays closed; no second Back action. |
-| Missing book / Reader open failure | Use Reader's existing fail/finish path in the focused activity scenario; no named host Reader lifecycle test was found. | Library remains active; index is reopened/revalidated; no crash or stale file handle. |
-| CLIX handle cleanup | `LibraryIndexFileTest`, with one focused close/reopen assertion if absent. | CLIX closes before Reader file access and can reopen after Reader exits; invalid/missing CLIX follows recovery path. |
-| Reader allocation failure | Verify checked `ReaderActivity::create()` null path. No deterministic allocation-failure seam/test was found; do not add a generic allocator framework. | Library remains current; CLIX reopens/revalidates. Mark injected OOM `NOT TESTED` unless existing harness can force that exact failure. |
-| Input press/release | `ButtonPressNavigationTest` covers list press/release and hold repeat, not Reader Back. A bounded case should cover logical Back short release; threshold long press once and suppressed release; current touch header Back ignored by Reader; left-edge swipe remains page-turn eligible; top modal owns Back. X4 Pro physical Left/Right/Power and capacitive Home remain device checks. | One approved route per gesture; no duplicate release, accidental page turn, or modal bypass. |
-| Focus and viewport restore | Same bounded NAV-001 integration scenario; no existing Library restore suite was found. | Existing per-tab `ListNav` state survives; if selected path vanished, selection and viewport clamp to a valid row. |
+### REC-03 — Finish Library → Reader → contextual Back
 
-First-slice host contract: reuse `ButtonPressNavigationTest`; add the smallest pure input/route tests only if a pure seam can be exercised without generalizing navigation; reuse `LibraryIndexFileTest` for close/reopen and missing/invalid CLIX; add a bounded activity-return case only if it exercises production push/pop without a general manager abstraction. No ActivityManager/Library/Reader host integration harness or deterministic OOM injection seam was found. Do not mark stack/focus restoration or OOM recovery host-tested from source inspection. Require X4 Pro device verification and report those host gaps explicitly.
+| Field | Contract |
+|---|---|
+| Objective | One usable native NAV-001 vertical slice with independent Home and preserved reading functions. |
+| Status | BLOCKED — G1/G2/G3, REC-02 and explicit bounded firmware authorization. |
+| Dependencies | REC-01 and REC-02; approved native input binding; retained-parent resource evidence. |
+| Authority | V2 contextual Back and STEP 06 NAV-001; STEP 05 lifecycle, with later V2 visual precedence and scoped G2 authorization. |
+| Scope | LibraryListActivity, ReaderActivity/ReaderUtils, ActivityManager only if needed, EPUB sync/loan relaunch, existing Reader chrome/overlay/input owners and focused tests. |
+| Implementation | Correct only demonstrated gaps in existing 372ccca1. Wire the approved visible contextual action for EPUB and XTC; preserve parent through same-book detours, state and failure recovery. No duplicate navigation state or new UI framework. |
+| Acceptance | All tabs/directions and active query retain book/viewport; reordered/removed/empty/failed-index cases recover with approved notice; chapterless XTC and disabled page-touch settings still have approved exit; child/footnote Back is consumed first; both logical mappings match the preservation matrix; one gesture produces one action; explicit Home/Files ends visit; load failure leaves usable Library. |
+| Verification | Production-path regression cases; reused library/index/input tests plus smallest real seam tests for changed logic; simulator where supported; relevant builds and four-axis firmware handoff; human X4 Pro memory/input/SD/orientation checks. |
+| Exclusions | Home/Settings restyling, broad Reader rewrite, new gestures, snapshot manager, unrelated origin changes. |
+| Completion evidence | Case matrix, tests/builds/reviews/device evidence, state/resource ownership and explicit PO behavior/architecture acceptance. No source-only DONE. |
 
-Required source/integration cases for the authorized first slice: search + each tab/sort direction; selected book and viewport restore after Reader; long list; item removed while Reader is open; CLIX invalid or reopen failure; missing book/Reader entry failure; one Back action on press/hold/release per PO-approved mapping; modal Back consumed before Reader; explicit Home clears the retained parent; no simultaneous CLIX/Reader SD handle. Allocation-failure policy: checked Reader construction failure leaves Library intact **and reopens its CLIX handle before further list actions**; no generic OOM injection framework. If future code creates Reader before transition, verify a failed allocation does not close/discard the parent or strand the user.
+### REC-04 — V2 reading surface: Home, Library and Reader presentation
 
-Physical X4 Pro acceptance is required for panel readability and ghosting, touch target/edge accuracy, physical short/long/release semantics and separate capacitive Home, Vietnamese NFC/NFD glyph placement, partial/full refresh stability, transition RAM peak/largest blocks, and any changed Wi-Fi/USB/SD/recovery path. Record source, host, firmware build, and hardware results separately as `PASS`, `FAIL`, or `NOT TESTED`. A host suite cannot pass a physical gate.
+| Field | Contract |
+|---|---|
+| Objective | Open/resume/read/return using approved native V2 composition and legible Vietnamese. |
+| Status | BLOCKED — REC-03, G4 and named firmware/visual implementation authorization. |
+| Dependencies | Accepted NAV slice; current native font/fallback/flash evidence and PO selection. |
+| Authority | V2, Hybrid demo, reconciled STEP 06; existing UI ownership and font rules. |
+| Scope | Existing Home/CoverGridHomeUi/X4ProHomeLayout, Library/Reader drawing, UITheme/ThemeMetrics/token bridge and font assets only as approved. |
+| Implementation | Reuse selected evidence-backed portions of dirty Home/font candidates, one coherent reading journey. Make only necessary owner/token changes; keep progress/catalog/reader engines. |
+| Acceptance | Populated/empty/missing-book Home; honest progress; approved rows/tabs/Back and navigation; long NFC/NFD titles/Reader text without lost marks or clipping; glyph fallback works; safe hit geometry and redraw. |
+| Verification | Existing layout/Unicode suites, linked font footprint, native captures/interaction, relevant builds/reviews; human four-orientation input/readability/refresh/resource checks and PO visual acceptance. |
+| Exclusions | Reopening V2 direction, evaluating endless new font families, new catalog/progress database or renderer. |
+| Completion evidence | Native before/after for affected states, font decision/budget, cases and all applicable handoff evidence. |
 
-## Ordered work packages (all require separate PO implementation authorization)
+### REC-05 — Settings and Import through existing services
 
-| Package | Minimal scope and dependency | Exit condition |
-| --- | --- | --- |
-| 0. Planning evidence | No firmware edits. Obtain/approve canonical ledger or replacement; confirm existing Reader Back target; confirm target X4 Pro profile/panel assumptions. | Ledger is itemized and gaps dispositioned; SDK pin recorded; input contract is unambiguous. |
-| 1. NAV-001 navigation slice | Only Library-origin book open → Reader → contextual Back to retained Library; configured Home still exits to Home. Reuse `ActivityManager` stack and `startActivityForResult`/result callback. Close CLIX before Reader; reopen/revalidate after Reader cleanup and Reader allocation failure. No snapshot unless retained parent fails measured lifecycle/resource checks. No visual restyling. | Named host suites plus X4 Pro input/transition/memory checks; no simulator claim. Same Library state restored or safe fallback; missing item/index and Reader failure recover. |
-| 2. Native visual integration | After package 1 is stable and V2 native behavior is authorized, update only demonstrated `ThemeMetrics`/existing owner gaps. | 1-bit rendering, safe geometry, text wrapping and actual hit regions proven on X4 Pro; no duplicate token registry. |
-| 3. Library/Reader presentation | Apply approved visual changes to existing Library/Reader components only. | Reader totals honest; format/page turn/navigation regressions pass; refresh and Unicode physical checks recorded. |
-| 4. Settings/Import presentation | Apply approved view-only changes in existing Settings/File/transfer/USB owners. Lifecycle/storage behavior requires its own explicit contract. | Every canonical parity row dispositioned; service/error/capability and SD ownership checks complete. |
+| Field | Contract |
+|---|---|
+| Objective | Reach preserved services and safely import books from the approved native surfaces. |
+| Status | BLOCKED — G1/G2/G3 and separately scoped firmware authorization; independent of REC-04 cosmetics. |
+| Dependencies | Adopted current ledger, known native navigation/input contract; any shared component actually used must be available. |
+| Authority | V2 Settings/Import, STEP 06 Journeys C/D, recovered STEP 05 and existing service/storage contracts. |
+| Scope | Settings section/list, File Browser, NetworkModeSelection/CrossPointWebServer/UsbDrive activities, existing OPDS/plugin routes and shared UI. Backend changes need explicit scope. |
+| Implementation | Bind approved presentation to existing capability-gated owners; preserve all routes and return context; completed Wi-Fi write/close/rescan before success; USB remains exclusive and restarts Home after safe teardown. |
+| Acceptance | Empty Home can import; unsupported/offline/auth/abort/duplicate/corrupt cases preserve content; Settings child returns to origin; OPDS 0/1/many and plugins disabled/enabled retain routes; USB never offers unsafe navigation while host owns SD. |
+| Verification | Relevant host/service tests; source route/guard mapping; build and firmware handoff; human actual transfer/eject/remount/restart/recovery evidence. Simulator only proves supported UI transitions. |
+| Exclusions | New service framework, altered formats, storage ownership shortcuts or direct USB→Library. |
+| Completion evidence | Affected F-ID cases, data/handle lifecycle and device outcomes; PO acceptance for any approved behavior changes. |
 
-Do not make packages 2–4 prerequisites for the NAV-001 behavior slice. Do not add a simulator stage unless a specific existing simulator is identified. Builds may verify target compatibility but do not prove hardware behavior.
+### REC-06 — Whole-product acceptance and handoff
 
-## PO gate and recommendation
+| Field | Contract |
+|---|---|
+| Objective | A usable, validated X4 Pro NoveOS candidate with preserved CrossPoint functionality. |
+| Status | BLOCKED — accepted REC-03/04/05 and G5 evidence. |
+| Dependencies | Adopted ledger; final candidate/diff; human X4 Pro access and authorized non-destructive verification. |
+| Authority | Execution contract, all approved product decisions and mandatory firmware-handoff. |
+| Scope | Final candidate, all F01–F44 capability/guard cases, four journeys, boot/recovery/storage and release evidence. |
+| Implementation | Close remaining verification gaps; localize discovered defects to owning packages. Reuse valid earlier evidence; do not repeat unchanged reviews/builds. |
+| Acceptance | Every applicable capability retains a reachable route and correct result; unavailable profile capabilities are documented correctly. Reading/progress/resume, Vietnamese, input, panel/refresh, resources, storage, network and recovery meet approved checks. No safety/parity blocker or missing mandatory human acceptance. |
+| Verification | Target/shared-board builds as affected; host regressions, supported simulator scenarios and human device cases with exact revision/profile/card. Full recovery/USB checks only at relevant boundaries, never waived. |
+| Exclusions | Automatic flash, commit, merge, push, PR or release publication. |
+| Completion evidence | Final evidence matrix and human behavior/design/maintenance acceptance; separate release authorization remains required. |
 
-**Recommendation:** NO-GO for native coding now. Retain the Library parent through the existing stack, using `startActivityForResult` and its result callback as the smallest candidate CLIX reopen seam. Authorize only package 1 after the canonical ledger/replacement is PO-dispositioned, short/long logical Back semantics are confirmed, and X4 Pro parent+Reader peak memory is measured. Take a snapshot only if retained-state memory or lifecycle evidence shows stack retention is unsafe. Keep visual work, import lifecycle changes and parity expansion out of that slice.
+## Existing tests, CI and evidence limits
 
-**Blocking PO actions:** provide/approve the canonical 44-item ledger or explicitly approve a replacement source of truth; confirm contextual short logical Back and whether long Back preserves its File Browser action on Library-origin Reader; authorize package 1 only after the bounded return callback and X4 Pro peak-memory result are reviewed. Clean-page touch Back remains unavailable unless PO separately approves an already-designed affordance. No native coding is authorized by this plan.
+Reuse test/library_index_file, library_builder, library_format, library_text, utf8_compose, combining_marks, button_press_navigation, home_button, x4pro_home_layout and vietnamese_font_coverage as relevant. Their presence is not a passing run. test/test_library_reader_return.py is registered as library_reader_return_contract; it checks source strings and a Python list model, **not the production ActivityManager lifecycle**. It cannot certify touch, actual viewport restoration, sync retention, SD handles or MCU allocation failure.
+
+CI already has formatting, cppcheck, eight board builds (including x4pro/default), CMake/CTest and an aggregate Test Status job. No current CI run was retrieved or certified by this audit. No simulator or browser job is defined there.
+
+**PROPOSED minimal CI changes, not implemented here:** when REC-03 adds focused production-seam tests, register them in existing CTest; ensure their dependency libraries (for example Expat, required by parser suites) are installed in the existing unit-test job. Add a simulator smoke job only after REC-02 establishes a reproducible command and a concrete missing failure it detects. A documentation link check can reuse the recovery check if drift recurs; no new QA framework. CI cannot grant PO acceptance or pass hardware gates.
+
+## Next-agent handoff — REC-01 only
+
+Copy-ready instruction — **executed 2026-11-09; retained for provenance** (completion recorded in the STEP 03 REC-01 section and PROJECT_STATUS):
+
+> Execute REC-01 only. Use the recovery worktree with base 7d63f480e779df702cc861437b331fccc960bb29 plus its uncommitted documentation changes; verify the current diff first. Read AGENTS.md, docs/EXECUTION_CONTRACT.md and REC-01 here. Reuse recovered STEP 03 IDs, STEP 05 corrections and the current NAV findings above. Compare ad53eb645f27b76c8c4594fafe58479932234bf2..7d63f480e779df702cc861437b331fccc960bb29; inspect only affected owners/callers and exact guards. The original Windows checkout G:/AI-Setup/XTEInk-X4-Pro/xteink-os/freeink-sdk was verified clean at 946e6ac3d7a9d590ba3224428e6183d55ac7917c; recheck identity before using its source, never assume an empty SDK directory is initialized. Append the current 44-row disposition table in docs/superpowers/audits/STEP-03-FEATURE-INVENTORY.md, preserving historical text/IDs and marking unresolved evidence. Supply a concrete G1 adoption/disposition packet and the G2 mismatch; do not reopen settled V2 choices. Use Beads if an active workspace exists; otherwise report tracking unavailable without inventing an issue. Run link/ID/source-reference/diff checks. No firmware/test/pipeline edits, builds, commits, push, flash or cleanup. Report exact checks, gaps and the next gate; stop.
+
+No firmware builder instruction is ready. The smallest subsequent PO action is to adopt/disposition the REC-01 ledger and record G2 scope/authorization, then authorize the bounded REC-02 evidence work on a named candidate. Do not ask for blanket native integration approval.

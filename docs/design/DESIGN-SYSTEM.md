@@ -1,5 +1,7 @@
 # XTEInk OS Design System — Hybrid Editorial Index
 
+> Baseline visual provenance. Later approved shapes, language, Library mapping and import behavior are governed by [V2](DESIGN-SYSTEM-V2-PROPOSAL.md); original values below do not override that evolution.
+
 > **STEP 07A.2 · PO-approved visual baseline.** The Product Owner approved the exact visual DNA of the Hybrid Editorial Index demo. This system records that artifact; it does not claim runtime or hardware acceptance.
 
 ## Authority and scope

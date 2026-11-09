@@ -1,5 +1,7 @@
 # STEP 07B — Interactive Prototype Plan
 
+> HISTORICAL browser checkpoint. Earlier PASS claims and unresolved-tab wording below apply only to that revision. [V2](../DESIGN-SYSTEM-V2-PROPOSAL.md) now fixes Recent/Title/Author, per-mode direction and import completion. Use [STEP 09](../specs/STEP-09-NATIVE-INTEGRATION-PLAN.md) for current delivery, not this completed prototype plan.
+
 > Status: browser prototype implemented and verified for Product Owner review. This does not establish simulator, firmware, or hardware acceptance.
 
 **Visual baseline:** The Product Owner approved the exact visual DNA in [`DESIGN-SYSTEM.md`](../DESIGN-SYSTEM.md), grounded in the immutable [`Hybrid Editorial Index reference`](xteink-hybrid-demo.html). Use its Field Index Home/Library structure and Quiet Editorial typography as the implemented browser baseline. This replaces the earlier open A-versus-B direction decision. Preserve the existing A/B/C explorations unchanged.
