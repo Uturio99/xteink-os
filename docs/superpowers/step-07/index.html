@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>XTEInk OS · STEP 07 Prototype</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<style>
+/* ============================================
+   XTEInk OS — STEP 07 Interactive Prototype
+   480×800 monochrome simulation
+   No build step. Pure HTML/CSS/JS.
+   Reuses: project freeink-sdk CSS variables where available
+   ============================================ */
+
+:root{
+  --canvas-w:480px;--canvas-h:800px;--inset:32px;--usw:calc(480px-2*32px);
+  --paper:#fff;--ink:#000;--sub:#555;--faint:#ccc;
+  --sans:Arial,"Helvetica Neue",sans-serif;--serif:Georgia,"Times New Roman",serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#e8e8e8;font:15px var(--sans);color:var(--ink)}
+body{display:flex;flex-direction:column;align-items:center;overflow:auto;-webkit-font-smoothing:none}
+
+/* ── Browser chrome outside frame ─────────── */
+.chrome{text-align:center;padding:8px 0 4px;font-size:12px;color:#666;line-height:1.5;width:var(--canvas-w)}
+
+/* ── Device canvas ────────────────────────── */
+.device{
+  width:var(--canvas-w);min-height:var(--canvas-h);
+  background:var(--paper);position:relative;
+  display:flex;flex-direction:column;
+  box-shadow:0 0 0 2px #aaa;overflow:hidden;flex-shrink:0;
+}
+
+/* ── Status bar ───────────────────────────── */
+.status{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:6px var(--inset);height:40px;flex-shrink:0;
+  font-size:12px;letter-spacing:1px;color:var(--sub);
+}
+.batt{display:inline-block;width:18px;height:9px;border:1.5px solid var(--ink);border-radius:2px;margin-left:3px;vertical-align:middle}
+.batt::after{content:'';display:block;background:var(--ink);height:4px;width:12px;border-radius:1px}
+
+/* ── Scrollable content ───────────────────── */
+.main{flex:1;overflow-y:auto;overflow-x:hidden;position:relative}
+.main::-webkit-scrollbar{display:none}
+
+/* ── Bottom nav strip ─────────────────────── */
+.nav-strip{display:flex;height:52px;flex-shrink:0;border-top:1px solid var(--faint)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;letter-spacing:.5px;color:var(--sub);padding:4px 0;transition:color .1s}
+.nav-item.sel{color:var(--ink);font-weight:700}
+.nav-item svg{width:20px;height:20px;stroke:currentColor;stroke-width:1.5;fill:none;stroke-linecap:square}
+
+/* ── Key guide ────────────────────────────── */
+.kguide{text-align:center;padding:4px;font-size:10px;color:#999;background:#fafafa;border-top:1px dashed var(--faint);flex-shrink:0}
+
+/* ── Focus ring ───────────────────────────── */
+[data-focus]{outline:3px solid var(--ink)!important;outline-offset:-3px}
+
+/* ── Common elements ──────────────────────── */
+.hdr{display:flex;align-items:center;padding:8px var(--inset);gap:8px;flex-shrink:0}
+.back-btn{font-size:13px;color:var(--sub);padding:2px 0;text-decoration:none;cursor:pointer}
+.hdr h1{flex:1;font:22px var(--serif);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.divider{height:1px;background:var(--faint)}
+.sec-title{display:flex;justify-content:space-between;padding:10px var(--inset) 6px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--sub)}
+.row{display:flex;gap:10px;align-items:flex-start;padding:6px var(--inset);min-height:48px;cursor:pointer}
+.cv{width:42px;height:58px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font:bold 16px var(--serif);border:1px solid var(--ink);text-align:center;line-height:1.2;overflow:hidden}
+.cv.miss{background:var(--ink);color:var(--paper);font-size:11px}
+.info{flex:1;min-width:0}
+.tt{font:19px var(--serif);line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.au{font-size:13px;color:var(--sub);margin-top:1px}
+.pbar{display:flex;align-items:center;gap:4px;margin-top:2px}
+.track{flex:1;height:3px;background:var(--faint)}
+.done{height:100%;background:var(--ink)}
+.pg{font-size:11px;color:var(--sub)}
+.btn{padding:10px 16px;font-size:15px;border:1px solid var(--ink);background:var(--paper);text-align:center;cursor:pointer}
+.btn.sec{background:#fafafa}
+.btn-row{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.list-cell{display:flex;align-items:center;justify-content:space-between;padding:8px var(--inset);min-height:46px;border-bottom:1px dotted var(--faint);cursor:pointer}
+.arr{font-size:14px;color:var(--sub)}
+.empty{text-align:center;padding:32px 0;color:var(--sub)}
+.scr{text-align:center;padding:24px var(--inset)}
+.scr h2{font:22px var(--serif);margin:0 0 6px}
+.scr p{font-size:14px;color:var(--sub);line-height:1.6;margin:8px 0}
+.mode-item{display:flex;align-items:center;gap:10px;padding:12px var(--inset);min-height:54px;border-bottom:1px solid var(--faint);cursor:pointer;font-size:16px}
+.locked{color:var(--sub)}
+.long-t{-webkit-line-clamp:3}
+.wcode{font-family:monospace;font-size:14px;padding:10px;border:1px solid var(--ink);margin:8px 0;display:block}
+
+/* ── Reader page ──────────────────────────── */
+.reader-wrap{padding:var(--inset);flex:1;display:flex;flex-direction:column}
+.rhd{text-align:center;font:14px var(--serif);color:var(--sub);padding:6px 0;border-bottom:1px solid var(--faint);margin-bottom:12px;flex-shrink:0}
+.rpage{flex:1;overflow-y:auto;font:19px Georgia,serif;line-height:1.6;padding:4px 0}
+.rpage p{margin:0 0 14px;text-indent:1.5em}
+.chd{text-align:center;font:bold 20px var(--serif);padding:20px 0;letter-spacing:1px}
+.rfoot{text-align:center;font-size:11px;color:var(--sub);padding:10px 0;border-top:1px solid var(--faint);flex-shrink:0}
+.tb-btn{position:absolute;top:4px;right:calc(var(--inset) + 4px);font-size:12px;color:var(--sub);padding:4px 8px;cursor:pointer;z-index:5}
+
+/* ── Overlays ──────────────────────────────── */
+.ov-layer{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;z-index:10}
+.ov-layer.hide{display:none!important}
+.ov-body{max-height:70%;overflow-y:auto;background:var(--paper);border-top:2px solid var(--ink)}
+.ov-title{text-align:center;font:18px var(--serif);padding:12px 0;border-bottom:1px solid var(--faint);position:sticky;top:0;background:var(--paper)}
+.ov-opt{padding:12px var(--inset);font-size:15px;min-height:48px;border-bottom:1px dotted var(--faint);cursor:pointer}
+.ov-close{position:absolute;top:8px;right:calc(var(--inset)+8px);font-size:18px;color:var(--sub);cursor:pointer;z-index:2}
+
+/* Quick panel variant */
+.qp-bg{position:absolute;inset:0;background:rgba(0,0,0,.6);z-index:20}
+.qp-bg.hide{display:none!important}
+.qp-card{position:absolute;bottom:0;left:0;right:0;max-height:55%;overflow-y:auto;background:var(--paper);border-top-left-radius:6px;border-top-right-radius:6px;z-index:21}
+.qp-card.hide{display:none!important}
+.qp-hd{text-align:center;font-size:12px;padding:8px 0;border-bottom:1px solid var(--faint);color:var(--sub);letter-spacing:1px}
+.qp-row{padding:10px var(--inset);font-size:15px;min-height:46px;border-bottom:1px dotted var(--faint);cursor:pointer}
+.qp-row strong{font-size:17px}
+</style>
+</head>
+<body>
+
+<div class="chrome">STEP 07 Prototype · XTEInk OS · 480×800<br>Arrow keys: navigate · Enter: confirm · Esc: back · Home: root · Space: reader tools</div>
+<div class="device" id="dev">
+  <div class="status"><span style="font-weight:700">XTEINK</span><span style="display:flex;align-items:center"><span id="clock">09:41</span>&nbsp;<i class="batt"></i>&nbsp;82%</span></div>
+  <div class="main" id="main"></div>
+  <nav class="nav-strip" id="navstrip"></nav>
+  <div class="kguide">↑↓ Move &nbsp;·&nbsp; Enter Open &nbsp;·&nbsp; Esc Back &nbsp;·&nbsp; Home Root</div>
+
+  <!-- Quick Panel overlay -->
+  <div class="qp-bg hide" id="qpBg"></div>
+  <div class="qp-card hide" id="qpCard"></div>
+</div>
+
+<script>
+// ================================================================
+//  DATA — mock books separate from product content
+// ================================================================
+const BOOKS = [
+  {id:0,title:"Những chuyến tàu đêm qua miền ký ức của người Hà Nội",author:"Nguyễn Thị Ánh Tuyết",prog:42,pages:"172 / 406",cover:true,fmt:"EPUB"},
+  {id:1,title:"Đọc sách Việt Nam",author:"Tác giả Một",prog:68,pages:"87 / 128",cover:true,fmt:"TXT"},
+  {id:2,title:"Những câu chuyện Việt",author:"Lê Minh Quang",prog:null,pages:"—",cover:false,fmt:"EPUB"},
+  {id:3,title:"Thử nghiệm sử dụng thiết bị X4 Pro",author:"Trần Văn Bình",prog:0,pages:"0%",cover:true,fmt:"XTC"},
+  {id:4,title:"Tư duy nhanh và chậm",author:"Daniel Kahneman",prog:15,pages:"22 / 432",cover:true,fmt:"EPUB"},
+];
+
+const PAGES=[
+  ["ch","Chương VII — Những chuyến tàu đêm"],
+  ["p","Khi đoàn tàu lăn bánh khỏi ga Hà Nội, thành phố chìm dần vào bóng tối. Những ánh đèn vàng vằng phía sau xa dần, để lại một khoảng trống lạnh lẽo trên sân ga trống trải."],
+  ["p","Anh ngồi bên cửa sổ, trán tựa vào kính lạnh. Bên ngoài là đồng bằng Bắc Bộ mênh mông, chỉ thấy những hàng tre đứng im lìm như những chiếc bóng khổng lồ. Tiếng bánh xe vang đều đặn."],
+  ["p","\"Cô vẫn luôn nghĩ rằng mỗi chuyến tàu đêm mang theo một câu chuyện.\" Giọng nói ấy vang lên từ ghế đối diện, khiến anh giật mình quay lại."],
+  ["ch","Chương VIII — Bến đỗ giữa đêm"],
+  ["p","Chuyến tàu dừng lại ở ga Ninh Bình lúc hai giờ sáng. Sân ga nhỏ xíu, chỉ có vài bóng người đang chờ đợi. Không khí mát mẻ thấm vào da thịt, mang theo mùi đất ướt và hương sen từ cánh đồng gần đó."],
+];
+
+// ================================================================
+//  STATE MACHINE
+// ================================================================
+const S={
+  pg:'home',        // current page/screen
+  fp:0,             // focus pointer index
+  home:{bs:[],sel:0},     // home books array, selection
+  lib:{tab:0,ord:1,q:'',g:false,sel:0,top:0},  // library
+  red:{bi:0,pi:0,rtl:false}, // reader: bookIdx, pageIdx
+  imp:{mi:0},         // import mode index
+  net:{saved:['Nhà văn Nguyễn Du'],opdsN:1,extOn:true},
+  set:{sel:0},
+  // previous state stack
+  _ps:null,           // {pg, fp, ...page-specific data}
+};
+
+// Capture current page context before transition
+function capCtx(){
+  const c={pg:S.pg,fp:S.fp};
+  if(S.pg==='lib')  Object.assign(c,{lib:{...S.lib}});
+  if(S.pg==='red')  Object.assign(c,{red:{...S.red}});
+  return c;
+}
+
+function go(pg,extra){
+  S._ps=capCtx();
+  S.pg=pg;
+  if(extra) Object.assign(S,extra);
+  S.fp=0;
+  render();
+}
+
+function back(){
+  if(!S._ps) return go('home');
+  const p=S._ps;
+  S.fp=p.fp;
+  if(p.lib)  Object.assign(S.lib,p.lib);
+  if(p.red)  Object.assign(S.red,p.red);
+  S.pg=p.pg;
+  S._ps=null;
+  render();
+}
+
+// ================================================================
+//  SVG ICONS
+// ================================================================
+function ic(p,w,h){return`<svg width="${w||20}" height="${h||20}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"><path d="${p}"/></svg>`;}
+const icons={
+  bk:'M3 4h7l2 2 2-2h7v16h-7l-2 2-2-2H3z M12 6v16',
+  fl:'M2 6h8l2 3h10v12H2z',
+  ar:'M4 12h16 M14 6l6 6-6 6',
+  ba:'M20 12H4 M10 6l-6 6 6 6',
+  dr:'M4 6h16 M4 12h16 M4 18h16 M8 3v6 M16 9v6 M10 15v6',
+  ck:'<polyline points="5 12 10 17 19 6"/>',
+  wn:'<path d="M12 2 L22 20 H2Z M12 15v-4 M12 10v-.5"/>',
+  ds:'<polyline points="6 9 12 15 18 9"/>',
+  sc:'<circle cx="10" cy="10" r="7"/><path d="M16 16l5 5"/>'
+};
+
+// ================================================================
+//  UTILITY
+// ================================================================
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function mkcv(b){return`<div class="cv${b.cover?'':' miss'}">${b.cover?b.title.charAt(0):b.fmt}</div>`;}
+function mkbr(b,idx){
+  return`<div class="row" data-act="openBook" data-idx="${b.id}">
+    ${mkcv(b)}
+    <div class="info">
+      <div class="tt ${b.title.length>38?'long-t':''}">${esc(b.title)}</div>
+      <div class="au">${esc(b.author)}</div>
+      <div class="pg">${b.prog!=null?b.prog+'%': 'Tiến độ không rõ'}</div>
+    </div>
+  </div>`;
+}
+
+// ================================================================
+//  RENDER DISPATCHER
+// ================================================================
+let prevMain=null;
+let prevNav=null;
+
+function render(){
+  const main=document.getElementById('main');
+  const nav=document.getElementById('navstrip');
+  fn[S.pg](main);
+  fn.nav(nav);
+  bindClicks(main);
+}
+
+const fn={
+  home(r){
+    const bs=[BOOKS[0]];
+    const extras=BOOKS.slice(1);
+    const shown=Math.min(extras.length, Math.max(2, extras.length));
+    let html=`<div class="sec-title"><span>Đọc tiếp</span><span>${BOOKS.length} sách</span></div>`;
+    // Hero row
+    html+=`<div class="row" data-act="openBook" data-idx="${BOOKS[0].id}">
+      <div class="cv" style="width:80px;height:112px;font-size:24px">${mkcv(BOOKS[0])}</div>
+      <div class="info">
+        <div class="tt long-t">${esc(bs[0].title)}</div>
+        <div class="au">${esc(bs[0].author)}</div>
+        <div class="pbar"><div class="track"><div class="done" style="width:${bs[0].prog}%"></div></div><span class="pg">${bs[0].prog!=null?bs[0].prog+'%': 'Không rõ tiến độ'}</span></div>
+        <div style="font-size:12px;color:var(--sub);margin-top:4px">Đọc tiếp ›</div>
+      </div>
+    </div>`;
+    // Secondary books
+    for(let i=1;i<=shown&&i<extras.length;i++){
+      html+='<div class="divider"></div>';
+      if(i===1) html+='<div class="sec-title"><span>Gần đây</span></div>';
+      html+=mkbr(extras[i-1],i+1);
+    }
+    r.innerHTML=html;
+    S.fp=0;
+  },
+
+  lib(r){
+    const tabs=['Gần đây','Tên sách','Tác giả'];
+    let html=`<div class="hdr"><span class="back-btn" data-act="goBack">← Về</span><h1>Thư viện</h1></div>`;
+    // Tabs
+    html+='<div style="display:flex;border-bottom:2px solid var(--ink);flex-shrink:0">';
+    tabs.forEach((t,i)=>{
+      const cls=i===S.lib.tab?'active':'';
+      html+=`<button class="lib-tab" style="flex:1;text-align:center;padding:8px 0;font:15px var(--serif);color:${i===S.lib.tab?'var(--ink)':'var(--sub)'};border-bottom:2px solid ${i===S.lib.tab?'var(--ink)':'transparent'};margin-bottom:-2px;cursor:pointer" data-act="setTab" data-val="${i}">${t}</button>`;
+    });
+    html+='</div>';
+    // Utility
+    html+='<div style="display:flex;gap:16px;padding:6px var(--inset);font-size:13px;color:var(--sub)">';
+    html+='<span style="cursor:pointer" data-act="discover">Khám phá</span>';
+    html+='<span style="cursor:pointer" data-act="rebuild">Làm mới chỉ mục</span>';
+    html+='</div>';
+    // Books
+    html+='<div>';
+    const sorted=[...BOOKS];
+    if(S.lib.tab===1) sorted.sort((a,b)=>S.lib.ord*a.title.localeCompare(b.title));
+    else if(S.lib.tab===2) sorted.sort((a,b)=>S.lib.ord*a.author.localeCompare(b.author));
+    // Filter by query
+    const filtered=S.lib.q?sorted.filter(b=>(b.title+' '+b.author).toLowerCase().includes(S.lib.q.toLowerCase())):sorted;
+    filtered.forEach(b=>{
+      html+=`<div class="row" data-act="openBook" data-idx="${b.id}">${mkcv(b)}<div class="info"><div class="tt ${b.title.length>36?'long-t':''}">${esc(b.title)}</div><div class="au">${esc(b.author)}</div></div></div>`;
+    });
+    if(!filtered.length) html+='<div class="empty">Không tìm thấy sách</div>';
+    html+='</div>';
+    r.innerHTML=html;
+    S.fp=1;
+  },
+
+  red(r){
+    const b=BOOKS[S.red.bi]||BOOKS[0];
+    const totalPages=PAGES.length;
+    let html=`<button class="tb-btn" data-act="toggleTB">Công cụ ${ic(icons.ds,16,16)}</button>`;
+    html+=`<div class="rhd">${esc(b.title)} · Trang ${S.red.pi+1} / ${totalPages}</div>`;
+    html+='<div class="rpage">';
+    const start=S.red.pi*2;
+    const chunk=PAGES.slice(start,start+2);
+    chunk.forEach(([t,c])=>{
+      if(t==='ch') html+=`<div class="chd">${c}</div>`;
+      else html+=`<p>${c}</p>`;
+    });
+    html+='</div>';
+    html+=`<div class="rfoot">Trang ${S.red.pi+1}/${totalPages} · ${b.prog!=null?b.prog+'%': 'Không rõ'}</div>`;
+    r.innerHTML=html;
+  },
+
+  imp(r){
+    let html=`<div class="scr"><h2>Nhập sách</h2><p>Chọn phương thức nhập sách</p><div>`;
+    const modes=[
+      {a:'join',l:'Kết nối Wi-Fi',desc:'Tìm hoặc tạo mạng'},
+      {a:'cal',l:'Calibre Wireless'},
+      {a:'ap',l:'Tạo điểm phát WiFi'},
+      {a:'usb',l:'Ổ USB'},
+    ];
+    modes.forEach((m,i)=>{
+      const locked=m.a==='usb';
+      html+=`<div class="mode-item${locked?' locked':''}" data-act="selectMode" data-val="${m.a}">`;
+      html+=`<span>${locked?ic(icons.wn,20,20):ic(icons.ck,20,20)}</span>`;
+      html+=`<span style="flex:1">${m.l}</span>`;
+      if(locked) html+=`<span style="font-size:11px;color:var(--sub)">USB MSC</span>`;
+      html+='</div>';
+    });
+    html+=`</div><div style="margin-top:20px"><button class="btn sec" style="width:100%" data-act="goHome">← Trang chủ</button></div></div>`;
+    r.innerHTML=html;
+    S.fp=1;
+  },
+
+  wifiScreen(r){
+    r.innerHTML=`<div class="scr"><h2>Truyền Wi-Fi</h2>
+    <p>Máy tính truy cập:</p><span class="wcode">http://192.168.4.1:8080</span>
+    <div class="btn-row"><button class="btn" data-act="stopTransfer">Dừng truyền</button><button class="btn sec" data-act="goBack">← Quay lại</button></div></div>`;
+  },
+
+  usbWait(r){
+    r.innerHTML=`<div class="scr"><h2>Đợi máy tính</h2>
+    <div style="border:1px solid var(--ink);padding:12px;margin:12px 0;font-style:italic">Tháo ổ đĩa đúng cách trước khi rút cáp…</div>
+    <p>Đã kết nối. Thẻ SD đang được máy tính sở hữu.</p>
+    <button class="btn sec" data-act="goBack">← Quay lại</button></div>`;
+  },
+
+  set(r){
+    const sections=['Hệ thống','Hiển thị','Đọc sách','Điều khiển','Thư viện','Mạng'];
+    let html=`<div class="hdr"><span class="back-btn" data-act="goBack">← Về</span><h1>Cài đặt</h1></div>`;
+    html+='<div>';
+    sections.forEach(s=>{
+      html+=`<div class="list-cell" data-act="gotoSection"><span>${s}</span><span class="arr">›</span></div>`;
+    });
+    // Extension toggle
+    html+=`<div class="list-cell" data-act="toggleExt">
+      <span>Tiện ích</span>
+      <span style="color:${S.net.extOn?'var(--ink)':'var(--sub)'}">${S.net.extOn?'Bật':'Tắt'}</span>
+    </div>`;
+    html+='</div>';
+    r.innerHTML=html;
+    S.fp=1;
+  },
+
+  network(r){
+    let html=`<div class="hdr"><span class="back-btn" data-act="goBack">← Về</span><h1>Mạng</h1></div><div>`;
+    if(S.net.saved.length){
+      S.net.saved.forEach(w=>{
+        html+=`<div class="list-cell" data-act="showWifi"><span>${w}</span><span class="arr">›</span></div>`;
+      });
+    }else{
+      html+='<div class="list-cell" style="color:var(--sub)"><span>Chưa có mạng đã lưu</span></div>';
+    }
+    html+=`<div class="list-cell" data-act="showOpds"><span>Máy chủ OPDS</span><span class="arr">›</span></div>`;
+    html+=`<div class="list-cell" data-act="toggleExt"><span>Bật/tắt tiện ích</span><span>${S.net.extOn?'Bật':'Tắt'}<span class="arr">›</span></div>`;
+    html+=`<div class="list-cell"><span>Đồng bộ KOReader</span><span class="arr">›</span></div>`;
+    html+='</div>';
+    r.innerHTML=html;
+    S.fp=1;
+  },
+
+  opdsServers(r){
+    let html=`<div class="hdr"><span class="back-btn" data-act="goBack">← Về</span><h1>Máy chủ OPDS</h1></div><div>`;
+    if(S.net.opdsN===0) html+='<div class="empty">Chưa có máy chủ nào</div>';
+    else{
+      for(let i=0;i<S.net.opdsN;i++){
+        html+=`<div class="list-cell"><span>Máy chủ OPDS #${i+1}</span><span class="arr">›</span></div>`;
+      }
+    }
+    html+='<div style="padding:12px var(--inset)"><button class="btn sec" style="width:100%" data-act="addServer">Thêm máy chủ</button></div>';
+    html+=`<button class="btn sec" style="width:calc(100% - 2*var(--inset));margin:0 32px" data-act="goBack">← Mạng</button>`;
+    r.innerHTML=html;
+    S.fp=0;
+  },
+
+  extensions(r){
+    let html=`<div class="hdr"><span class="back-btn" data-act="goBack">← Cài đặt</span><h1>Tiện ích</h1></div>`;
+    if(!S.net.extOn){
+      html+='<div class="empty">Tiện ích đang tắt — bật trong Mạng</div>';
+    }else{
+      html+='<div>'+
+        `<div class="list-cell"><span>Plugin Demo v1.0</span><span class="arr">›</span></div>`+
+        `<div class="list-cell"><span>Tìm kiếm nâng cao</span><span class="arr">›</span></div>`+
+        '</div>'+(S.net.opdsN>0?'<div style="padding:12px var(--inset)">'+
+        '<button class="btn sec" style="width:100%" data-act="hub">Trung tâm plugin</button></div>':'')+'';
+    }
+    r.innerHTML=html;
+    S.fp=S.net.extOn?1:0;
+  },
+
+  discover(r){
+    let html=`<div class="hdr"><span class="back-btn" data-act="goBack">← Thư viện</span><h1>Khám phá</h1></div>`;
+    html+='<div style="height:160px;border:1px solid var(--ink);display:flex;align-items:center;justify-content:center;margin:12px var(--inset);font-style:var(--serif);color:var(--sub)">OPDS · Bìa mẫu</div>';
+    html+='<div>';
+    ['Tin mới nhất','Phổ biến nhất','Sách tiếng Việt','Mới thêm'].forEach(f=>{
+      html+=`<div class="list-cell" data-act="showFeed"><div><div style="font:bold 16px var(--serif)">${f}</div><div style="font-size:12px;color:var(--sub)">Nhấp để xem chi tiết</div></div><span class="arr">›</span></div>`;
+    });
+    html+='</div>';
+    r.innerHTML=html;
+    S.fp=1;
+  },
+
+  feedDetail(r){
+    r.innerHTML=`<div class="scr"><h2>Chi tiết nguồn tin</h2><p>Danh sách sách khả dụng từ nguồn OPDS mô phỏng.<br>Firmware thật sẽ hiển thị kết quả tìm kiếm thực tế.</p>
+    <button class="btn sec" data-act="goBack">← Quay lại Khám phá</button></div>`;
+  },
+
+  // Tools sub-pages
+  toc(r){
+    r.innerHTML=`<div class="scr"><h2>Mục lục</h2>
+    <div><div class="list-cell"><span>Chương I – Khởi đầu</span><span class="arr">›</span></div>
+    <div class="list-cell"><span>Chương II – Hành trình</span><span class="arr">›</span></div>
+    <div class="list-cell"><span>Chương III – Khó khăn</span><span class="arr">›</span></div>
+    <div class="list-cell"><span>Chương IV – Tìm kiếm</span><span class="arr">›</span></div>
+    <div class="list-cell"><span>Chương V – Phát hiện</span><span class="arr">›</span></div>
+    <div class="list-cell"><span>Chương VI – Đỉnh điểm</span><span class="arr">›</span></div>
+    <div class="list-cell"><span>Chương VII – Chuyến tàu đêm</span><span class="arr">›</span></div>
+    <div class="list-cell"><span>Chương VIII – Bến đỗ</span><span class="arr">›</span></div></div>
+    <button class="btn sec" style="margin-top:12px" data-act="closeTools">← Công cụ đọc</button></div>`;
+  },
+
+  progressPage(r){
+    const b=BOOKS[S.red.bi]||BOOKS[0];
+    r.innerHTML=`<div class="scr"><h2>Số tiến độ</h2>
+    <div style="font-size:48px;font-weight:700;text-align:center;margin:32px 0">${b.prog!=null?b.prog+'%':'Không rõ'}</div>
+    <div style="font-size:13px;color:var(--sub);text-align:center">Trang ${S.red.pi+1} / ${PAGES.length}</div>
+    <button class="btn sec" style="margin-top:20px" data-act="closeTools">← Công cụ đọc</button></div>`;
+  },
+
+  textSettings(r){
+    r.innerHTML=`<div class="scr"><h2>Định dạng văn bản</h2><p>Theo cài đặt hệ thống (Firmware).</p>
+    <div><div class="list-cell"><span>Kích thước chữ</span><span>16pt</span></div>
+    <div class="list-cell"><span>Khoảng cách dòng</span><span>1.6</span></div>
+    <div class="list-cell"><span>Căn lề</span><span>Theo ngữ cảnh</span></div>
+    <div class="list-cell"><span>Font chữ</span><span>Serif</span></div></div>
+    <button class="btn sec" style="margin-top:12px" data-act="closeTools">← Công cụ đọc</button></div>`;
+  },
+
+  endOfBook(r){
+    r.innerHTML=`<div class="scr"><h2>Hoàn thành</h2><p>Bạn đã đọc xong sách này.</p>
+    <div class="btn-row"><button class="btn" data-act="suggestNext">Gợi ý sách khác</button><button class="btn sec" data-act="lastPage">← Xem lại trang cuối</button><button class="btn sec" data-act="goHome">→ Trang chủ</button></div></div>`;
+  },
+
+  syncAction(r){
+    r.innerHTML=`<div class="scr"><h2>Đồng bộ KOReader</h2><p>Đồng bộ vị trí qua Wi-Fi với tài khoản KOReader.</p>
+    <div class="btn-row"><button class="btn" data-act="doSync">Đồng bộ ngay</button><button class="btn sec" data-act="cancelSync">Huỷ</button></div></div>`;
+  },
+
+  bookmarksView(r){
+    r.innerHTML=`<div class="scr"><h2>Dấu trang</h2><p>Chưa có dấu trang nào.</p>
+    <button class="btn sec" style="margin-top:12px" data-act="closeTools">← Công cụ đọc</button></div>`;
+  },
+
+  clippingsView(r){
+    r.innerHTML=`<div class="scr"><h2>Ghi chú</h2><p>Chưa có ghi chú nào.</p>
+    <button class="btn sec" style="margin-top:12px" data-act="closeTools">← Công cụ đọc</button></div>`;
+  },
+};
+
+// NAV rendering (separate function)
+fn.nav=function(n){
+  const map={
+    home:[['bk','Thư viện','lib'],['fl','Tệp','files'],['ar','Nhập sách','imp'],['dr','Cài đặt','set']],
+    lib:[['ba','Trang chủ','home'],['sc','Tìm kiếm','search'],['ck','Khám phá','discover']],
+    red:[['ar','Import','imp'],['dr','Cài đặt','set']],
+    imp:[['ba','Trang chủ','home']],
+    wifiScreen:[['ba','Quay lại','imp']],
+    usbWait:[['ba','Quay lại','imp']],
+    set:[['bk','Thư viện','lib'],['ar','Import','imp']],
+    network:[['ba','Cài đặt','set']],
+    opdsServers:[['ba','Mạng','network']],
+    extensions:[['ba','Cài đặt','set']],
+    discover:[['bk','Thư viện','lib']],
+    feedDetail:[['bk','Khám phá','discover']],
+  };
+  const items=map[S.pg]||[['ba','Trang chủ','home']];
+  n.innerHTML=items.map(([p,l,a])=>`<button class="nav-item" data-act="navTo" data-val="${a}">${ic(icons[p],20,20)}<span>${l}</span></button>`).join('');
+};
+
+// Search page
+fn.search=function(r){
+  r.innerHTML=`<div class="hdr"><span class="back-btn" data-act="goBack">← Về</span><h1>Tìm kiếm</h1></div>
+  <div style="padding:12px var(--inset)">
+  <input type="search" placeholder="Tìm tên sách hoặc tác giả" style="width:100%;padding:8px;font-size:15px;border:1px solid var(--ink)" data-act="searchInput">
+  <p style="font-size:12px;color:var(--sub);margin-top:8px">Nhấn Enter để tìm</p></div>`;
+};
+
+// Files view
+fn.files=function(r){
+  let html='<div class="hdr"><span class="back-btn" data-act="goBack">← Trang chủ</span><h1>Tệp tin</h1></div><div>';
+  BOOKS.forEach(b=>{
+    html+=`<div class="list-cell" data-act="openBook"><div><div style="font:16px var(--serif)">${esc(b.title)}</div><div style="font-size:12px;color:var(--sub)">${b.fmt} · ${b.prog!=null?b.prog+'%':'Unknown'}</div></div><span class="arr">›</span></div>`;
+  });
+  html+='</div>';
+  r.innerHTML=html;
+};
+
+// Suggestion page
+fn.suggestNext=function(r){
+  r.innerHTML=`<div class="scr"><h2>Gợi ý</h2><p>Những sách bạn có thể thích:</p>
+  ${BOOKS.slice(1,3).map(b=>`<div class="list-cell" data-act="openBook"><div><div class="tt">${esc(b.title)}</div><div class="au">${esc(b.author)}</div></div><span class="arr">›</span></div>`).join('')}
+  <button class="btn sec" style="margin-top:12px" data-act="goHome">→ Trang chủ</button></div>`;
+};
+
+R=fn;
+
+// ================================================================
+//  CLICK DELEGATION — single handler on main container
+// ================================================================
+let curMainEl=null;
+
+function bindClicks(el){curMainEl=el; el.onclick=handleClick;}
+
+function handleClick(e){
+  const t=e.target.closest('[data-act]');
+  if(!t)return;
+  const act=t.dataset.act;
+  const val=t.dataset.val||'';
+
+  switch(act){
+    // Navigation
+    case 'goBack':       back(); break;
+    case 'goHome':       go('home'); break;
+    case 'navTo':        go(val); break;
+    case 'openBook':     S.red.bi=val;S.red.pi=0;S.red.rtl=false;go('red');break;
+    // Home
+    case 'resumeBook':   S.red.bi=val;go('red');break;
+    // Library
+    case 'setTab':       S.lib.tab=parseInt(val);break;
+    case 'setSort':      S.lib.ord*=-1;break;
+    case 'groupToggle':  S.lib.g=!S.lib.g;break;
+    case 'showSearch':   go('search');break;
+    case 'searchInput':  /* handled by input listener below */break;
+    case 'rebuild':      alert('Simulated: Làm mới chỉ mục');break;
+    // Import
+    case 'selectMode':   if(val==='usb')go('usbWait');else if(val==='join'||val==='cal'||val==='ap')go('wifiScreen');break;
+    // Wi-Fi Transfer
+    case 'stopTransfer': go('home');break;
+    // Settings
+    case 'gotoSection':  {/* generic section action */break;}
+    case 'toggleExt':    S.net.extOn=!S.net.extOn;render();break;
+    case 'addServer':    {/* simulate adding server */S.net.opdsN++;render();break;}
+    case 'showOpds':     go('opdsServers');break;
+    case 'showWifi':     go('network');break;
+    case 'hub':          {/* plugin hub */break;}
+    case 'extensions':   go('extensions');break;
+    // Discover
+    case 'discover':     go('discover');break;
+    case 'showFeed':     go('feedDetail');break;
+    // Reader toolbar
+    case 'toggleTB':     showTools();break;
+    case 'closeTools':   hideTools();break;
+    // Quick panel
+    case 'backToLib':    finishReadWithResult();break;
+    case 'dismissQP':    hideQuickPanel();break;
+    case 'pageTurn':     S.red.pi=Math.min(S.red.pi+1,PAGES.length-1);hideQuickPanel();render();break;
+    case 'prevPage':     if(S.red.pi>0){S.red.pi--;hideQuickPanel();render()}else{hideQuickPanel()};break;
+    // Tools menu
+    case 'toolsMenu':    showTools();break;
+    case 'toc':          hideTools();go('toc');break;
+    case 'progress':     hideTools();go('progressPage');break;
+    case 'text':         hideTools();go('textSettings');break;
+    case 'end':          hideTools();go('endOfBook');break;
+    case 'sync':         hideTools();go('syncAction');break;
+    case 'bookmarks':    hideTools();go('bookmarksView');break;
+    case 'clippings':    hideTools();go('clippingsView');break;
+    case 'suggestNext':  go('suggestNext');break;
+    case 'lastPage':     hideTools();go('red');break;
+    case 'doSync':       {/* simulate sync success */alert('Simulated: Sync succeeded');hideTools();go('red');break;}
+    case 'cancelSync':   hideTools();go('red');break;
+    default:             {/* unhandled */}
+  }
+}
+
+// Input listener for search
+document.addEventListener('input',e=>{
+  if(e.target.dataset.act==='searchInput'){
+    S.lib.q=e.target.value;
+    /* re-render library with filter — already applied via sorted/filter in lib() */
+    render();
+  }
+});
+
+// Quick panel DOM elements
+const qpBg=document.getElementById('qpBg');
+const qpCard=document.getElementById('qpCard');
+
+function showQuickPanel(){
+  qpBg.classList.remove('hide');
+  qpCard.classList.remove('hide');
+  // Build quick panel content with proper data-act bindings
+  qpCard.innerHTML=`
+    <div class="qp-hd">TUỲ CHỌN NHANH</div>
+    <div class="qp-row" style="font-weight:700" data-act="backToLib">← Trở về thư viện</div>
+    <div class="qp-row" style="font-size:13px;color:var(--sub);padding:6px var(--inset)" data-act="pageTurn">Trang sau ›</div>
+    <div class="qp-row" style="font-size:13px;color:var(--sub);padding:6px var(--inset)" data-act="prevPage">‹ Trang trước</div>`;
+}
+
+// Quick panel event delegation — qpBg catches bg-clicks but must not eat child clicks
+qpBg.onclick=function(e){
+  if(qpCard.contains(e.target)) return; // let row handlers run
+  hideQuickPanel();
+};
+
+function hideQuickPanel(){
+  qpBg.classList.add('hide');
+  qpCard.classList.add('hide');
+}
+
+// Overlay layers for tools and quick panel
+function showTools(){
+  // Create overlay layer dynamically
+  let layer=document.getElementById('ovLayer');
+  if(!layer){
+    layer=document.createElement('div');
+    layer.id='ovLayer';
+    layer.className='ov-layer';
+    document.getElementById('dev').appendChild(layer);
+  }
+  layer.classList.remove('hide');
+  layer.innerHTML=`
+    <div class="ov-close" data-act="closeTools">✕</div>
+    <div class="ov-body">
+      <div class="ov-title">CÔNG CỤ ĐỌC SÁCH</div>
+      <div class="ov-opt" data-act="toc">📑 Mục lục</div>
+      <div class="ov-opt" data-act="progress">📊 Số tiến độ</div>
+      <div class="ov-opt" data-act="text">📝 Định dạng văn bản</div>
+      <div class="ov-opt" data-act="end">⏹ Hoàn thành</div>
+      <div class="ov-opt" data-act="sync">🔄 Đồng bộ KOReader</div>
+      <div class="ov-opt" data-act="bookmarks">🔖 Dấu trang</div>
+      <div class="ov-opt" data-act="clippings">📌 Ghi chú</div>
+    </div>`;
+  bindClicks(layer);
+}
+
+function hideTools(){
+  const layer=document.getElementById('ovLayer');
+  if(layer)layer.classList.add('hide');
+}
+
+function finishReadWithResult(){
+  hideQuickPanel();
+  hideTools();
+  // Save the current page context for eventual restoration (NAV-001)
+  const ctx=capCtx();
+  S._ps={page:'lib',fp:S.fp,idx:1,lib:{tab:S.lib.tab,ord:S.lib.ord,q:S.lib.q}};
+  S.pg='lib';
+  S.fp=1;
+  render();
+}
+
+// Quick panel event delegation
+qpBg.onclick=function(e){
+  const t=e.target.closest('[data-act]');
+  if(!t)return;
+  if(t.dataset.act==='backToLib')finishReadWithResult();
+  else if(t.dataset.act==='pageTurn'||t.dataset.act==='nextPg')hideQuickPanel();
+  else hideQuickPanel();
+};
+
+// ================================================================
+//  KEYBOARD HANDLING
+// ================================================================
+const KEY_MAP={
+  Escape:'Esc',Enter:'Enter',Space:'Space',
+  ArrowDown:'Down',ArrowUp:'Up',ArrowLeft:'Left',ArrowRight:'Right',
+  Home:'Home',PageUp:'PageUp',PageDown:'PageDown',
+};
+
+document.addEventListener('keydown',e=>{
+  const handled=true;
+  switch(e.code){
+    case 'Escape':
+      e.preventDefault();
+      if(document.getElementById('ovLayer')&&!document.getElementById('ovLayer').classList.contains('hide')){
+        hideTools();
+      }else if(qpBg&&!qpBg.classList.contains('hide')){
+        hideQuickPanel();
+      }else{
+        back();
+      }
+      break;
+    case 'Home':
+      e.preventDefault();
+      hideTools();hideQuickPanel();go('home');
+      break;
+    case 'ArrowDown':case 'ArrowRight':
+      e.preventDefault();moveFocus(+1);
+      break;
+    case 'ArrowUp':case 'ArrowLeft':
+      e.preventDefault();moveFocus(-1);
+      break;
+    case 'Enter':
+      e.preventDefault();confirmFocused();
+      break;
+    case 'Space':
+      e.preventDefault();
+      if(S.pg==='red'){showQuickPanel()}
+      break;
+    case 'PageUp':
+      e.preventDefault();
+      if(S.pg==='red'&&S.red.pi>0){S.red.pi--;render()}
+      break;
+    case 'PageDown':
+      e.preventDefault();
+      if(S.pg==='red'&&S.red.pi<PAGES.length-1){S.red.pi++;render()}
+      break;
+  }
+});
+
+function moveFocus(dir){
+  const els=document.querySelectorAll('#main [data-act]');
+  const arr=[...els];
+  const idx=arr.indexOf(document.activeElement);
+  const next=Math.max(0,Math.min(arr.length-1,idx+dir));
+  arr[next]?.focus();
+}
+
+function confirmFocused(){
+  const el=document.activeElement;
+  if(el&&el.dataset.act)handleClick({target:el,preventDefault(){}});
+}
+
+// Top-edge swipe detection for quick panel
+let touchStartY=0,touchStartX=0;
+document.getElementById('main').addEventListener('touchstart',e=>{
+  touchStartY=e.touches[0].clientY;
+  touchStartX=e.touches[0].clientX;
+},{passive:true});
+
+document.getElementById('main').addEventListener('touchend',e=>{
+  const dy=e.changedTouches[0].clientY-touchStartY;
+  const dx=Math.abs(e.changedTouches[0].clientX-touchStartX);
+  if(dy>50&&dx<30&&S.pg==='red'){
+    showQuickPanel();
+  }
+},{passive:true});
+
+// Also allow clicking top area for quick panel (desktop testing)
+document.querySelector('.rhd')?.addEventListener('click',()=>{
+  if(S.pg==='red')showQuickPanel();
+});
+
+// ================================================================
+//  INIT
+// ================================================================
+go('home');
+
+// Log initial state
+console.log('STEP 07 Prototype loaded. Try: keyboard arrows, Enter, Esc, Home.');
+console.log('Flow A: Resume → Book → Page → Quick Panel → Back to Library → Home');
+console.log('Flow B: Library → Book → Reader → Quick Panel → Back → Library');
+console.log('Flow C: Home → Import → Wi-Fi/USB');
+console.log('Flow D: Settings → Network → OPDS/Extensions');
+
+// Expose key vars on window for automated testing (jsdom compat)
+if(typeof window!=='undefined'){window.__S=S;window.__BOOKS=BOOKS;window.__PAGES=PAGES;window.__go=go;window.__back=back;}
+</script>
+</body>
+</html>
