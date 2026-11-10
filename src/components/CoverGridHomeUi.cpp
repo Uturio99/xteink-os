@@ -336,7 +336,8 @@ void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
           milestoneText[0] = '\0';
       }
       screen.target().text(fui::Rect{layout.milestoneLabel.x, layout.milestoneLabel.y, layout.milestoneLabel.width,
-                                     layout.milestoneLabel.height}, milestoneText, milestoneStyle);
+                                     layout.milestoneLabel.height},
+                           milestoneText, milestoneStyle);
     }
     screen.target().text(fui::Rect{layout.progressLabel.x, layout.progressLabel.y, layout.progressLabel.width,
                                    layout.progressLabel.height},

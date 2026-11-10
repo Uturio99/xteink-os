@@ -27,9 +27,7 @@ uint32_t readLe32(const uint8_t* p) {
 
 BookMilestone loadBookMilestoneImpl(const std::string& path, bool includeDetails);
 
-int loadBookProgress(const std::string& path) {
-  return loadBookMilestoneImpl(path, false).percentage;
-}
+int loadBookProgress(const std::string& path) { return loadBookMilestoneImpl(path, false).percentage; }
 
 BookMilestone loadBookMilestoneImpl(const std::string& path, const bool includeDetails) {
   BookMilestone result;

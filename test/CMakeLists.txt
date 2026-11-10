@@ -97,6 +97,7 @@ add_subdirectory(plugin_manifest_classification)
 add_subdirectory(plugin_picker_layout)
 add_subdirectory(x4pro_home_layout)
 add_subdirectory(book_progress)
+add_subdirectory(xtc_chapters)
 add_subdirectory(protected_paths)
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)

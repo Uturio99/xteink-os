@@ -2,8 +2,9 @@
 
 > **Program Tracking Document:** Obra Superpowers Framework  
 > **Repository:** `xteink-os`  
-> **Current Active Milestone:** **M2 — Governance Reconciliation / WP2.4 Verification**
-> **Last Updated:** 2026-11-04
+> **Current Active Milestone:** **M2 — WP2.4 checkpoint; candidate planning, not accepted**
+> **Execution plan:** [X4 Pro product contract, four visible deliveries and WP gates](PROJECT_PLAN.md) (awaiting PO acceptance).
+> **Last Updated:** 2026-11-05
 
 ---
 
@@ -16,7 +17,7 @@
 | **M2** | **Screen Architecture & Full Specs** | **ACTIVE — GOVERNANCE APPROVED** | Approved bounded decisions; WP2.1–WP2.3 checkpoints confirmed; WP2.4 is authorized for verification and firmware-handoff gating. | M1 |
 | **M3** | **Native C++ Home & Nav Architecture** | **QUEUED** | Implementing approved Home layout and navigation hierarchy in embedded C++ on X4 Pro (ESP32-S3 / 8 MB PSRAM) while maintaining ESP32-C3 compatibility. | M2 |
 | **M4** | **Font Subsystem & Typography** | **QUEUED** | Bitmap and vector font pipeline, Vietnamese glyph coverage, font metrics cache. | M3 |
-| **M5** | **Touch Driver, Hit Targets & Events** | **QUEUED** | Touch controller integration (GT911 on X4 Pro subject to SDK board-profile verification, FT6336 on Paper Mono / legacy), ≥44px hit bounds, debouncing, and input event routing. | M3 |
+| **M5** | **Touch Driver, Hit Targets & Events** | **QUEUED** | Reuse the X4 Pro GT911 profile; verify ≥48×48 px hit bounds, debouncing and input routing on device. | M3 |
 | **M6** | **Waveform Modes & Refresh Pipeline** | **QUEUED** | 1-bit fast paging, 4-bit high quality rendering, ghosting mitigation, flashing reduction. | M3, M5 |
 | **M7** | **End-to-End Release & Handoff** | **QUEUED** | Release packaging and final handoff after earlier separately authorized hardware validation. | M1–M6 |
 
@@ -55,8 +56,8 @@
   - [x] Comprehensive QA & Verification Report ([docs/superpowers/audits/M1-UI-COLLECTION-QA.md](superpowers/audits/M1-UI-COLLECTION-QA.md))
   - [x] Product Owner Review Package ([docs/superpowers/audits/M1-UI-COLLECTION-REVIEW.md](superpowers/audits/M1-UI-COLLECTION-REVIEW.md))
 - **Documented Implementation Limitations (Deferred to Native Implementation):**
-  - **Reader dynamic reflow/pagination:** Text formatting is styled via CSS in the reference prototype, but true book dynamic reflow and pagination calculations across custom font sizes (14–22px) must be implemented by the native C++ EPUB layout engine in firmware.
-  - **Search demo query initialization:** The search frame initializes with a deterministic demo query (`chiến tranh`) for automated capture reproducibility; native firmware will initialize with empty query and live SQLite/catalog index.
+  - **Reader dynamic reflow/pagination:** The browser models typography; native Reader UI must reuse the existing EPUB reflow and pagination engine.
+  - **Search demo query initialization:** The reference uses `chiến tranh` for reproducible captures; native search starts empty and uses the existing CLIX LibraryIndex catalog.
   - **Hardware e-paper behavior:** 1-bit thresholding and high-contrast styling validated in browser reference, but physical refresh waveforms, ghosting clearing, and panel partial updates require on-device validation on XTEINK X4 Pro hardware.
   - **DESIGN-002 historical provenance:** Components derived from historical DESIGN-002 explorations remain categorized as unverified design heritage, preserved for visual guidance rather than proven firmware implementation.
 - **Current Blocker:** None. Ready for M2 (Screen Architecture & Full Specs).
@@ -83,9 +84,10 @@
   recommendation and later PO approval are required before bundled Serif
   integration.
 - WP2.1–WP2.3 have task-specific implementation and checkpoint approvals.
-  WP2.4 has separate implementation and test-only authorization; its current
-  six-file patch remains uncommitted pending verification and firmware-handoff
-  requirements.
+  WP2.4 has separate historical implementation and test-only authorization.
+  Commits `19f46d45` and `f6c9151e` are WIP checkpoints; the fixes worktree
+  also contains uncommitted parser and test experiments. The isolated Home
+  candidate, firmware handoff and physical X4 Pro acceptance remain open.
 - The delivery roadmap is five stages: (1) governance and design freeze,
   (2) bounded implementation, (3) verification and firmware handoff,
   (4) early hardware validation, and (5) release packaging. Existing WP
@@ -116,8 +118,8 @@
 ### M5: Touch Driver, Hit Targets & Event Bus
 - **Objective:** Ensure responsive, ergonomic touch input on physical hardware.
 - **Deliverables:**
-  - GT911 I2C touch controller tuning on X4 Pro (subject to SDK board-profile verification; FT6336 on Paper Mono / legacy).
-  - Minimum touch target bounds (≥44×44 CSS equivalent; 56px for primary reading actions).
+  - Verify X4 Pro touch behavior using the existing GT911 SDK profile; driver changes require evidence and separate approval.
+  - Frozen M1 touch target bounds (≥48×48 px; ≥56 px high for primary/repeated actions).
   - Edge swipe rejection and reading gesture zones.
 
 ---

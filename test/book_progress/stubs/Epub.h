@@ -1,11 +1,15 @@
 #pragma once
-#include "HalStorage.h"
 #include <string>
 #include <utility>
 #include <vector>
-struct Toc { std::string title = "Chapter"; };
+
+#include "HalStorage.h"
+struct Toc {
+  std::string title = "Chapter";
+};
 class Epub {
   std::string path;
+
  public:
   static inline std::vector<std::pair<bool, bool>> loadRequests;
   explicit Epub(std::string p, const char*) : path(std::move(p)) {}
@@ -15,7 +19,8 @@ class Epub {
     if (txtOrMd) {
       const auto source = fake::files.find(path);
       const auto cache = fake::files.find("/cache/" + path + "/valid");
-      if (source == fake::files.end() || cache == fake::files.end() || cache->second.size() != source->second.size()) return buildIfMissing;
+      if (source == fake::files.end() || cache == fake::files.end() || cache->second.size() != source->second.size())
+        return buildIfMissing;
     }
     return path != "bad.epub";
   }
