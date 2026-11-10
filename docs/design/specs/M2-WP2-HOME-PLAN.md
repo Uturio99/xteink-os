@@ -1,5 +1,7 @@
 # XTEInk OS — M2 WP2 Plan: FR-01 Home
 
+> HISTORICAL — superseded as an execution/design target by [NoveOS V2](../DESIGN-SYSTEM-V2-PROPOSAL.md) and the [execution contract](../../EXECUTION_CONTRACT.md). Decisions, measurements and old statuses below retain their original scope; they do not authorize new work. In particular, old “no simulator” statements predate 2dbf8155.
+
 > **Document ID:** M2-WP2-HOME-PLAN
 > **Status:** PLAN ONLY. No implementation is authorized by this document.
 > **Repository:** `xteink-os`, branch `feat/m2-wp1-font-feasibility` @ `cc31d678`

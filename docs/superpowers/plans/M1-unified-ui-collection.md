@@ -1,5 +1,7 @@
 # Unified UI/UX Collection Implementation Plan (M1)
 
+> **Historical — superseded (2026-11-09).** Preserved for provenance only. Do not execute this plan. Current authority is the [execution contract](../../EXECUTION_CONTRACT.md) and the [2026-11-10 consolidation plan](2026-11-10-project-consolidation.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Assemble, reconcile, and validate a unified 15-frame UI/UX Collection and single navigable HTML prototype across all 5 core XTEInk OS operational areas (Home, Library, Reader, Files, Settings), synthesizing Concept A, DESIGN-002, Concept B, and XOS-DL into an e-paper feasible product baseline for Product Owner review.

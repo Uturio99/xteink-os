@@ -1,5 +1,7 @@
 # M0 Safe Project Consolidation Implementation Plan
 
+> **Historical — superseded (2026-11-09).** Preserved for provenance only. Do not execute this plan. Current authority is the [execution contract](../../EXECUTION_CONTRACT.md) and the [2026-11-10 consolidation plan](2026-11-10-project-consolidation.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Safely audit, consolidate, and document the XTEInk OS project structure without losing historical work, altering production firmware, or making premature design decisions.

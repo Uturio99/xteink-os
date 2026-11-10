@@ -7,7 +7,7 @@ than assuming `origin` is a fork or that an `upstream` remote exists.
 
 ### Git Operation Rules
 
-- Integration and PR comparisons target `develop`, not `master` or remote HEAD.
+- Select integration/comparison targets from the authorized package and current refs; do not assume `develop`, `master` or remote HEAD. The [NoveOS execution contract](../../docs/EXECUTION_CONTRACT.md) records the assessed baseline, not automatic merge authorization.
 - Authorization follows [human ownership](../../AGENTS.md#human-ownership).
   Before an explicitly requested push, recheck remotes and use the destination
   specified by the human. Otherwise prefer the personal-fork remote (`fork`

@@ -1,5 +1,7 @@
 # XTEInk OS — M2 Technical Design Addendum (DRAFT)
 
+> HISTORICAL — superseded as an execution/design target by [NoveOS V2](../DESIGN-SYSTEM-V2-PROPOSAL.md) and the [execution contract](../../EXECUTION_CONTRACT.md). Decisions, measurements and old statuses below retain their original scope; they do not authorize new work. In particular, old “no simulator” statements predate 2dbf8155.
+
 > **Document ID:** M2-ADDENDUM-DRAFT
 > **Status:** FINAL WP0 DRAFT — PENDING PRODUCT OWNER SIGN-OFF. Not yet authoritative.
 > **Authorization state:** architecture direction ACCEPTED FOR PLANNING ONLY

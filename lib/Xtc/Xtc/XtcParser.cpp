@@ -318,6 +318,16 @@ XtcError XtcParser::readChapters() {
     return XtcError::OK;
   }
 
+  // A crafted gap can claim a huge record count: reserve() would abort() on
+  // the failed allocation (vector's operator new is throwing, and this
+  // firmware builds with -fno-exceptions), and the loop's per-chapter names
+  // and SD reads would run unbounded. Real TOCs stay far below this bound, so
+  // treat a larger table as corrupt; whole-book reading and page info survive.
+  static constexpr size_t MAX_CHAPTERS = 1024;
+  if (chapterCount > MAX_CHAPTERS) {
+    return XtcError::CORRUPTED_HEADER;
+  }
+
   if (!m_file.seek64(chapterOffset)) {
     return XtcError::READ_ERROR;
   }

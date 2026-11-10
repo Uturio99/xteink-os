@@ -1,5 +1,11 @@
 # M0 — Baseline & Repository Inventory
 
+> **Historical — superseded (2026-11-09).** This records the 2026-11-02 M0 baseline
+> (`G:\AI-Setup\...`, `chore/xos-project-consolidation`). It is provenance only. The
+> canonical workspace is `D:\Work\AI\XTEInk X4 Pro\xteink-os`; current state is in the
+> [CONS-01 inventory](CONS-01-INVENTORY.md), and authority is the
+> [execution contract](../../EXECUTION_CONTRACT.md).
+
 > **Document ID:** M0-AUDIT-001  
 > **Milestone:** M0 (Safe Project Consolidation)  
 > **Repository:** `xteink-os` (Root: `G:\AI-Setup\XTEInk-X4-Pro\xteink-os`)  
