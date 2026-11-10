@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cstddef>
 #include <cstdint>
 
 struct HomeLayoutRect {
@@ -20,67 +19,99 @@ struct HomeLayoutRect {
 
 struct X4ProHomeLayout {
   HomeLayoutRect masthead;
-  HomeLayoutRect content;
+  HomeLayoutRect heading;
+  HomeLayoutRect subline;
+  HomeLayoutRect importAction;
+  HomeLayoutRect emptyIcon;
+  HomeLayoutRect emptyTitle;
+  HomeLayoutRect emptyMessage;
+  HomeLayoutRect emptyImport;
+  HomeLayoutRect emptyTransfer;
+  HomeLayoutRect emptyCatalog;
   HomeLayoutRect heroCover;
+  HomeLayoutRect heroDetails;
+  HomeLayoutRect heroEyebrow;
   HomeLayoutRect heroTitle;
   HomeLayoutRect heroAuthor;
   HomeLayoutRect progressLabel;
   HomeLayoutRect progressTrack;
   HomeLayoutRect cta;
   HomeLayoutRect shelfHeader;
-  std::array<HomeLayoutRect, 3> shelfCovers;
-  std::array<HomeLayoutRect, 3> shelfTitles;
-  std::array<HomeLayoutRect, 3> shelfAuthors;
+  HomeLayoutRect shelfRule;
+  std::array<HomeLayoutRect, 2> recentRows;
+  std::array<HomeLayoutRect, 2> recentCovers;
+  std::array<HomeLayoutRect, 2> recentTitles;
+  std::array<HomeLayoutRect, 2> recentAuthors;
   HomeLayoutRect tabs;
 };
 
-constexpr int x4ProVisibleBookCount(const int totalBooks) { return std::min(4, std::max(0, totalBooks)); }
+constexpr int x4ProVisibleBookCount(const int totalBooks) { return std::min(3, std::max(0, totalBooks)); }
 
 constexpr int x4ProHeroCtaAction(const bool hasContinueReading, const int totalBooks) {
   return hasContinueReading ? 0 : std::max(0, totalBooks) + 1;
 }
 
-constexpr X4ProHomeLayout makeX4ProHomeLayout(const int16_t titleLineHeight, const int16_t smallLineHeight,
-                                               const int16_t requestedCtaWidth = 180) {
-  constexpr int16_t CONTENT_X = 32;
-  constexpr int16_t CONTENT_WIDTH = 416;
-  constexpr int16_t HERO_COVER_Y = 62;
-  constexpr int16_t HERO_COVER_WIDTH = 76;
-  constexpr int16_t HERO_COVER_HEIGHT = 114;
-  constexpr int16_t SHELF_COVER_WIDTH = 125;
-  constexpr int16_t SHELF_COVER_HEIGHT = 188;
-  constexpr int16_t SHELF_COLUMN_STEP = 145;
+constexpr int x4ProTransferMenuIndex(const bool hasCatalog) { return hasCatalog ? 3 : 2; }
+constexpr int x4ProSettingsMenuIndex(const bool hasCatalog) { return hasCatalog ? 4 : 3; }
 
-  const int16_t titleY = HERO_COVER_Y + HERO_COVER_HEIGHT + 20;
-  const int16_t titleHeight = static_cast<int16_t>(titleLineHeight * 3);
-  const int16_t authorY = static_cast<int16_t>(titleY + titleHeight + 8);
-  const int16_t progressY = static_cast<int16_t>(authorY + smallLineHeight + 16);
-  const int16_t trackY = static_cast<int16_t>(progressY + smallLineHeight + 6);
-  const int16_t ctaY = static_cast<int16_t>(trackY + 2 + 22);
-  const int16_t ctaWidth = std::min<int16_t>(CONTENT_WIDTH, std::max<int16_t>(44, requestedCtaWidth));
-  const int16_t shelfHeaderY = static_cast<int16_t>(ctaY + 44 + 18);
-  const int16_t shelfCoverY = static_cast<int16_t>(shelfHeaderY + smallLineHeight + 12);
-  const int16_t shelfTitleY = static_cast<int16_t>(shelfCoverY + SHELF_COVER_HEIGHT + 6);
-  const int16_t shelfAuthorY = static_cast<int16_t>(shelfTitleY + smallLineHeight + 1);
+constexpr HomeLayoutRect x4ProRootTabRect(const int index) {
+  return {static_cast<int16_t>(31 + index * 142), 744, 134, 44};
+}
 
-  X4ProHomeLayout layout{{0, 0, 480, 40},
-                         {CONTENT_X, 52, CONTENT_WIDTH, 720},
-                         {202, HERO_COVER_Y, HERO_COVER_WIDTH, HERO_COVER_HEIGHT},
-                         {CONTENT_X, titleY, CONTENT_WIDTH, titleHeight},
-                         {CONTENT_X, authorY, CONTENT_WIDTH, smallLineHeight},
-                         {CONTENT_X, progressY, CONTENT_WIDTH, smallLineHeight},
-                         {180, trackY, 120, 2},
-                         {static_cast<int16_t>((480 - ctaWidth) / 2), ctaY, ctaWidth, 44},
-                         {CONTENT_X, shelfHeaderY, CONTENT_WIDTH, smallLineHeight},
-                         {},
-                         {},
-                         {},
+constexpr int x4ProRootTabAction(const int index, const int bookCount, const bool hasCatalog) {
+  return index == 0 ? -1 : bookCount + (index == 1 ? 1 : x4ProSettingsMenuIndex(hasCatalog));
+}
+
+constexpr X4ProHomeLayout makeX4ProHomeLayout(const int16_t titleLineHeight, const int16_t smallLineHeight) {
+  constexpr int16_t CONTENT_X = 31;
+  constexpr int16_t CONTENT_WIDTH = 418;
+  constexpr int16_t HERO_COVER_WIDTH = 145;
+  constexpr int16_t HERO_COVER_HEIGHT = 210;
+  constexpr int16_t HERO_GAP = 19;
+  constexpr int16_t RECENT_ROW_GAP = 8;
+  constexpr int16_t RECENT_ROW_HEIGHT = 78;
+  constexpr int16_t RECENT_COVER_WIDTH = 42;
+  constexpr int16_t RECENT_COVER_HEIGHT = 61;
+
+  const int16_t heroInfoX = static_cast<int16_t>(CONTENT_X + HERO_COVER_WIDTH + HERO_GAP);
+  const int16_t heroInfoWidth = static_cast<int16_t>(CONTENT_WIDTH - HERO_COVER_WIDTH - HERO_GAP);
+  const int16_t heroTitleHeight = static_cast<int16_t>(titleLineHeight * 2);
+  const int16_t heroAuthorY = static_cast<int16_t>(224 + heroTitleHeight + 8);
+  const int16_t progressY = static_cast<int16_t>(heroAuthorY + smallLineHeight + 14);
+  const int16_t trackY = static_cast<int16_t>(progressY + smallLineHeight + 5);
+  const int16_t secondRecentY = static_cast<int16_t>(567 + RECENT_ROW_HEIGHT + RECENT_ROW_GAP);
+
+  X4ProHomeLayout layout{{CONTENT_X, 29, CONTENT_WIDTH, 27},
+                         {CONTENT_X, 99, CONTENT_WIDTH, 45},
+                         {CONTENT_X, 149, CONTENT_WIDTH, 20},
+                         {340, 99, 109, 44},
+                         {208, 247, 64, 64},
+                         {CONTENT_X, 323, CONTENT_WIDTH, 42},
+                         {CONTENT_X + 24, 373, CONTENT_WIDTH - 48, 44},
+                         {CONTENT_X, 437, CONTENT_WIDTH, 50},
+                         {CONTENT_X, 499, CONTENT_WIDTH, 50},
+                         {CONTENT_X, 561, CONTENT_WIDTH, 50},
+                         {CONTENT_X, 194, HERO_COVER_WIDTH, HERO_COVER_HEIGHT},
+                         {heroInfoX, 194, heroInfoWidth, HERO_COVER_HEIGHT},
+                         {heroInfoX, 200, heroInfoWidth, smallLineHeight},
+                         {heroInfoX, 224, heroInfoWidth, heroTitleHeight},
+                         {heroInfoX, heroAuthorY, heroInfoWidth, smallLineHeight},
+                         {heroInfoX, progressY, heroInfoWidth, smallLineHeight},
+                         {heroInfoX, trackY, heroInfoWidth, 3},
+                         {CONTENT_X, 428, CONTENT_WIDTH, 50},
+                         {CONTENT_X, 507, CONTENT_WIDTH, 44},
+                         {CONTENT_X, 557, CONTENT_WIDTH, 1},
+                         {{{CONTENT_X, 567, CONTENT_WIDTH, RECENT_ROW_HEIGHT},
+                           {CONTENT_X, secondRecentY, CONTENT_WIDTH, RECENT_ROW_HEIGHT}}},
+                         {{{CONTENT_X, 575, RECENT_COVER_WIDTH, RECENT_COVER_HEIGHT},
+                           {CONTENT_X, static_cast<int16_t>(secondRecentY + 8), RECENT_COVER_WIDTH,
+                            RECENT_COVER_HEIGHT}}},
+                         {{{static_cast<int16_t>(CONTENT_X + RECENT_COVER_WIDTH + 12), 575, 330, titleLineHeight},
+                           {static_cast<int16_t>(CONTENT_X + RECENT_COVER_WIDTH + 12),
+                            static_cast<int16_t>(secondRecentY + 8), 330, titleLineHeight}}},
+                         {{{static_cast<int16_t>(CONTENT_X + RECENT_COVER_WIDTH + 12), 609, 330, smallLineHeight},
+                           {static_cast<int16_t>(CONTENT_X + RECENT_COVER_WIDTH + 12),
+                            static_cast<int16_t>(secondRecentY + 42), 330, smallLineHeight}}},
                          {CONTENT_X, 744, CONTENT_WIDTH, 44}};
-  for (size_t i = 0; i < layout.shelfCovers.size(); ++i) {
-    const int16_t x = static_cast<int16_t>(CONTENT_X + i * SHELF_COLUMN_STEP);
-    layout.shelfCovers[i] = {x, shelfCoverY, SHELF_COVER_WIDTH, SHELF_COVER_HEIGHT};
-    layout.shelfTitles[i] = {x, shelfTitleY, SHELF_COVER_WIDTH, smallLineHeight};
-    layout.shelfAuthors[i] = {x, shelfAuthorY, SHELF_COVER_WIDTH, smallLineHeight};
-  }
   return layout;
 }
