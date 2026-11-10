@@ -17,13 +17,13 @@ def git(*args):
 head = git('rev-parse', 'HEAD')
 if head.returncode or head.stdout.strip() != expected:
     raise RuntimeError(f'Unexpected simulator revision at {dep}: {head.stdout.strip()} {head.stderr.strip()}')
-if git('apply', '--reverse', '--check', str(patch)).returncode == 0:
+if git('apply', '--unidiff-zero', '--reverse', '--check', str(patch)).returncode == 0:
     print('Simulator compatibility patch already applied')
 else:
-    check = git('apply', '--check', str(patch))
+    check = git('apply', '--unidiff-zero', '--check', str(patch))
     if check.returncode:
         raise RuntimeError(f'Simulator compatibility patch cannot apply: {check.stderr.strip()}')
-    apply = git('apply', str(patch))
+    apply = git('apply', '--unidiff-zero', str(patch))
     if apply.returncode:
         raise RuntimeError(f'Simulator compatibility patch failed: {apply.stderr.strip()}')
     print('Applied simulator static-initialization compatibility patch')

@@ -38,21 +38,15 @@ Fresh spot checks establish these predicates; they do not certify the entire led
 
 REC-01 adds one current-revision disposition table to the recovered STEP 03 file, keeping its original record descriptions. Each F-ID needs current owner/symbol, entry/return, exact build/runtime predicate, changed/unchanged/blocked disposition, regression case, existing test or NOT TESTED, and missing evidence. UNKNOWN routes or predicates block their affected integration until resolved; no feature silently disappears.
 
-## SDK and simulator evidence
+## Execution target and REC-02 evidence
 
-Parent SDK gitlink is **946e6ac3d7a9d590ba3224428e6183d55ac7917c**. The refoundation and font-gate Windows SDK directories were empty during this audit; running Git there returned the parent repository. The initialized, clean SDK under the original xteink-os worktree matched the gitlink and supplied read-only BoardConfig evidence. Before native work, initialize/verify the chosen checkout at the existing pin, never update it.
+The published REC-01 anchor is **17773ef2100e4e0f51ebbff66d86ce58ddb1ec98** in the existing Uturio99/xteink-os repository. Use **feat/noveos-native** in the existing external REC-01 worktree. The same-SHA switch and bounded REC-02 tooling scope are authorized by the PO's instruction to execute the revised plan. The REC-01 checkpoint remains the immutable comparison ref. Historical Home/font/parser worktrees and the Phase 03-P0 recovery vault remain candidate evidence.
 
-Pinned BoardConfig's X4 Pro profile declares ESP32-S3, 800×480 panel mapped to portrait, GT911, Left/Right/Power plus capacitive Home, SDMMC and RTC/frontlight. Panel mount and USB/VBUS detection remain explicitly unconfirmed in that source. Device observations still belong to the actual PO unit. Use HalStorage/HalFile locking and HalMemory internal/PSRAM/largest-block accounting; C3's limits do not describe X4 Pro headroom.
+The SDK gitlink and its own checkout match **946e6ac3d7a9d590ba3224428e6183d55ac7917c**, with nested Lucide at **c81680e066f45b640743ca78ae36cdedda3f0318**. Keep simulator **6730fe5fe576c9d924e44096a9e267d8538d184c** and JPEGDEC **86282979224c8a32fd51e091ed5a35b0c699a52b** pinned. X4 Pro uses ESP32-S3, native 800×480 mapped to portrait, GT911, SDMMC and a distinct Home input. Confirm panel and USB/VBUS behavior on the actual unit.
 
-| Simulator state | Current evidence |
-|---|---|
-| Configured | **VERIFIED**: 2dbf8155, platformio.ini env:simulator and env:simulator_x4_pro; simulator pin 6730fe5fe576c9d924e44096a9e267d8538d184c; host-only compatibility script/patch. |
-| Compiled | **UNKNOWN for this exact clean revision**: no matching build log was recovered in inspected Windows checkouts. Separate font experiment reports are not clean-head evidence. |
-| Launched | **UNKNOWN for this exact clean revision**: launch instructions exist; no reproducible run record recovered. |
-| Native behavior tested | **NOT TESTED by this audit**. No activity lifecycle acceptance follows from configuration. |
-| Physical X4 Pro verified | **NOT TESTED**. Simulator shims cannot prove panel, physical input, MCU memory, real USB/SD/Wi-Fi or boot recovery. |
+The November 10 REC-02 addendum recorded a build and visible interaction on the existing empty Cover Grid Home, with an uncommitted simulator compatibility/EOL overlay. It recorded firmware failure at JPEGDEC 0002. Keep that historical evidence separate from new results. Use the canonical program directly under WSL/X11 with an isolated CROSSPOINT_SIM_SD. The launcher in the older workspace points at H1.1B, and the PlatformIO launch wrapper stalled scanning the Windows mount.
 
-Use [existing Linux/WSL setup and launch instructions](../../contributing/getting-started.md#x4-pro-desktop-simulator-linuxwsl2) when an authorized package needs it. Do not create another simulator or require a new simulator project before NAV work. Source/host checks remain useful if simulator runtime is unavailable; mandatory device acceptance remains open.
+Report **SOURCE_VERIFIED**, **BUILD_VERIFIED**, **SIMULATOR_RENDER_VERIFIED**, **SIMULATOR_BEHAVIOR_VERIFIED**, **HARDWARE_VERIFIED**, **BLOCKED** or **NOT_TESTED** per case. Record revision, exact diff, profile, command or input scenario, and evidence. The simulator replaces the hardware and omits USB MSC. Host or simulator evidence does not close physical input, storage, heap, E-Ink or recovery gates.
 
 ## Gates and shortest safe path
 
@@ -60,11 +54,31 @@ Use [existing Linux/WSL setup and launch instructions](../../contributing/gettin
 |---|---|
 | G1 — pre-integration parity | REC-01 resolves the 44 current-source rows; PO identifies/accepts the recovered ledger or explicitly adopts it as replacement and dispositions all remaining pre-integration evidence gaps under STEP 06. This audit does not weaken STEP 06's parity prerequisite or count source equality as runtime parity. If that gate requires measurements before code, obtain them on the existing candidate in REC-02. |
 | G2 — implementation provenance and permission | Record scope-specific authorization/acceptance for existing 372ccca1/2dbf8155 if available, and explicit permission for the bounded verification/correction package. The preservation contract supplies the expected logical mapping: default short→Library/long→Files; reversed short→Files/long→Library for a Library parent, while explicit Home stays independent. Upper-left V2 Back is already approved. Missing permission stays UNKNOWN; any contrary approval must be identified before changing that behavior, not invented. Firmware handoff still requires human acceptance of the concrete implementation/ownership. |
-| G3 — candidate/environment/resource | Pin chosen clean candidate/diff, SDK and simulator/toolchain; separate dirty Home/font experiments. Obtain explicit authorization for bounded baseline verification, diagnostic changes if needed, and any device/flash action. Human X4 Pro evidence must establish parent+Reader/child headroom and SD lifetime before retained-parent changes are accepted. No MCU memory values inferred from simulator. |
+| G3 — candidate/environment/resource | Pin chosen clean candidate/diff, SDK and simulator/toolchain; separate dirty Home/font experiments. Obtain explicit authorization for bounded baseline verification, diagnostic changes if needed, and any device/flash action. Measure the existing Library-origin and root-open paths on X4 Pro before REC-03/B. Repeat the resource and SD lifetime checks on the corrected candidate before acceptance. |
 | G4 — native fonts/visual acceptance | Reuse M2-WP1 feasibility and existing font-gate experiment; PO selects native face/roles only after current glyph/layout/fallback and linked flash evidence. Explicitly set or accept measured flash reserve and memory budget; do not invent numeric thresholds. V2 visual direction itself stays settled. |
 | G5 — product acceptance | All adopted capability rows and affected journeys have applicable source/host/build/simulator/device evidence; no unresolved safety or parity failure; firmware-handoff and explicit human acceptance complete. Publishing/flashing remain separately authorized. |
 
-**Critical path:** REC-01 → G2 and bounded REC-02 authorization → REC-02 → G1 final disposition → REC-03 → REC-04 → REC-06, with REC-05 joining before REC-06. G1/G2 records and existing font evidence collection can proceed independently of one another. REC-05 does not require new Home cosmetics; it needs the common gates and its own approved route scope. Simulator diagnosis can run alongside ledger work when separately assigned; it is not a substitute for device gates. Defer additional browser prototypes, other-device redesign, speculative caches and CI expansion. Shared-board regressions and recovery cannot be deferred.
+**Critical path:** REC-02 builds and baseline parity → G1 disposition → REC-04/H first interactive Home → REC-03/A → REC-03/B → REC-04/R and REC-05 → REC-06. G3 baseline device work can proceed on the saved build-only image. G4 final font and visual evidence applies to REC-04 completion. G1 remains a prerequisite for any UI/NAV integration. Obtain the relevant package approval before editing.
+
+### Native coverage by checkpoint
+
+| Checkpoint | V2 template | Shared styling | Preserved with reason |
+|---|---|---|---|
+| REC-02 | — | — | Existing baseline for comparisons. |
+| REC-04/H | Home | — | Destination screens and transfer chooser retain current behavior while the real Home is exercised. |
+| REC-03/A–B, REC-04/R | Library and Reader at REC-04/R | Reader controls and feedback where approved | Existing Reader engines and input ownership. |
+| REC-05 | Settings and Import | File Browser, OPDS, Plugins, dialogs and feedback where approved | Service-specific views without an approved template. |
+| REC-06 | Review affected templates across the four journeys | Review shared states in those journeys | Startup splash, boot identifiers, crash and recovery under BRAND-001 and existing safety contracts. |
+
+Use the STEP 03 ledger for capability outcomes and this table for visual disposition. Keep CrossPoint attribution. The app-controlled startup splash still shows CrossPoint under [BRAND-001](../step07b/STEP-07B.1R-DECISIONS.md). Any later splash change needs separate approval and belongs to BootActivity and its assets. Bootloader, partitions, crash and recovery have separate owners.
+
+### Device entry, measurements and recovery
+
+- Before the first baseline or candidate flash, obtain separate PO authorization for the exact image and unit. Confirm panel/profile, image hash, the application-only write path, a known-good recovery image and a working route to recovery. Preserve device data and use spare SD media. Stop if recovery is unproven.
+- For NAV, compare Library-origin and root-open on the same baseline build, book and card before REC-03/B. Record internal heap, PSRAM minima and largest blocks, SD handle lifetime and repeated entry/return/child behavior. Measure the corrected path before accepting it.
+- Compare Home baseline and candidate with matched fixtures, settings, orientation and cache state. Use empty, populated cold/warm and missing-book cases, with EPUB and XTC where the paths differ. Measure time to usable Home, destination response, time until covers settle, index/thumbnail work and requested refresh count/type. On X4 Pro add physical response, ghosting, internal/PSRAM minima and largest blocks, and SD activity over repeated Home/Reader transitions. Use existing logs and captures first. Investigate reproducible degradation, repeated thumbnail work, stale pixels or shrinking headroom. Set reserves from evidence and PO disposition.
+- Keep one known-good base, scoped diff and artifact hashes per accepted logical change. Stop before writes if refs, pins or dirty paths differ. Recover owned files from recorded before-images or use a separately authorized revert commit. Preserve other WIP. Stop device tests on ownership conflict, boot failure or crash loop and use the approved recovery procedure.
+- Use inexpensive checks at internal checkpoints and four independent read-only review axes on each frozen firmware/build-affecting logical diff. Keep the two-round cap. Rerun only checks invalidated by a change. Use a low-cost builder for bounded work and experienced embedded review for lifecycle, storage and recovery. Human acceptance and publication authorization are separate.
 
 ## Work-package contracts
 
@@ -100,32 +114,29 @@ These statuses are the recovery snapshot, not invented Beads issue IDs. Changes 
 | Exclusions | Firmware/test/pipeline edits, new features/IDs, parity acceptance, hardware claims, repeated full-history audit. |
 | Completion evidence | Updated 44-row table; affected routes; exact unresolved G1 evidence and G2 authorization provenance; source checks and NOT TESTED runtime cases. |
 
-### REC-02 — Validate the existing native candidate
+### REC-02 — Build reproducibility and baseline verification
 
 | Field | Contract |
 |---|---|
-| Objective | Establish whether the existing retained-parent implementation is a safe base to finish. |
-| Status | BLOCKED — G3 verification/device authorization and reproducible candidate required. |
-| Dependencies | REC-01 evidence for affected F03/F05/F20/F28/F30/F31/F43/F44; the preservation input matrix above; G3 setup and authorization. |
-| Authority | NAV-001, STEP 05 lifecycle, existing resource/input rules; no new UX. |
-| Scope | Existing Library/Reader/ActivityManager paths and named tests; initialized pinned SDK; simulator_x4_pro; human X4 Pro observations. Diagnostic modifications only if explicitly included in its authorization. |
-| Implementation | Run existing tests; build/launch the pinned candidate as authorized; execute normal/filtered/reordered/missing-index/missing-book/child/sync/Home cases. Compare replacement baseline and retained-parent memory on the same card/book. |
-| Acceptance | Reproducible results for each case, known mismatches localized, no false success. Internal/PSRAM free/minimum/largest blocks and SD lifetime recorded through load/children/return/repeat; passing resource budget reviewed before native continuation. A failed behavioral case is evidence for REC-03, not acceptance of that behavior. |
-| Verification | Existing host suites + actual native transitions where supported; human device evidence for resources/input/storage. If no production lifecycle test seam exists, report NOT TESTED rather than create a generic framework. |
-| Exclusions | Visual redesign, general test harness, dependency updates, destructive testing or unapproved flash. |
-| Completion evidence | Candidate/SDK hashes, commands/logs, separate build/launch/scenario/device results and bounded defect list. Unknown required resource evidence leaves REC-02 incomplete. |
+| Objective | Produce reproducible x4pro and simulator_x4_pro artifacts, then establish the baseline evidence needed for G1 and REC-03/B. |
+| Status | Build follow-up in progress. G1 disposition and device authorization/evidence remain open. |
+| Build scope | Preserve the three simulator compatibility calls and normalized SimLog/0001 bytes. Normalize 0002 and 0003 to LF. Set text eol=lf for the simulator patch and JPEGDEC patch series. Keep all hunk bodies and dependency pins. |
+| Build verification | Preserve byte-verified before-images. Check ordered apply, already-applied detection and reverse on pinned LF fixtures. Build x4pro and simulator_x4_pro with the recorded WSL PlatformIO setup. Save hashes, visible direct launch and Home→Library→Home input/transition evidence. Stop on pin drift, semantic patch change or failure after one bounded correction. |
+| Baseline verification | Reuse valid evidence. Exercise STEP 03/05 cases needed for G1. Record source-verified Back and sync/loan mismatches separately from measured baseline outcomes. Capture the same-binary Library-origin/root-open memory and SD comparison after device entry approval. |
+| Exclusions | Firmware logic, dependency upgrades, general harness, UI redesign, destructive testing or unapproved flash. |
+| Exit | Both build artifacts and visible simulator smoke recorded for the build checkpoint. Keep baseline/device verification open until its required evidence is available. |
 
 ### REC-03 — Finish Library → Reader → contextual Back
 
 | Field | Contract |
 |---|---|
 | Objective | One usable native NAV-001 vertical slice with independent Home and preserved reading functions. |
-| Status | BLOCKED — G1/G2/G3, REC-02 and explicit bounded firmware authorization. |
-| Dependencies | REC-01 and REC-02; approved native input binding; retained-parent resource evidence. |
+| Status | A is BLOCKED on H, G1/G2 and scoped authorization. B also needs A, G3 baseline device evidence and scoped B authorization. |
+| Dependencies | G1/G2 and package authorization for A. A plus G3 baseline resource/SD evidence for B. |
 | Authority | V2 contextual Back and STEP 06 NAV-001; STEP 05 lifecycle, with later V2 visual precedence and scoped G2 authorization. |
 | Scope | LibraryListActivity, ReaderActivity/ReaderUtils, ActivityManager only if needed, EPUB sync/loan relaunch, existing Reader chrome/overlay/input owners and focused tests. |
-| Implementation | Correct only demonstrated gaps in existing 372ccca1. Wire the approved visible contextual action for EPUB and XTC; preserve parent through same-book detours, state and failure recovery. No duplicate navigation state or new UI framework. |
-| Acceptance | All tabs/directions and active query retain book/viewport; reordered/removed/empty/failed-index cases recover with approved notice; chapterless XTC and disabled page-touch settings still have approved exit; child/footnote Back is consumed first; both logical mappings match the preservation matrix; one gesture produces one action; explicit Home/Files ends visit; load failure leaves usable Library. |
+| Implementation | A corrects the Home-bound branch in ReaderUtils and replaces the assertion that encodes the defect. B preserves the Library visit and one-shot callback through current-only same-book sync/loan replacement in ActivityManager, with at most one live Reader. Preserve Wi-Fi cleanup and suppress reboot only for the retained detour, including explicit Home teardown. On reconstruction failure pop normally and reconcile Library. Bind the approved upper-left Back after lifecycle verification. |
+| Acceptance | Test both logical mappings and other origins. Preserve tab/direction/query, identity, focus and viewport. Recover from removed/reordered books, index/load/construction failures and show the approved notice. Test sync success/cancel/failure/retry, loan, Home during sync, chapterless XTC, disabled page touch/menu, modal/footnote precedence and one action per input. Verify candidate device headroom and SD lifetime before acceptance. Stop for a scope decision if the retained in-process detour is unsafe. |
 | Verification | Production-path regression cases; reused library/index/input tests plus smallest real seam tests for changed logic; simulator where supported; relevant builds and four-axis firmware handoff; human X4 Pro memory/input/SD/orientation checks. |
 | Exclusions | Home/Settings restyling, broad Reader rewrite, new gestures, snapshot manager, unrelated origin changes. |
 | Completion evidence | Case matrix, tests/builds/reviews/device evidence, state/resource ownership and explicit PO behavior/architecture acceptance. No source-only DONE. |
@@ -135,12 +146,12 @@ These statuses are the recovery snapshot, not invented Beads issue IDs. Changes 
 | Field | Contract |
 |---|---|
 | Objective | Open/resume/read/return using approved native V2 composition and legible Vietnamese. |
-| Status | BLOCKED — REC-03, G4 and named firmware/visual implementation authorization. |
-| Dependencies | Accepted NAV slice; current native font/fallback/flash evidence and PO selection. |
+| Status | BLOCKED for H on reproducible builds, G1 disposition and named Home scope. R depends on REC-03. G4 applies to final REC-04 acceptance. |
+| Dependencies | H uses existing font IDs and routes. R uses the accepted NAV slice and requires glyph/fallback/flash evidence and PO selection before adopting new fonts. |
 | Authority | V2, Hybrid demo, reconciled STEP 06; existing UI ownership and font rules. |
 | Scope | Existing Home/CoverGridHomeUi/X4ProHomeLayout, Library/Reader drawing, UITheme/ThemeMetrics/token bridge and font assets only as approved. |
-| Implementation | Reuse selected evidence-backed portions of dirty Home/font candidates, one coherent reading journey. Make only necessary owner/token changes; keep progress/catalog/reader engines. |
-| Acceptance | Populated/empty/missing-book Home; honest progress; approved rows/tabs/Back and navigation; long NFC/NFD titles/Reader text without lost marks or clipping; glyph fallback works; safe hit geometry and redraw. |
+| Implementation | H adapts the five-file Home candidate through HomeActivity, UITheme and the active X4 Pro Cover Grid draw/input path. Keep existing progress, catalog, route callbacks and transfer behavior. Verify and freeze H separately. R finishes Library and Reader presentation and adopts only approved, measured font assets. |
+| Acceptance | H visibly renders empty, populated and missing-book Home in the canonical simulator. Touch and physical-equivalent input open/resume real fixture books and reach Library, Files, Settings and the existing transfer chooser with OPDS/plugins on and off. Verify returns, honest progress and matched cold/warm comparisons. R proves approved rows/tabs/Back, long NFC/NFD text, fallback, hit geometry and redraw, then closes device and G4 gates. |
 | Verification | Existing layout/Unicode suites, linked font footprint, native captures/interaction, relevant builds/reviews; human four-orientation input/readability/refresh/resource checks and PO visual acceptance. |
 | Exclusions | Reopening V2 direction, evaluating endless new font families, new catalog/progress database or renderer. |
 | Completion evidence | Native before/after for affected states, font decision/budget, cases and all applicable handoff evidence. |
@@ -170,7 +181,7 @@ These statuses are the recovery snapshot, not invented Beads issue IDs. Changes 
 | Authority | Execution contract, all approved product decisions and mandatory firmware-handoff. |
 | Scope | Final candidate, all F01–F44 capability/guard cases, four journeys, boot/recovery/storage and release evidence. |
 | Implementation | Close remaining verification gaps; localize discovered defects to owning packages. Reuse valid earlier evidence; do not repeat unchanged reviews/builds. |
-| Acceptance | Every applicable capability retains a reachable route and correct result; unavailable profile capabilities are documented correctly. Reading/progress/resume, Vietnamese, input, panel/refresh, resources, storage, network and recovery meet approved checks. No safety/parity blocker or missing mandatory human acceptance. |
+| Acceptance | Close every applicable F01–F44 route/guard/outcome and the native visual dispositions above. Reading/progress/resume, Vietnamese, input, panel/refresh, resources, storage, network and recovery meet approved checks. Record the accepted boot branding limitation and G5 human acceptance. |
 | Verification | Target/shared-board builds as affected; host regressions, supported simulator scenarios and human device cases with exact revision/profile/card. Full recovery/USB checks only at relevant boundaries, never waived. |
 | Exclusions | Automatic flash, commit, merge, push, PR or release publication. |
 | Completion evidence | Final evidence matrix and human behavior/design/maintenance acceptance; separate release authorization remains required. |
@@ -183,10 +194,6 @@ CI already has formatting, cppcheck, eight board builds (including x4pro/default
 
 **PROPOSED minimal CI changes, not implemented here:** when REC-03 adds focused production-seam tests, register them in existing CTest; ensure their dependency libraries (for example Expat, required by parser suites) are installed in the existing unit-test job. Add a simulator smoke job only after REC-02 establishes a reproducible command and a concrete missing failure it detects. A documentation link check can reuse the recovery check if drift recurs; no new QA framework. CI cannot grant PO acceptance or pass hardware gates.
 
-## Next-agent handoff — REC-01 only
+## Current handoff
 
-Copy-ready instruction — **executed 2026-11-09; retained for provenance** (completion recorded in the STEP 03 REC-01 section and PROJECT_STATUS):
-
-> Execute REC-01 only. Use the recovery worktree with base 7d63f480e779df702cc861437b331fccc960bb29 plus its uncommitted documentation changes; verify the current diff first. Read AGENTS.md, docs/EXECUTION_CONTRACT.md and REC-01 here. Reuse recovered STEP 03 IDs, STEP 05 corrections and the current NAV findings above. Compare ad53eb645f27b76c8c4594fafe58479932234bf2..7d63f480e779df702cc861437b331fccc960bb29; inspect only affected owners/callers and exact guards. The original Windows checkout G:/AI-Setup/XTEInk-X4-Pro/xteink-os/freeink-sdk was verified clean at 946e6ac3d7a9d590ba3224428e6183d55ac7917c; recheck identity before using its source, never assume an empty SDK directory is initialized. Append the current 44-row disposition table in docs/superpowers/audits/STEP-03-FEATURE-INVENTORY.md, preserving historical text/IDs and marking unresolved evidence. Supply a concrete G1 adoption/disposition packet and the G2 mismatch; do not reopen settled V2 choices. Use Beads if an active workspace exists; otherwise report tracking unavailable without inventing an issue. Run link/ID/source-reference/diff checks. No firmware/test/pipeline edits, builds, commits, push, flash or cleanup. Report exact checks, gaps and the next gate; stop.
-
-No firmware builder instruction is ready. The smallest subsequent PO action is to adopt/disposition the REC-01 ledger and record G2 scope/authorization, then authorize the bounded REC-02 evidence work on a named candidate. Do not ask for blanket native integration approval.
+The first authorized builder scope is REC-02 build reproducibility on feat/noveos-native. G1 disposition and a separately authorized Home scope still gate REC-04/H. G2 gates REC-03/A, and G3 baseline device evidence gates REC-03/B. Device actions, commits and publication require their own authorization.

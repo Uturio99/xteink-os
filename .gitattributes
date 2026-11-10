@@ -1,0 +1,3 @@
+scripts/simulator-simlog-init.patch text eol=lf
+scripts/jpegdec_patches/*.patch text eol=lf
+scripts/sdfat_patches/*.patch text eol=lf
