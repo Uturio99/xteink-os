@@ -11,6 +11,8 @@ TEST(X4ProHomeLayout, MatchesPortraitEditorialContract) {
   EXPECT_EQ(layout.heroTitle, (HomeLayoutRect{32, 88, 270, 87}));
   EXPECT_EQ(layout.heroAuthor.x, 32);
   EXPECT_EQ(layout.heroAuthor.width, 270);
+  EXPECT_EQ(layout.milestoneLabel.width, 270);
+  EXPECT_EQ(layout.milestoneLabel.y, 211);
   EXPECT_EQ(layout.progressLabel.x, 32);
   EXPECT_EQ(layout.progressLabel.width, 270);
   EXPECT_LE(layout.heroTitle.right(), layout.heroCover.x);
@@ -30,6 +32,7 @@ TEST(X4ProHomeLayout, MatchesPortraitEditorialContract) {
   EXPECT_TRUE(insideContent(layout.heroCover));
   EXPECT_TRUE(insideContent(layout.heroTitle));
   EXPECT_TRUE(insideContent(layout.heroAuthor));
+  EXPECT_TRUE(insideContent(layout.milestoneLabel));
   EXPECT_TRUE(insideContent(layout.progressLabel));
   EXPECT_TRUE(insideContent(layout.progressTrack));
   EXPECT_TRUE(insideContent(layout.cta));
@@ -56,10 +59,10 @@ TEST(X4ProHomeLayout, MatchesPortraitEditorialContract) {
 TEST(X4ProHomeLayout, FitsTwoShelfRowsBeforeNavigation) {
   constexpr auto layout = makeX4ProHomeLayout(29, 24);
   EXPECT_EQ(layout.shelfRows.size(), 2u);
-  EXPECT_EQ(layout.shelfRows[0], (HomeLayoutRect{32, 387, 416, 84}));
-  EXPECT_EQ(layout.shelfRows[1], (HomeLayoutRect{32, 485, 416, 84}));
-  EXPECT_EQ(layout.shelfThumbs[0], (HomeLayoutRect{32, 401, 40, 56}));
-  EXPECT_EQ(layout.shelfThumbs[1], (HomeLayoutRect{32, 499, 40, 56}));
+  EXPECT_EQ(layout.shelfRows[0], (HomeLayoutRect{32, 407, 416, 84}));
+  EXPECT_EQ(layout.shelfRows[1], (HomeLayoutRect{32, 505, 416, 84}));
+  EXPECT_EQ(layout.shelfThumbs[0], (HomeLayoutRect{32, 421, 40, 56}));
+  EXPECT_EQ(layout.shelfThumbs[1], (HomeLayoutRect{32, 519, 40, 56}));
   EXPECT_GT(layout.shelfRows[1].y, layout.shelfRows[0].bottom());
   EXPECT_LE(layout.shelfAuthors[1].bottom(), layout.utilityLinks[0].y);
   EXPECT_GE(layout.utilityLinks[0].height, 48);
@@ -100,4 +103,5 @@ TEST(X4ProHomeLayout, RowsHoldUnderLargerTitleFont) {
   EXPECT_LE(layout.shelfRows[1].bottom(), layout.utilityLinks[0].y);
   EXPECT_TRUE(insideContent(layout.utilityLinks[2]));
   EXPECT_LE(layout.heroTitle.bottom(), layout.heroCover.y + 154);
+  EXPECT_LE(layout.milestoneLabel.bottom(), layout.progressLabel.y);
 }

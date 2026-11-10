@@ -41,8 +41,36 @@ void CoverGridHomeUi::begin(const std::vector<RecentBook>& recent, bool opds, bo
   app.on(SELECT, &CoverGridHomeUi::onAction, this);
   app.setScreen(&CoverGridHomeUi::screenFn, this);
   refreshCoverPaths();
-  progress = hasContinueReading && !books->empty() ? loadBookProgress(books->front().path) : -1;
-  if (progress >= 0) snprintf(progressText, sizeof(progressText), "%d%%", progress);
+  progress = -1;
+  progressText[0] = '\0';
+  milestoneText[0] = '\0';
+  if (hasContinueReading && !books->empty()) {
+#if FREEINK_DEVICE_X4PRO
+    heroMilestone = loadBookMilestone(books->front().path);
+    progress = heroMilestone.percentage;
+    if (progress >= 0) snprintf(progressText, sizeof(progressText), "%d%%", progress);
+    if (heroMilestone.chapterNumber > 0) {
+      int used =
+          snprintf(milestoneText, sizeof(milestoneText), "%s%d", tr(STR_CHAPTER_PREFIX), heroMilestone.chapterNumber);
+      if (used >= 0 && static_cast<size_t>(used) < sizeof(milestoneText) && heroMilestone.page > 0) {
+        if (heroMilestone.pageCount > 0)
+          snprintf(milestoneText + used, sizeof(milestoneText) - static_cast<size_t>(used), " | %d/%d",
+                   heroMilestone.page, heroMilestone.pageCount);
+        else
+          snprintf(milestoneText + used, sizeof(milestoneText) - static_cast<size_t>(used), " | %d",
+                   heroMilestone.page);
+      }
+    } else if (heroMilestone.page > 0) {
+      if (heroMilestone.pageCount > 0)
+        snprintf(milestoneText, sizeof(milestoneText), "%d/%d", heroMilestone.page, heroMilestone.pageCount);
+      else
+        snprintf(milestoneText, sizeof(milestoneText), "%d", heroMilestone.page);
+    }
+#else
+    progress = loadBookProgress(books->front().path);
+    if (progress >= 0) snprintf(progressText, sizeof(progressText), "%d%%", progress);
+#endif
+  }
 #if FREEINK_DEVICE_X4PRO
   if (renderer.getScreenWidth() == 480 && renderer.getScreenHeight() == 800) {
     x4ProCompact = true;
@@ -204,7 +232,7 @@ void CoverGridHomeUi::loadShelfProgress() {
   if (!books) return;
   const int rowCount = x4ProShelfRowCount(static_cast<int>(books->size()));
   for (int row = 0; row < rowCount && row < static_cast<int>(shelfProgress.size()); ++row) {
-    const int value = loadBookProgress((*books)[static_cast<size_t>(x4ProShelfBookIndex(row))].path);
+    const int value = loadBookMilestone((*books)[static_cast<size_t>(x4ProShelfBookIndex(row))].path).percentage;
     shelfProgress[row] = value;
     if (value >= 0) snprintf(shelfProgressText[row].data(), shelfProgressText[row].size(), "%d%%", value);
   }
@@ -265,6 +293,11 @@ void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
     auto progressStyle = theme.smallText;
     progressStyle.align = fui::TextAlign::Left;
     progressStyle.bold = true;
+    if (milestoneText[0] != '\0') {
+      screen.target().text(fui::Rect{layout.milestoneLabel.x, layout.milestoneLabel.y, layout.milestoneLabel.width,
+                                     layout.milestoneLabel.height},
+                           milestoneText, progressStyle);
+    }
     screen.target().text(fui::Rect{layout.progressLabel.x, layout.progressLabel.y, layout.progressLabel.width,
                                    layout.progressLabel.height},
                          progressText, progressStyle);
