@@ -1,0 +1,11 @@
+{
+  "state": "populated X4 Pro Home",
+  "recent_books_order": [
+    {"title_nfc": "Hữu ích giữa mùa thu: Những câu chuyện dài về người Việt Nam và ký ức của một thành phố", "author": "Thư viện NoveOS"},
+    {"title_nfc": "Đường về nhà qua những cánh đồng và dòng sông", "author": "Thư viện NoveOS"},
+    {"title_nfc": "Mùa nước nổi", "author": "Thư viện NoveOS"},
+    {"title_nfc": "Một ngày ở Hà Nội", "author": "Thư viện NoveOS"},
+    {"title_nfc": "Thư viện nhỏ bên bờ biển", "author": "Thư viện NoveOS"}
+  ],
+  "nfd_fixture": "The first title is rendered a second time after canonical NFD normalization, in the last visible slot."
+}

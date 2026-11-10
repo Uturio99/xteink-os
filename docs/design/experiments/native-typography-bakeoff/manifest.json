@@ -1,0 +1,16 @@
+{
+  "name": "NoveOS native typography bake-off",
+  "status": "prepared; native screenshots NOT TESTED",
+  "scene": {"renderer": "existing CrossPoint GfxRenderer", "size": [480, 800], "composition": "existing populated X4 Pro V2 Home from the isolated font-gate checkout", "roles": [8, 10, 11, 13, 21], "fixed_geometry": true, "fixed_content": "scene-content.json injected in isolated HomeActivity overlay", "layout_adjustments_per_candidate": false},
+  "sdk": {"revision": "946e6ac3d7a9d590ba3224428e6183d55ac7917c"},
+  "simulator": {"environment": "simulator_x4_pro", "revision": "6730fe5"},
+  "run": {"windows_sync": "sync_bakeoff.ps1", "ubuntu_prepare": "./prepare.sh", "ubuntu_candidates": ["./render.sh noto-serif", "./render.sh newsreader", "./render.sh literata"], "python": "/home/uturio/noveos-simulator/.venv/bin/python", "platformio": "/home/uturio/noveos-simulator/.venv/bin/pio", "source_sha256_manifest": "run-manifest.json", "capture_output": "captures/<candidate>/home-480x800.bmp"},
+  "candidates": [
+    {"name": "Noto Serif", "role": "baseline", "repository": "https://github.com/notofonts/latin-greek-cyrillic", "revision": "c4a321e123e4d4ff315f57f4e0adf294fe3a95be", "release": "NotoSerif-v2.015", "variable_source": "NotoSerif/googlefonts/variable-ttf/NotoSerif[wdth,wght].ttf", "license": "SIL Open Font License 1.1", "source_sha256": null, "native_unicode_test": "NOT TESTED"},
+    {"name": "Newsreader", "role": "candidate", "repository": "https://github.com/productiontype/NewsReader", "revision": "1ece6a8bfe5db1a2b90c76cc1fe5d3b2eed5dcf3", "variable_source": "fonts/variable/ttf/Newsreader[opsz,wght].ttf", "license": "SIL Open Font License 1.1", "source_sha256": null, "native_unicode_test": "NOT TESTED"},
+    {"name": "Literata", "role": "candidate", "repository": "https://github.com/googlefonts/literata", "revision": "0c2761b727a1b3a7cffd313c37f0f5163dfc7a63", "release": "3.103", "variable_source": "fonts/variable/Literata[opsz,wght].ttf", "license": "SIL Open Font License 1.1", "source_sha256": null, "native_unicode_test": "NOT TESTED"}
+  ],
+  "font_roles": {"serif8": {"size_px": 8, "weight": 400}, "serif10Bold": {"size_px": 10, "weight": 700}, "serif11": {"size_px": 11, "weight": 400}, "serif13": {"size_px": 13, "weight": 400}, "serif21": {"size_px": 21, "weight": 400}},
+  "changed_paths_in_isolated_copy": ["src/activities/home/HomeActivity.cpp (fixed scene only)", "docs/design/experiments/native-typography-bakeoff/**", "lib/EpdFont/builtinFonts/notoserif_8_regular.h", "lib/EpdFont/builtinFonts/notoserif_10_bold.h", "lib/EpdFont/builtinFonts/notoserif_11_regular.h", "lib/EpdFont/builtinFonts/notoserif_13_regular.h", "lib/EpdFont/builtinFonts/notoserif_21_regular.h", ".pio/build/simulator_x4_pro/**", "build/wp1-host/**"],
+  "checks": {"firmware_size_delta": "deferred until PO selects a candidate", "runtime_memory": "deferred until PO selects a candidate", "visual_judgment": "pending PO review"}
+}

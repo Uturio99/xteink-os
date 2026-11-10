@@ -15,6 +15,7 @@
 #include <gtest/gtest.h>
 
 #include <cstdint>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -34,6 +35,14 @@
 #include "notoserif_17_regular.h"
 #include "notoserif_30_regular.h"
 #include "notoserif_34_regular.h"
+#include "builtinFonts/notoserif_8_regular.h"
+#include "builtinFonts/notoserif_10_bold.h"
+#include "builtinFonts/notoserif_11_regular.h"
+#include "builtinFonts/notoserif_13_regular.h"
+#include "builtinFonts/notoserif_21_regular.h"
+#include "builtinFonts/notosans_5_regular.h"
+#include "builtinFonts/notosans_5_bold.h"
+#include "builtinFonts/notosans_6_regular.h"
 
 namespace {
 
@@ -64,7 +73,7 @@ std::vector<uint32_t> vietnameseSet() {
 
 // NFC and NFD spellings of the same sentence (ữ ơ ạ have canonical NFD forms).
 const char* kNfc = "Hữu ích, ơi ơ, đã rõ.";
-const char* kNfd = "Hu\xCC\x9B\xCC\x83 i\xCC\x81" "ch, o\xCC\x9B" "i o\xCC\x9B, d\xCC\xA3 r\xCC\x89" "o\xCC\x82.";  // NFD(u+horn+tilde, i+acute, o+horn, d+dot, r+hook, o+circumflex)
+const char* kNfd = "Hu\xCC\x9B\xCC\x83u i\xCC\x81" "ch, o\xCC\x9Bi o\xCC\x9B, \xC4\x91" "a\xCC\x83 ro\xCC\x83.";
 
 std::vector<uint32_t> codepointsOf(const char* utf8) {
   std::vector<uint32_t> out;
@@ -171,6 +180,35 @@ TEST(B_BundledSerifCoverage, NfcAndNfdFixtureCodepointsPresent) {
   }
 }
 
+TEST(B_V2CandidateCoverage, HomeRolesAndVietnamese) {
+  const EpdFontData* faces[] = {&notoserif_8_regular, &notoserif_10_bold,
+                                &notoserif_11_regular, &notoserif_13_regular,
+                                &notoserif_21_regular};
+  const uint8_t advances[] = {23, 28, 31, 37, 60};
+  for (size_t i = 0; i < 5; ++i) {
+    expectCovered(faces[i], "V2 Home Serif");
+    EXPECT_EQ(faces[i]->advanceY, advances[i]);
+    EpdFont font(faces[i]);
+    for (const char* fixture : {kNfc, kNfd}) {
+      for (uint32_t cp : codepointsOf(fixture)) {
+        EXPECT_TRUE(font.hasCodepoint(cp)) << "missing U+" << std::hex << cp;
+      }
+    }
+  }
+}
+
+TEST(B_V2CandidateCoverage, SupportingSansRolesAndVietnamese) {
+  for (const EpdFontData* face : {&notosans_5_regular, &notosans_5_bold, &notosans_6_regular}) {
+    expectCovered(face, "V2 Home Sans");
+    EpdFont font(face);
+    for (const char* fixture : {kNfc, kNfd}) {
+      for (uint32_t cp : codepointsOf(fixture)) {
+        EXPECT_TRUE(font.hasCodepoint(cp)) << "missing U+" << std::hex << cp;
+      }
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Strategy C — SDK vector engine on NotoSerif-Regular.ttf
 // ---------------------------------------------------------------------------
@@ -194,6 +232,22 @@ TEST(C_VectorSerifCoverage, VietnameseComplete) {
       printf("[C] missing glyph: U+%04X\n", missing[i]);
     }
   }
+}
+
+TEST(C_VectorSerifCoverage, HostInitTiming) {
+  const auto readStart = std::chrono::steady_clock::now();
+  std::vector<uint8_t> ttf = loadFile(WP1_SERIF_TTF);
+  const auto readEnd = std::chrono::steady_clock::now();
+  ASSERT_FALSE(ttf.empty());
+  std::vector<uint8_t> arenaBuf(1024 * 1024);
+  Arena arena(arenaBuf.data(), arenaBuf.size());
+  TtfFont font;
+  ASSERT_TRUE(font.init(ttf.data(), static_cast<uint32_t>(ttf.size()), arena));
+  const auto initEnd = std::chrono::steady_clock::now();
+  const auto readMs = std::chrono::duration_cast<std::chrono::microseconds>(readEnd - readStart).count();
+  const auto initUs = std::chrono::duration_cast<std::chrono::microseconds>(initEnd - readEnd).count();
+  printf("[C] host TTF read=%lld us init=%lld us arenaHighWater=%zu\n",
+         static_cast<long long>(readMs), static_cast<long long>(initUs), arena.highWater());
 }
 
 TEST(C_VectorSerifCoverage, RasterizesAtReaderAndUiSizes) {

@@ -1,0 +1,10 @@
+{
+  "status": "NOT TESTED; screenshots and PO review pending",
+  "candidates": {
+    "noto-serif": {"screenshot": null, "editorial_character": null, "hierarchy": null, "ink_quality": null, "small_size_readability": null, "glyph_bounds": null, "clipping": null, "wrapping_differences": null},
+    "newsreader": {"screenshot": null, "editorial_character": null, "hierarchy": null, "ink_quality": null, "small_size_readability": null, "glyph_bounds": null, "clipping": null, "wrapping_differences": null},
+    "literata": {"screenshot": null, "editorial_character": null, "hierarchy": null, "ink_quality": null, "small_size_readability": null, "glyph_bounds": null, "clipping": null, "wrapping_differences": null}
+  },
+  "recommendation": null,
+  "po_approval": null
+}

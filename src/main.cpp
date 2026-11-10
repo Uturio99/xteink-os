@@ -22,6 +22,14 @@
 #include <WiFi.h>
 #include <XteinkDetect.h>
 #include <builtinFonts/all.h>
+#include <builtinFonts/notoserif_8_regular.h>
+#include <builtinFonts/notoserif_10_bold.h>
+#include <builtinFonts/notoserif_11_regular.h>
+#include <builtinFonts/notoserif_13_regular.h>
+#include <builtinFonts/notoserif_21_regular.h>
+#include <builtinFonts/notosans_5_regular.h>
+#include <builtinFonts/notosans_5_bold.h>
+#include <builtinFonts/notosans_6_regular.h>
 #include <esp_heap_caps.h>
 #include <esp_wifi.h>
 #include <time.h>
@@ -119,6 +127,23 @@ EpdFontFamily ui10FontFamily(10, &ui10RegularFont, &ui10BoldFont);
 EpdFont ui12RegularFont(&ubuntu_12_regular);
 EpdFont ui12BoldFont(&ubuntu_12_bold);
 EpdFontFamily ui12FontFamily(12, &ui12RegularFont, &ui12BoldFont);
+
+// Isolated Home V2 font-size experiment; no Home UI selects these IDs.
+EpdFont serif8(&notoserif_8_regular);
+EpdFont serif10Bold(&notoserif_10_bold);
+EpdFont serif11(&notoserif_11_regular);
+EpdFont serif13(&notoserif_13_regular);
+EpdFont serif21(&notoserif_21_regular);
+EpdFontFamily serif8Family(8, &serif8);
+EpdFontFamily serif10BoldFamily(10, &serif10Bold);
+EpdFontFamily serif11Family(11, &serif11);
+EpdFontFamily serif13Family(13, &serif13);
+EpdFontFamily serif21Family(21, &serif21);
+EpdFont sans5(&notosans_5_regular);
+EpdFont sans5Bold(&notosans_5_bold);
+EpdFont sans6(&notosans_6_regular);
+EpdFontFamily sans5Family(5, &sans5, &sans5Bold);
+EpdFontFamily sans6Family(6, &sans6);
 
 // Definitions for SilentRestart.h. RTC_NOINIT survives ESP.restart() but not power loss.
 RTC_NOINIT_ATTR uint32_t silentRebootMagic;
@@ -553,6 +578,13 @@ void setupDisplayAndFonts(bool seamless = false) {
   renderer.insertFont(UI_10_FONT_ID, ui10FontFamily);
   renderer.insertFont(UI_12_FONT_ID, ui12FontFamily);
   renderer.insertFont(SMALL_FONT_ID, smallFontFamily);
+  renderer.insertFont(0x4E560801, serif8Family);
+  renderer.insertFont(0x4E561002, serif10BoldFamily);
+  renderer.insertFont(0x4E561103, serif11Family);
+  renderer.insertFont(0x4E561304, serif13Family);
+  renderer.insertFont(0x4E562105, serif21Family);
+  renderer.insertFont(0x4E570501, sans5Family);
+  renderer.insertFont(0x4E570602, sans6Family);
 
   // Discover and load SD card fonts
   sdFontSystem.begin(renderer);

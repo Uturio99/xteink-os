@@ -496,7 +496,10 @@ void HomeActivity::render(RenderLock&&) {
     // side page buttons (unhinted) walk the covers.
     const auto labels = mappedInput.mapLabels(hasContinueReading ? tr(STR_RESUME) : "", tr(STR_SELECT),
                                               tr(STR_DIR_LEFT), tr(STR_DIR_RIGHT));
-    GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+#if FREEINK_DEVICE_X4PRO
+    if (pageWidth != 480 || pageHeight != 800)
+#endif
+      GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
     renderer.displayBuffer(cleanInitialRefresh && !firstRenderDone ? HalDisplay::HALF_REFRESH
                                                                    : HalDisplay::FAST_REFRESH);
     // Slot heights are recorded during the draw above; a change (first layout
