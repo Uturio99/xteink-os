@@ -1,6 +1,6 @@
 # NoveOS project status
 
-**Evidence snapshot: 2026-11-09, 7d63f480e779df702cc861437b331fccc960bb29.**
+**Evidence snapshot: 2026-11-11, 04b6b75457d8db5ebbc9dc23d922e79cb4f9f00c.**
 [Execution contract](EXECUTION_CONTRACT.md) defines authority; [STEP 09](design/specs/STEP-09-NATIVE-INTEGRATION-PLAN.md) owns the delivery path and gates. Git presence, recorded approval, executed checks and physical acceptance are separate states.
 
 | Work | Evidence / classification | Current disposition |
@@ -14,13 +14,13 @@
 | STEP 06 | Reconciled [flow contract](design/specs/STEP-06-UX-FLOWS.md) | Core constraints documented; later V2 decisions close old tab/import/presentation questions. Whole-design/native/device acceptance not established. |
 | STEP 07A / 07B / V2 | [V2 Authority](design/DESIGN-SYSTEM-V2-PROPOSAL.md), [decisions](design/step07b/STEP-07B.1R-DECISIONS.md), 56804ed5/92914ddf/8d1c0861 | APPROVED visual direction and named interactions; browser migration/code exists. Final rendered/current-candidate acceptance remains UNKNOWN; browser evidence is not firmware evidence. |
 | STEP 08 | No formal STEP 08 artifact found in inspected docs/reachable paths | UNKNOWN; do not invent a completed stage or make an unnamed stage a dependency. |
-| STEP 09 | 8bd39511/7d63f480 planning; recovered/reconciled by this documentation change | Planning updated; broad native implementation remains BLOCKED. |
+| STEP 09 | 8bd39511/7d63f480 planning; REC-01 reconciliation at 17773ef2; REC-02 diagnostic evidence at 04b6b754 | REC-01 DONE; REC-02 remains IN PROGRESS. Native integration remains BLOCKED by G1–G4. |
 | NAV-001 | VERIFIED source in 372ccca1: retained Library, callback, short Back and source assertions | Implemented **partially**, unaccepted as complete NAV-001. Same-book relaunch, reversed Back setting, touch reachability and state/resource evidence remain open. |
-| X4 Pro simulator | VERIFIED configuration in 2dbf8155 and pinned simulator revision | Configured. Clean-head compilation, launch and native behavior evidence UNKNOWN; physical behavior NOT TESTED here. |
+| X4 Pro simulator | Configuration in 2dbf8155; REC-02 build and GUI smoke logs dated 2026-11-11 | Incremental command PASS (875.10 s), with no compile/link; dependency scan 809.74 s. Direct GUI smoke showed Home→Library→Home on executable fd95…cd4c. Fresh-link hash equivalence NOT TESTED; hardware behavior NOT TESTED. |
 | Native typography worktree | Detached 7d63f480 plus dirty firmware/font/test files; bake-off review explicitly NOT TESTED | Experiment in progress; no chosen face or production acceptance inferred. Reuse evidence only after revision/provenance checks. |
 | M3–M6 legacy milestones | Mixed existing native capabilities, experiments and unverified target behavior | Old queued-stage schedule retired in favor of STEP 09 slices. No whole native UI, typography, touch or waveform milestone declared DONE. |
 | M7 / release | No complete current-candidate parity/hardware/handoff evidence recovered | BLOCKED on G5; no release, flash or publishing authorization. |
 
-**REC-01 current-head reconciliation is complete** (44/44 rows in STEP 03; source-verified, runtime unverified). Remaining REC-01 closure: the G1 adoption/disposition packet and the G2 short-Back authorization record; the copy-ready handoff is in STEP 09. **No firmware builder is READY.** PO gate conditions are G1–G4; recovery/USB, device behavior and full parity remain required at acceptance.
+**REC-01 current-head reconciliation is complete** (44/44 rows in STEP 03; source-verified, runtime unverified). G1 ledger adoption/disposition and G2 short-Back authorization remain PO actions. REC-02 confirmed the incremental simulator delay is dependency scanning on the WSL `/mnt/c` checkout: 809.74 s of an 875.10 s run, with zero compiles and links. No correction was justified or applied; `deep+` and pins remain unchanged. See STEP 09 for evidence and open gates. **No native firmware builder is READY.** G1–G4, recovery/USB, device behavior and full parity remain required.
 
 This snapshot does not replace Beads. No active Beads workspace was found; no issue was created, claimed or closed. Dirty work and the exact fetch/SDK state are recorded once in the [recovery audit](superpowers/audits/EXECUTION-RECOVERY.md).
