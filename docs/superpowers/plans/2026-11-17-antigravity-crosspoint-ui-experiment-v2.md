@@ -1,5 +1,7 @@
 # Kế hoạch Triển khai V2 — Thí nghiệm Kỹ thuật Giao diện CrossPoint trên Antigravity
 
+> **Historical model-routing instructions:** All role and model-routing instructions in this plan, including the Gemini, no-Claude, single-writer, and Scout instructions, are historical only and preserved for provenance; they are not current operating instructions. Follow `.agents/rules/ui-experiment.md` for current roles and routing. Existing safety, technical verification, and review gates remain binding.
+
 > **For agentic workers:** Áp dụng quy trình phân quyền cứng tại `.agents/rules/ui-experiment.md`. Một Builder duy nhất có quyền ghi tại một thời điểm (chỉ sửa code C++ từ Cổng G2 trở đi, sau khi PO phê duyệt hướng thiết kế ở G1). Tuyệt đối không dùng Claude CLI/subagent hoặc AI co-author trailer.
 
 **Goal:** Khởi tạo môi trường thí nghiệm giao diện CrossPoint cô lập hoàn toàn trên nhánh `experiment/antigravity-crosspoint-ui` (`G:/AI-Setup/XTEInk-X4-Pro/xteink-os-antigravity-ui`), khám phá 3 concept UI/UX thế hệ mới trên nền FreeInkUI/CrossPoint kèm chứng minh hình học không chồng lấn, và phát triển theo các cổng phê duyệt PO từ G0 đến G4.

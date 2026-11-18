@@ -17,13 +17,14 @@ description: Governance, isolation boundaries, model routing, and verification r
 - Steady-state `renderUi()` and `provideRow()` must remain allocation-free.
 
 ## 3. Model Delegation & Retry Budget
-- **Orchestrator (Gemini 4 Hydrogen, `Model="pro"` — Plan-Only):** Writes detailed, exact plans (target files + line anchors, exact code/values, exact commands, expected outputs, acceptance criteria, ≤20-line return contract), performs gate reviews, and verifies returned PNGs/metrics. Orchestrator NEVER edits source directly, builds, runs tests, or captures simulator shots. One delegation message per plan step; no re-planning unless a builder fails twice.
-- **Sole Builder (Gemini 3.8 Flash, `Model="flash"`):** Executes all plan-specified code edits, WSL mirror sync, CTest (`ctest`), `pio run` (`simulator_x4_pro` & `x4pro`), SD fixtures, headless simulator captures, BMP→PNG conversion, and filtered `git status`. Max 2 fix attempts per hypothesis, then escalate to Orchestrator with logs.
+- **Orchestrator (Claude, Plan-Only):** Uses builder-provided codebase evidence to write detailed, exact plans (target files + line anchors, exact code/values, exact commands, expected outputs, acceptance criteria, ≤20-line return contract), performs gate reviews, and verifies returned PNGs/metrics. The orchestrator does not search the codebase, edit source, build, run tests, or capture simulator shots. Opus may act separately as the exceptional writer under the escalation below. One delegation message per plan step; no re-planning unless a builder fails twice.
+- **Builder (Claude subagent, routine writer):** Searches the codebase, reports evidence for planning, and executes plan-specified code edits, WSL mirror sync, CTest (`ctest`), `pio run` (`simulator_x4_pro` & `x4pro`), SD fixtures, headless simulator captures, BMP→PNG conversion, and filtered `git status`. Verifies Opus repairs. Max 2 fix attempts per hypothesis, then escalate to Orchestrator with logs.
 - Reuse an existing live builder via `send_message` when continuing the same work; spawn new only for new scope.
 - **Locked UI style (PO-approved 2026-11-17):** Concept 01 *Atelier Typographic* + `AtelierSelection.h` row selection (`5px` Ink bar, `16px` gap, `+21px` indent, bold Ink index when selected). Do not alter without PO approval.
 - **Active Token-Optimization Skills:** Enforce `caveman` (full terse style), `cavecrew` (≤20-line subagent return contracts), `rtk` (source-filtered CLI/build logs), and `ponytail` (minimum diff, zero redundant re-runs).
-- **Reviewers (Read-only subagents):** Inspect diffs and logs only. Use 1 lightweight spec/quality reviewer during G2-G3, and full 4-axis `firmware-handoff` at G4.
-- **No Claude involvement:** Never invoke Claude CLI/subagents or add AI `Co-Authored-By` trailers.
+- **Reviewer (Sonnet, independent and read-only):** Inspects diffs and logs only; never edits, builds, or tests. Use 1 lightweight spec/quality reviewer during G2-G3, and full 4-axis `firmware-handoff` at G4.
+- **Opus (exceptional writer):** May review and repair when a review finds too many errors. Only one writer may edit at a time; the builder pauses edits while Opus repairs, then verifies the repairs. All existing safety, technical verification, and review gates still apply.
+- **No AI trailer:** Never add AI `Co-Authored-By` trailers.
 
 ## 4. Six Independent Verification Layers
 - Report separately: `HOST_TEST_VERIFIED`, `SIMULATOR_BUILD_VERIFIED`, `SIMULATOR_RENDER_VERIFIED`, `SIMULATOR_INTERACTION_VERIFIED`, `FIRMWARE_BUILD_VERIFIED`, and `HARDWARE_VERIFIED` (human-owned). Never infer one layer from another.
