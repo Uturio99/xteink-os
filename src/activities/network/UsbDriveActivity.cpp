@@ -6,6 +6,7 @@
 
 #include "MappedInputManager.h"
 #include "SilentRestart.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 
 namespace fui = freeink::ui;
@@ -103,6 +104,29 @@ void UsbDriveActivity::loop() {
 }
 
 void UsbDriveActivity::render(RenderLock&&) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    AtelierChrome::AtelierStatusScreenSpec spec;
+    spec.eyebrowCode = "04.9";
+    spec.title = tr(STR_USB_DRIVE);
+    if (preparing) {
+      spec.headline = tr(STR_USB_DRIVE_PREPARING);
+      spec.body = tr(STR_USB_DRIVE_EJECT_HINT);
+    } else if (state == State::WaitingForHost) {
+      spec.headline = tr(STR_USB_DRIVE_WAITING);
+      spec.footerHint = tr(STR_PRESS_BACK_TO_EXIT);
+    } else if (state == State::Connected) {
+      spec.headline = tr(STR_USB_DRIVE_CONNECTED);
+      spec.body = tr(STR_USB_DRIVE_CONNECT_DELAY);
+      spec.detail = tr(STR_USB_DRIVE_EJECT_HINT);
+    } else if (state == State::IoError) {
+      spec.headline = startFailed ? tr(STR_USB_DRIVE_START_ERROR) : tr(STR_USB_DRIVE_ERROR);
+      if (startFailed) spec.footerHint = tr(STR_PRESS_BACK_TO_EXIT);
+    }
+    AtelierChrome::drawStatusScreen(renderer, spec);
+    return;
+  }
+#endif
   renderer.clearScreen();
 
   const auto& metrics = UITheme::getInstance().getMetrics();

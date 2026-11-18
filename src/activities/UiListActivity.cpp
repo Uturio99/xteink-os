@@ -7,6 +7,8 @@
 #include <algorithm>
 
 #include "MappedInputManager.h"
+#include "components/AtelierChrome.h"
+#include "components/AtelierSelection.h"
 #include "components/UITheme.h"
 #if FREEINK_CAP_TOUCH
 #include "components/UiAppHelpers.h"
@@ -23,6 +25,12 @@ void UiListActivity::onEnter() {
   Activity::onEnter();
   activeNav().reset();
   resetUi();
+#if FREEINK_DEVICE_X4PRO
+  x4ProFocus.reset();
+  x4ProLastRenderedTop = -1;
+  x4ProLastRenderedRows = 0;
+  x4ProLastRenderedCount = -1;
+#endif
   app.on(ACTION_ROW, &UiListActivity::rowActionTrampoline, this);
 #if FREEINK_CAP_TOUCH
   revealedIndex.store(-1);
@@ -163,11 +171,24 @@ void UiListActivity::moveSelectionTo(const int index) {
   closeSwipeDelete();
 #endif
   activeNav().requestSelection(index);
+  markX4ProFocusMovePending();
   requestUpdate();
 }
 
 void UiListActivity::loop() {
   if (handleCustomInput()) return;
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer) && atelierBottomNavTab() >= 0 && mappedInput.hasTouch()) {
+    int tx = 0;
+    int ty = 0;
+    if (mappedInput.wasScreenTapped(tx, ty) &&
+        AtelierChrome::handleBottomNavTap(
+            tx, ty, atelierBottomNavTab(), []() { Activity::onGoHome(HomeMenuItem::CONTINUE); }, nullptr)) {
+      haptic_feedback::touchAction();
+      return;
+    }
+  }
+#endif
 #if FREEINK_CAP_TOUCH
   if (handleSwipeDeleteInput()) return;
 #endif
@@ -236,17 +257,78 @@ void UiListActivity::syncListViewport(UiScreen& screen, fui::ListProps& props, c
 
 void UiListActivity::drawChrome() {
   const char* title = headerTitle();
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    AtelierChrome::drawHeader(renderer, title, nullptr, true, atelierEyebrowCode(), listCount());
+    return;
+  }
+#endif
   if (!title) return;
   const auto& metrics = UITheme::getInstance().getMetrics();
   GUI.drawHeader(renderer, Rect{0, metrics.topPadding, renderer.getScreenWidth(), metrics.headerHeight}, title);
 }
 
 void UiListActivity::drawFooter() {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    const int tab = atelierBottomNavTab();
+    if (tab >= 0) AtelierChrome::drawBottomNav(renderer, tab);
+    return;
+  }
+#endif
   const auto labels = mappedInput.mapLabels(tr(STR_BACK), tr(STR_SELECT), tr(STR_DIR_UP), tr(STR_DIR_DOWN));
   GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
 }
 
+void UiListActivity::renderList(UiScreen& screen, fui::ListProps& props) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    AtelierChrome::drawEditorialList(screen, renderer, props, activeNav(), atelierBottomNavTab() >= 0);
+    return;
+  }
+#endif
+  screen.list(props);
+}
+
 void UiListActivity::render(RenderLock&&) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    const auto& n = activeNav();
+    const int offset = atelierSelectionOffset();
+    const int count = listCount();
+    const int fullKey = atelierFullRefreshKey();
+    const int rowSel = n.selected - offset;
+    const bool inVisiblePage = x4ProLastRenderedTop >= 0 && x4ProLastRenderedRows > 0 &&
+                               ((offset > 0 && n.selected == 0) ||
+                                (rowSel >= x4ProLastRenderedTop &&
+                                 rowSel < x4ProLastRenderedTop + x4ProLastRenderedRows));
+    const bool focusEligible =
+        inVisiblePage && n.top == x4ProLastRenderedTop && count == x4ProLastRenderedCount;
+    struct RenderCtx {
+      UiListActivity* self;
+    } ctx{this};
+    x4ProFocus.render(
+        renderer, focusEligible, fullKey, false,
+        [](void* raw) {
+          auto* self = static_cast<RenderCtx*>(raw)->self;
+          self->renderer.clearScreen();
+          self->drawChrome();
+          self->renderUi();
+          for (int pass = 0; self->activeNav().consumeRebuildNeeded() && pass < 8; ++pass) {
+            self->renderer.clearScreen();
+            self->drawChrome();
+            self->renderUi();
+          }
+          self->drawFooter();
+          self->drawOverlay();
+        },
+        &ctx);
+    x4ProLastRenderedTop = activeNav().top;
+    x4ProLastRenderedRows = activeNav().drawnRows;
+    x4ProLastRenderedCount = count;
+    return;
+  }
+#endif
   renderer.clearScreen();
   drawChrome();
   renderUi();

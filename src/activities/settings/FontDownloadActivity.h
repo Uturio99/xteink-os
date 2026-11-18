@@ -123,6 +123,8 @@ class FontDownloadActivity final : public UiListActivity {
 
   int listCount() const override;
   void buildScreen(UiScreen& screen) override;
+  const char* headerTitle() const override { return tr(STR_FONT_BROWSER); }
+  const char* atelierEyebrowCode() const override { return "04.15"; }
   void activateIndex(int index) override;
   freeink::ui::ListNav& activeNav() override;
   void onBackButton() override;

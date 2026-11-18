@@ -55,6 +55,7 @@
 #include "activities/settings/TextSettingsActivity.h"
 #include "clippings/ClippingText.h"
 #include "clippings/ClippingsManager.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
 #include "util/BookmarkUtil.h"
@@ -225,6 +226,7 @@ EpubReaderActivity::~EpubReaderActivity() {
 
   if (footnoteDepth > 0 && epub) saveLinkStack();
 
+  invalidateNextPageCache();
   section.reset();
   CLIPPINGS.unload();
   if (pendingReadFolderMove && epub) {
@@ -236,6 +238,14 @@ EpubReaderActivity::~EpubReaderActivity() {
   } else {
     epub.reset();
   }
+}
+
+void EpubReaderActivity::onExit() {
+  {
+    RenderLock lock;
+    invalidateNextPageCache();
+  }
+  ReaderActivity::onExit();
 }
 
 bool EpubReaderActivity::loadBook() {
@@ -328,6 +338,10 @@ int EpubReaderActivity::bookPercentFor(const ChapterPosition& position) const {
 
 void EpubReaderActivity::openReaderMenu() {
   pendingManualTurn = 0;
+  {
+    RenderLock lock;
+    invalidateNextPageCache();
+  }
   if (usesToolbarMenu()) {
     // Reached from a child activity's result handler (footnotes, bookmarks,
     // go-to-percent... cancelled back to the menu), so the framebuffer holds
@@ -436,9 +450,11 @@ void EpubReaderActivity::backgroundBuildTick() {
     LOG_ERR("ERS", "Background section build failed");
     backgroundBuildFailedSpine = currentSpineIndex;
     nextPageNumber = section->currentPage;
+    invalidateNextPageCache();
     section.reset();
     requestUpdate();
   } else if (section->isBuildComplete() && applyDeferredReposition()) {
+    invalidateNextPageCache();
     requestUpdate();
   }
 }
@@ -673,15 +689,17 @@ void EpubReaderActivity::loop() {
   constexpr unsigned long IDLE_PREWARM_DEBOUNCE_MS = 400;
   {
     RenderLock lock(RenderLock::Mode::Try);
-    if (lock.ownsLock() && section && !section->isBuilding() && renderer.hasFrameBuffer() &&
-        lastRenderCompleteMs != 0 && millis() - lastRenderCompleteMs > IDLE_PREWARM_DEBOUNCE_MS &&
-        ESP.getFreeHeap() > RENDER_MIN_FREE_HEAP && ESP.getMaxAllocHeap() > BACKGROUND_BUILD_MIN_MAX_ALLOC &&
+    if (lock.ownsLock() && overlay == Overlay::None && section && !section->isBuilding() &&
+        renderer.hasFrameBuffer() && lastRenderCompleteMs != 0 &&
+        millis() - lastRenderCompleteMs > IDLE_PREWARM_DEBOUNCE_MS && ESP.getFreeHeap() > RENDER_MIN_FREE_HEAP &&
+        ESP.getMaxAllocHeap() > BACKGROUND_BUILD_MIN_MAX_ALLOC &&
         (idlePrewarmSpine != currentSpineIndex || idlePrewarmPage != section->currentPage)) {
       idlePrewarmSpine = currentSpineIndex;
       idlePrewarmPage = section->currentPage;
       const int nextPage = section->currentPage + 1;
       if (nextPage < static_cast<int>(section->pageCount)) {
-        if (const auto p = section->loadPage(nextPage)) {
+        auto p = section->loadPage(nextPage);
+        if (p) {
           if (auto* fcm = renderer.getFontCacheManager()) {
             const auto t0 = millis();
             auto scope = fcm->createPrewarmScope();
@@ -689,6 +707,11 @@ void EpubReaderActivity::loop() {
             scope.endScanAndPrewarm();
             LOG_DBG("ERS", "Idle prewarm: page %d in %lums", nextPage, millis() - t0);
           }
+#if FREEINK_DEVICE_X4PRO
+          cachedNextSpineIndex = currentSpineIndex;
+          cachedNextPageIndex = nextPage;
+          cachedNextPage = std::move(p);
+#endif
         }
       }
     }
@@ -1396,6 +1419,7 @@ void EpubReaderActivity::applyOrientation(const uint8_t orientation) {
   }
   ReaderUtils::applyOrientation(renderer, SETTINGS.orientation);
   appliedOrientation = orientation;
+  invalidateNextPageCache();
   section.reset();
 }
 
@@ -1418,6 +1442,7 @@ void EpubReaderActivity::toggleAutoPageTurn(const uint8_t selectedPageTurnOption
       cachedChapterTotalPageCount = section->pageCount;
       nextPageNumber = section->currentPage;
     }
+    invalidateNextPageCache();
     section.reset();
   }
 }
@@ -1439,10 +1464,13 @@ bool EpubReaderActivity::pageTurn(bool isForwardTurn) {
       RenderLock lock;
       nextPageNumber = 0;
       currentSpineIndex++;
+      invalidateNextPageCache();
       section.reset();
       lastPageTurnTime = millis();
       return true;
     } else {
+      RenderLock lock;
+      invalidateNextPageCache();
       currentSpineIndex = epub->getSpineItemsCount();
       lastPageTurnTime = millis();
       return true;
@@ -1457,6 +1485,7 @@ bool EpubReaderActivity::pageTurn(bool isForwardTurn) {
       nextPageNumber = 0;
       pendingPageJump = std::numeric_limits<uint16_t>::max();
       currentSpineIndex--;
+      invalidateNextPageCache();
       section.reset();
       lastPageTurnTime = millis();
       return true;
@@ -1472,6 +1501,7 @@ bool EpubReaderActivity::skipPages(int amount) {
     RenderLock lock;
     nextPageNumber = 0;
     currentSpineIndex++;
+    invalidateNextPageCache();
     section.reset();
     return true;
   } else {
@@ -1482,6 +1512,7 @@ bool EpubReaderActivity::skipPages(int amount) {
       RenderLock lock;
       nextPageNumber = 0;
       currentSpineIndex--;
+      invalidateNextPageCache();
       section.reset();
       return true;
     }
@@ -1618,6 +1649,18 @@ void EpubReaderActivity::renderBook() {
   };
 
   const auto showBuildError = [this](const char* message = nullptr) {
+#if FREEINK_DEVICE_X4PRO
+    if (AtelierChrome::isPortrait480x800(renderer)) {
+      AtelierChrome::AtelierStatusScreenSpec spec;
+      spec.eyebrowCode = "02.1";
+      spec.title = epub ? epub->getTitle().c_str() : tr(STR_LIBRARY);
+      spec.headline = message ? message : tr(STR_INDEX_FAILED);
+      spec.footerHint = tr(STR_TAP_BACK_TO_RETURN);
+      AtelierChrome::drawStatusScreen(renderer, spec);
+      automaticPageTurnActive = false;
+      return;
+    }
+#endif
     renderer.clearScreen();
     const auto labels = mappedInput.mapLabels(tr(STR_BACK), "", "", "");
     GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
@@ -1649,6 +1692,14 @@ void EpubReaderActivity::renderBook() {
   } else {
     orientedMarginBottom += std::max(SETTINGS.screenMargin, statusBarHeight);
   }
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    orientedMarginTop = std::max(orientedMarginTop, 64);
+    orientedMarginLeft = std::max(orientedMarginLeft, 40);
+    orientedMarginRight = std::max(orientedMarginRight, 40);
+    orientedMarginBottom = std::max(orientedMarginBottom, 72);
+  }
+#endif
 
   const uint16_t viewportWidth = renderer.getScreenWidth() - orientedMarginLeft - orientedMarginRight;
   const uint16_t viewportHeight = renderer.getScreenHeight() - orientedMarginTop - orientedMarginBottom;
@@ -1658,6 +1709,7 @@ void EpubReaderActivity::renderBook() {
   const ReaderRenderSpec renderSpec = SETTINGS.readerRenderSpec(viewportWidth, viewportHeight);
 
   if (!section) {
+    invalidateNextPageCache();
     const auto filepath = epub->getSpineItem(currentSpineIndex).href;
     LOG_DBG("ERS", "Loading file: %s, index: %d", filepath.c_str(), currentSpineIndex);
     section = std::unique_ptr<Section>(new Section(epub, currentSpineIndex, renderer));
@@ -1868,7 +1920,15 @@ void EpubReaderActivity::renderBook() {
 
   if (section->pageCount == 0) {
     LOG_DBG("ERS", "No pages to render");
-    renderer.drawCenteredText(UI_12_FONT_ID, 300, tr(STR_EMPTY_CHAPTER), true, EpdFontFamily::BOLD);
+#if FREEINK_DEVICE_X4PRO
+    if (AtelierChrome::isPortrait480x800(renderer)) {
+      AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, 340, AtelierChrome::font20Light(),
+                              tr(STR_EMPTY_CHAPTER), AtelierTone::Ink, 0, AtelierChrome::CONTENT_W, 1, true);
+    } else
+#endif
+    {
+      renderer.drawCenteredText(UI_12_FONT_ID, 300, tr(STR_EMPTY_CHAPTER), true, EpdFontFamily::BOLD);
+    }
     renderStatusBar();
     renderer.displayBuffer();
     pageBufferStale = false;
@@ -1879,7 +1939,15 @@ void EpubReaderActivity::renderBook() {
 
   if (section->currentPage < 0 || section->currentPage >= section->pageCount) {
     LOG_DBG("ERS", "Page out of bounds: %d (max %d)", section->currentPage, section->pageCount);
-    renderer.drawCenteredText(UI_12_FONT_ID, 300, tr(STR_OUT_OF_BOUNDS), true, EpdFontFamily::BOLD);
+#if FREEINK_DEVICE_X4PRO
+    if (AtelierChrome::isPortrait480x800(renderer)) {
+      AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, 340, AtelierChrome::font20Light(),
+                              tr(STR_OUT_OF_BOUNDS), AtelierTone::Ink, 0, AtelierChrome::CONTENT_W, 1, true);
+    } else
+#endif
+    {
+      renderer.drawCenteredText(UI_12_FONT_ID, 300, tr(STR_OUT_OF_BOUNDS), true, EpdFontFamily::BOLD);
+    }
     renderStatusBar();
     renderer.displayBuffer();
     automaticPageTurnActive = false;
@@ -1890,7 +1958,20 @@ void EpubReaderActivity::renderBook() {
   updateBookmarkFlag();
 
   {
-    auto p = section->loadPage(section->currentPage);
+    std::unique_ptr<Page> p;
+#if FREEINK_DEVICE_X4PRO
+    if (cachedNextPage && cachedNextSpineIndex == currentSpineIndex && cachedNextPageIndex == section->currentPage) {
+      p = std::move(cachedNextPage);
+      cachedNextSpineIndex = -1;
+      cachedNextPageIndex = -1;
+      LOG_DBG("ERS", "Lookahead cache hit: spine %d page %d", currentSpineIndex, section->currentPage);
+    } else {
+      invalidateNextPageCache();
+    }
+#endif
+    if (!p) {
+      p = section->loadPage(section->currentPage);
+    }
     if (!p) {
       LOG_ERR("ERS", "Failed to load page from SD - clearing section cache");
       automaticPageTurnActive = false;
@@ -1901,9 +1982,21 @@ void EpubReaderActivity::renderBook() {
       if (giveUp) {
         LOG_ERR("ERS", "Page load retry limit reached, aborting");
         pageLoadRetryCount = 0;
-        renderer.clearScreen();
-        renderer.drawCenteredText(UI_12_FONT_ID, 300, tr(STR_PAGE_LOAD_ERROR), true, EpdFontFamily::BOLD);
-        renderer.displayBuffer();
+#if FREEINK_DEVICE_X4PRO
+        if (AtelierChrome::isPortrait480x800(renderer)) {
+          AtelierChrome::AtelierStatusScreenSpec spec;
+          spec.eyebrowCode = "02.1";
+          spec.title = epub ? epub->getTitle().c_str() : tr(STR_LIBRARY);
+          spec.headline = tr(STR_PAGE_LOAD_ERROR);
+          spec.footerHint = tr(STR_TAP_BACK_TO_RETURN);
+          AtelierChrome::drawStatusScreen(renderer, spec);
+        } else
+#endif
+        {
+          renderer.clearScreen();
+          renderer.drawCenteredText(UI_12_FONT_ID, 300, tr(STR_PAGE_LOAD_ERROR), true, EpdFontFamily::BOLD);
+          renderer.displayBuffer();
+        }
         showPendingSyncSaveError();
         return;
       }
@@ -2106,7 +2199,13 @@ void EpubReaderActivity::renderContents(std::unique_ptr<Page> page, const int or
       page->renderImages(renderer, fontId, orientedMarginLeft, orientedMarginTop);
     }
     // A4 replaces the whole frame with its gray planes, including the status bar.
+#if FREEINK_DEVICE_X4PRO
+    if (absoluteImageGrayscale || BoardConfig::isEegoA4() || AtelierChrome::isPortrait480x800(renderer)) {
+      renderStatusBar();
+    }
+#else
     if (absoluteImageGrayscale || BoardConfig::isEegoA4()) renderStatusBar();
+#endif
   };
 
   if (pageHasImagesNeedingDecode) {
@@ -2374,6 +2473,12 @@ void EpubReaderActivity::drawClippingHighlights(const Page& page, const int font
       for (int py = y + (y & 1); py < y + height; py += 2) {
         for (int px = x + (x & 1); px < x + width; px += 2) renderer.drawPixel(px, py, false);
       }
+#if FREEINK_DEVICE_X4PRO
+    } else if (AtelierChrome::isPortrait480x800(renderer)) {
+      if (width > 0 && height > 2) {
+        renderer.fillRect(x, y + height - 2, width, 2, true);
+      }
+#endif
     } else {
       renderer.fillRectDither(x, y, width, height, Color::LightGray);
     }
@@ -2465,6 +2570,21 @@ void EpubReaderActivity::renderStatusBar() const {
   } else if (sb.titleMode == CrossPointSettings::STATUS_BAR_TITLE::BOOK_TITLE) {
     title = epub ? epub->getTitle() : "";
   }
+
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    if (renderer.isFontCacheScanning()) return;
+    const int bookPct = static_cast<int>(std::clamp(bookProgress, 0.0f, 100.0f) + 0.5f);
+    const bool showTop = sb.showsTitle() || sb.showBookProgressPercent || note != bleturner::LinkNote::None ||
+                         automaticPageTurnActive;
+    const bool showBar = sb.showsProgressBar() || sb.showChapterPageCount || sb.showBookProgressPercent;
+    AtelierChrome::drawReaderChrome(renderer, title.c_str(), currentPage, static_cast<int>(pageCount), bookPct,
+                                    currentPageBookmarked, section ? section->isBuilding() : false, showTop,
+                                    sb.showChapterPageCount, showBar, sb.showBattery, sb.showsClock(),
+                                    static_cast<bool>(SETTINGS.textAntiAliasing));
+    return;
+  }
+#endif
 
   GUI.drawStatusBar(renderer, bookProgress, currentPage, pageCount, title, 0, textYOffset, true, currentPageBookmarked,
                     section ? section->isBuilding() : false);
@@ -2601,6 +2721,10 @@ void EpubReaderActivity::settleOverlayRefresh() {
 }
 
 void EpubReaderActivity::openOverlay(Overlay target) {
+  {
+    RenderLock lock;
+    invalidateNextPageCache();
+  }
   mappedInput.resetHomeButtonInput();
   const Overlay previous = overlay;
   overlay = target;
@@ -2617,7 +2741,11 @@ void EpubReaderActivity::openOverlay(Overlay target) {
       panelIndex = currentTocIndex();
       // Fresh viewport opening on the current chapter, cursor shown or not.
       toolbarUi->nav().reset(panelIndex);
+#if FREEINK_DEVICE_X4PRO
+      toolbarUi->nav().top = AtelierChrome::isPortrait480x800(renderer) ? std::max(0, panelIndex - 2) : panelIndex;
+#else
       toolbarUi->nav().top = panelIndex;
+#endif
       break;
     }
     case Overlay::Text:
@@ -2725,8 +2853,13 @@ void EpubReaderActivity::renderOverlay() {
     model.denseRows = true;
   }
   // Tap-first: the cursor is only drawn once a button has moved it, so a
-  // tapped row does not stay inverted after its action.
+  // tapped row does not stay inverted after its action. On X4 Pro Atelier,
+  // the non-inverting 5px selection bar always marks the active row on open.
+#if FREEINK_DEVICE_X4PRO
+  model.selectedIndex = (panelCursorShown || AtelierChrome::isPortrait480x800(renderer)) ? panelIndex : -1;
+#else
   model.selectedIndex = panelCursorShown ? panelIndex : -1;
+#endif
   if (overlay == Overlay::Contents) {
     model.panelTitle = tr(STR_TOOL_CONTENTS);
     model.itemCount = epub->getTocItemsCount();
@@ -3066,6 +3199,7 @@ void EpubReaderActivity::applyReaderTextSettings() {
       nextPageNumber = section->currentPage;
     }
     // Release the old parser and page table before settings serialization needs heap.
+    invalidateNextPageCache();
     section.reset();  // force re-pagination with the new settings
   }
   SETTINGS.saveToFile();

@@ -35,6 +35,7 @@
 #include "TextSettingsActivity.h"
 #include "activities/network/WifiSelectionActivity.h"
 #include "activities/util/IntervalSelectionActivity.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "components/UIThemeTokens.h"
 #include "components/UiAppHelpers.h"
@@ -500,11 +501,18 @@ std::string SettingsActivity::settingValueText(const SettingInfo& setting) {
 }
 
 void SettingsActivity::buildScreen(UiScreen& screen) {
-  const auto& metrics = UITheme::getInstance().getMetrics();
-  // Content below the GUI.drawHeader band, above the button hints.
-  screen.setContentMarginFromScreen(fui::Insets{static_cast<int16_t>(metrics.topPadding + metrics.headerHeight), 0,
-                                                static_cast<int16_t>(metrics.buttonHintsHeight), 0});
-  screen.spacer(static_cast<int16_t>(metrics.verticalSpacing));
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    screen.setContentMarginFromScreen(fui::Insets{AtelierChrome::LIST_TOP_MIN_Y, 0, 66, 0});
+  } else
+#endif
+  {
+    const auto& metrics = UITheme::getInstance().getMetrics();
+    // Content below the GUI.drawHeader band, above the button hints.
+    screen.setContentMarginFromScreen(fui::Insets{static_cast<int16_t>(metrics.topPadding + metrics.headerHeight), 0,
+                                                  static_cast<int16_t>(metrics.buttonHintsHeight), 0});
+    screen.spacer(static_cast<int16_t>(metrics.verticalSpacing));
+  }
 
   // rowItems_ (label/actionValue) was built by rebuildRowItems(); only the
   // live value text needs refreshing here, by assigning into the existing
@@ -536,10 +544,16 @@ void SettingsActivity::buildScreen(UiScreen& screen) {
   props.labelText = mappedInput.hasTouch() ? screen.theme().bodyText : screen.theme().smallText;
   props.labelText.maxLines = 2;
   syncListViewport(screen, props);
-  screen.list(props);
+  renderList(screen, props);
 }
 
 void SettingsActivity::drawFooter() {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    AtelierChrome::drawBottomNav(renderer, 3);
+    return;
+  }
+#endif
   const int selected = nav.selected;
   const bool picker =
       selected >= 0 && selected < static_cast<int>(settings.size()) &&
@@ -549,7 +563,17 @@ void SettingsActivity::drawFooter() {
   GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
 }
 
+void SettingsActivity::drawOverlay() {
+  if (optionPopup.isActive()) optionPopup.render(renderer);
+}
+
 void SettingsActivity::render(RenderLock&& lock) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    UiListActivity::render(std::move(lock));
+    return;
+  }
+#endif
   if (optionPopup.processRender(renderer, mappedInput)) return;
   UiListActivity::render(std::move(lock));
 }

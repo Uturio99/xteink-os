@@ -23,7 +23,10 @@ class StatusBarSettingsActivity final : public UiListActivity {
   int visibleItemCount = 0;
 
   int listCount() const override { return visibleItemCount; }
+  const char* headerTitle() const override { return tr(STR_CUSTOMISE_STATUS_BAR); }
+  const char* atelierEyebrowCode() const override { return "04.3"; }
   void buildScreen(UiScreen& screen) override;
+  void drawOverlay() override;
   void activateIndex(int index) override;
   bool handleCustomInput() override;
 

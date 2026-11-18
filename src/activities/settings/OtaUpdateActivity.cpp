@@ -7,6 +7,7 @@
 #include "MappedInputManager.h"
 #include "SilentRestart.h"
 #include "activities/network/WifiSelectionActivity.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
 #include "network/OtaUpdater.h"
@@ -100,6 +101,70 @@ void OtaUpdateActivity::onExit() {
 }
 
 void OtaUpdateActivity::render(RenderLock&&) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    AtelierChrome::AtelierStatusScreenSpec spec;
+    spec.eyebrowCode = "04.10";
+    spec.title = tr(STR_UPDATE);
+    std::string verInfo;
+    std::string bytesInfo;
+    if (state == UPDATE_IN_PROGRESS) {
+      const float pctF =
+          updater.getTotalSize() > 0
+              ? static_cast<float>(updater.getProcessedSize()) / static_cast<float>(updater.getTotalSize())
+              : 0.0f;
+      if (static_cast<int>(pctF * 50) == lastUpdaterPercentage / 2) return;
+      lastUpdaterPercentage = static_cast<int>(pctF * 100);
+      bytesInfo = std::to_string(updater.getProcessedSize()) + " / " + std::to_string(updater.getTotalSize());
+      spec.headline = tr(STR_UPDATING);
+      spec.progressPct = lastUpdaterPercentage;
+      spec.progressLabel = bytesInfo.c_str();
+      AtelierChrome::drawStatusScreen(renderer, spec, HalDisplay::FAST_REFRESH, true);
+      return;
+    }
+    if (state == WAITING_CONFIRMATION) {
+      verInfo = std::string(tr(STR_CURRENT_VERSION)) + CROSSPOINT_VERSION;
+      bytesInfo = std::string(tr(STR_NEW_VERSION)) + updater.getLatestVersion();
+      spec.headline = tr(STR_UPDATE);
+      spec.body = verInfo.c_str();
+      spec.detail = bytesInfo.c_str();
+      struct Ctx {
+        OtaUpdateActivity* self;
+        const AtelierChrome::AtelierStatusScreenSpec* spec;
+      } ctx{this, &spec};
+      AtelierChrome::renderGrayscalePass(
+          renderer, HalDisplay::FAST_REFRESH,
+          [](void* raw) {
+            auto* c = static_cast<Ctx*>(raw);
+            c->self->renderer.clearScreen();
+            AtelierChrome::drawHeader(c->self->renderer, c->spec->title, nullptr, true, c->spec->eyebrowCode);
+            AtelierChrome::drawText(c->self->renderer, AtelierChrome::MARGIN_X, 140, AtelierChrome::font15Light(),
+                                    c->spec->body, AtelierTone::Muted, 0, AtelierChrome::CONTENT_W, 0, true);
+            AtelierChrome::drawText(c->self->renderer, AtelierChrome::MARGIN_X, 174, AtelierChrome::font16Med(),
+                                    c->spec->detail, AtelierTone::Ink, 0, AtelierChrome::CONTENT_W, 0, true);
+            c->self->confirmPopup.render(c->self->renderer);
+          },
+          &ctx);
+      return;
+    }
+    if (state == CHECKING_FOR_UPDATE) {
+      spec.headline = tr(STR_CHECKING_UPDATE);
+    } else if (state == NO_UPDATE) {
+      spec.headline = tr(STR_NO_UPDATE);
+      spec.body = CROSSPOINT_VERSION;
+      spec.footerHint = tr(STR_TAP_BACK_TO_RETURN);
+    } else if (state == FAILED) {
+      spec.headline = tr(STR_UPDATE_FAILED);
+      spec.body = failedDetail;
+      spec.footerHint = tr(STR_TAP_BACK_TO_RETURN);
+    } else if (state == FINISHED) {
+      spec.headline = tr(STR_UPDATE_COMPLETE);
+      spec.body = tr(STR_POWER_ON_HINT);
+    }
+    AtelierChrome::drawStatusScreen(renderer, spec);
+    return;
+  }
+#endif
   const auto& metrics = UITheme::getInstance().getMetrics();
   const auto pageWidth = renderer.getScreenWidth();
   const auto pageHeight = renderer.getScreenHeight();

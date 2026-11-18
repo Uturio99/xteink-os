@@ -14,6 +14,7 @@
 #include "MappedInputManager.h"
 #include "WifiCredentialStore.h"
 #include "activities/util/KeyboardEntryActivity.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
 #include "util/PluginEvents.h"
@@ -813,6 +814,9 @@ void WifiSelectionActivity::loop() {
       selectedNetworkIndex = static_cast<size_t>(index);
       listNav.selected = index;
       listNav.follow(static_cast<int>(networks.size()));
+#if FREEINK_DEVICE_X4PRO
+      x4ProFocus.pendingFocusOnly = true;
+#endif
       requestUpdate();
     };
     buttonNavigator.onNext(
@@ -843,6 +847,92 @@ void WifiSelectionActivity::render(RenderLock&&) {
   if (state == WifiSelectionState::PASSWORD_ENTRY || state == WifiSelectionState::HIDDEN_SSID_ENTRY) {
     return;
   }
+
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    char countStr[64]{};
+    snprintf(countStr, sizeof(countStr), tr(STR_NETWORKS_FOUND), realNetworkCount);
+
+    if (state == WifiSelectionState::NETWORK_LIST) {
+      const int sel = static_cast<int>(selectedNetworkIndex);
+      const bool inPage = !networks.empty() && x4ProLastState == state && x4ProLastRenderedRows > 0 &&
+                          x4ProLastRenderedCount == networks.size() && listNav.top == x4ProLastRenderedTop &&
+                          sel >= x4ProLastRenderedTop && sel < x4ProLastRenderedTop + x4ProLastRenderedRows;
+      struct Ctx {
+        WifiSelectionActivity* self;
+        const char* countStr;
+      } ctx{this, countStr};
+      x4ProFocus.render(
+          renderer, inPage, static_cast<int>(state) * 4096 + static_cast<int>(networks.size()), false,
+          [](void* raw) {
+            auto* c = static_cast<Ctx*>(raw);
+            auto* self = c->self;
+            self->renderer.clearScreen();
+            AtelierChrome::drawHeader(self->renderer, tr(STR_WIFI_NETWORKS), c->countStr, true, "04.6");
+            AtelierChrome::drawSubHeader(self->renderer, self->cachedMacAddress.c_str());
+            self->renderUi();
+            AtelierChrome::drawFooterHint(self->renderer, tr(STR_NETWORK_LEGEND));
+          },
+          &ctx);
+      x4ProLastState = state;
+      x4ProLastRenderedTop = listNav.top;
+      x4ProLastRenderedRows = listNav.drawnRows;
+      x4ProLastRenderedCount = networks.size();
+      return;
+    }
+
+    if (state == WifiSelectionState::SAVE_PROMPT || state == WifiSelectionState::FORGET_PROMPT) {
+      x4ProFocus.reset();
+      x4ProLastState = state;
+      struct Ctx {
+        WifiSelectionActivity* self;
+        const char* countStr;
+      } ctx{this, countStr};
+      AtelierChrome::renderGrayscalePass(
+          renderer, HalDisplay::FAST_REFRESH,
+          [](void* raw) {
+            auto* c = static_cast<Ctx*>(raw);
+            c->self->renderer.clearScreen();
+            AtelierChrome::drawHeader(c->self->renderer, tr(STR_WIFI_NETWORKS), c->countStr, true, "04.6");
+            AtelierChrome::drawSubHeader(c->self->renderer, c->self->cachedMacAddress.c_str());
+            c->self->renderUi();
+          },
+          &ctx);
+      return;
+    }
+
+    x4ProFocus.reset();
+    x4ProLastState = state;
+    AtelierChrome::AtelierStatusScreenSpec spec;
+    spec.eyebrowCode = "04.6";
+    spec.title = tr(STR_WIFI_NETWORKS);
+    spec.rightMeta = countStr;
+    spec.subtitle = cachedMacAddress.c_str();
+    std::string ssidLine;
+    std::string ipLine;
+    if (state == WifiSelectionState::SCANNING || state == WifiSelectionState::AUTO_CONNECTING) {
+      spec.headline = autoConnecting ? tr(STR_FINDING_SAVED_WIFI) : tr(STR_SCANNING);
+      if (autoConnecting) spec.footerHint = tr(STR_WIFI_AUTOCONNECT_HINT);
+    } else if (state == WifiSelectionState::CONNECTING) {
+      spec.headline = autoConnecting ? tr(STR_CONNECTING_SAVED_WIFI) : tr(STR_CONNECTING);
+      ssidLine = std::string(tr(STR_TO_PREFIX)) + selectedSSID;
+      spec.body = ssidLine.c_str();
+      if (autoConnecting) spec.footerHint = tr(STR_WIFI_AUTOCONNECT_HINT);
+    } else if (state == WifiSelectionState::CONNECTED) {
+      spec.headline = tr(STR_CONNECTED);
+      ssidLine = std::string(tr(STR_NETWORK_PREFIX)) + selectedSSID;
+      ipLine = std::string(tr(STR_IP_ADDRESS_PREFIX)) + connectedIP;
+      spec.body = ssidLine.c_str();
+      spec.detail = ipLine.c_str();
+    } else if (state == WifiSelectionState::CONNECTION_FAILED) {
+      spec.headline = tr(STR_CONNECTION_FAILED);
+      spec.body = connectionError.c_str();
+      spec.footerHint = tr(STR_TAP_BACK_OR_PRESS_KEY);
+    }
+    AtelierChrome::drawStatusScreen(renderer, spec);
+    return;
+  }
+#endif
 
   renderer.clearScreen();
 
@@ -906,6 +996,48 @@ void WifiSelectionActivity::listScreen(UiScreen& screen, void* user) {
 }
 
 void WifiSelectionActivity::buildListScreen(UiScreen& screen) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    if (state == WifiSelectionState::SAVE_PROMPT || state == WifiSelectionState::FORGET_PROMPT) {
+      buildPromptDialog(screen);
+      return;
+    }
+    screen.setContentMarginFromScreen(fui::Insets{AtelierChrome::HEADER_RULE_Y + 33, 0, 62, 0});
+    if (networks.empty()) {
+      const fui::Rect body = screen.body();
+      AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, body.y + body.height / 2 - 44,
+                              AtelierChrome::font16Med(), tr(STR_NO_NETWORKS), AtelierTone::Ink, 0,
+                              AtelierChrome::CONTENT_W, 1, true);
+      if (mappedInput.hasTouch()) {
+        constexpr int btnW = 160;
+        constexpr int btnH = 44;
+        const int btnX = AtelierChrome::MARGIN_X + (AtelierChrome::CONTENT_W - btnW) / 2;
+        const int btnY = body.y + body.height / 2 + 8;
+        AtelierChrome::drawCapsuleButton(renderer, btnX, btnY, btnW, btnH, tr(STR_RETRY), AtelierChrome::font13Bold(),
+                                         true);
+        screen.frame().hit(fui::Rect{static_cast<int16_t>(btnX), static_cast<int16_t>(btnY), btnW, btnH}, ACTION_SCAN,
+                           0, fui::InputTouch);
+      } else {
+        AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, body.y + body.height / 2,
+                                AtelierChrome::font13Reg(), tr(STR_PRESS_OK_SCAN), AtelierTone::Muted, 0,
+                                AtelierChrome::CONTENT_W, 1, true);
+      }
+      return;
+    }
+    fui::ListProps props;
+    props.items = networkRowItems.data();
+    props.count = static_cast<uint16_t>(networkRowItems.size());
+    props.action = ACTION_ROW;
+    props.inputMask = fui::InputTouch | fui::InputLongPress;
+    props.labelText = screen.theme().bodyText;
+    props.labelText.maxLines = 2;
+    listNav.selected = static_cast<int>(selectedNetworkIndex);
+    props.partialTrailingRow = true;
+    screen.syncListViewport(listNav, props, static_cast<int>(networks.size()));
+    AtelierChrome::drawEditorialList(screen, renderer, props, listNav, false);
+    return;
+  }
+#endif
   const auto& metrics = UITheme::getInstance().getMetrics();
   const Rect safe = UITheme::getInstance().getScreenSafeArea(renderer, true, false);
   // Content below the header + MAC sub-band, above the legend line.
@@ -968,9 +1100,24 @@ void WifiSelectionActivity::buildPromptDialog(UiScreen& screen) {
   const std::string ssidInfo = std::string(tr(STR_NETWORK_PREFIX)) + selectedSSID;
 
   const int selection = isForget ? forgetPromptSelection : savePromptSelection;
+  const char* optLabels[2] = {isForget ? tr(STR_CANCEL) : tr(STR_YES), isForget ? tr(STR_FORGET_NETWORK) : tr(STR_NO)};
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    AtelierChrome::AtelierOptionSheetSpec spec;
+    spec.title = isForget ? tr(STR_FORGET_NETWORK) : tr(STR_CONNECTED);
+    spec.headline = ssidInfo.c_str();
+    spec.message = isForget ? tr(STR_FORGET_AND_REMOVE) : tr(STR_SAVE_PASSWORD);
+    spec.options = optLabels;
+    spec.optionCount = 2;
+    spec.selectedIndex = selection;
+    spec.primaryIndex = isForget ? 1 : 0;
+    AtelierChrome::renderOptionSheet(screen, renderer, spec, ACTION_PROMPT);
+    return;
+  }
+#endif
   fui::DialogOption options[2];
-  options[0].label = isForget ? tr(STR_CANCEL) : tr(STR_YES);
-  options[1].label = isForget ? tr(STR_FORGET_NETWORK) : tr(STR_NO);
+  options[0].label = optLabels[0];
+  options[1].label = optLabels[1];
   for (int i = 0; i < 2; i++) {
     options[i].action = ACTION_PROMPT;
     options[i].value = static_cast<int16_t>(i);

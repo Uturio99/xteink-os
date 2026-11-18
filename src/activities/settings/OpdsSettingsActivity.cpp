@@ -8,6 +8,7 @@
 #include "MappedInputManager.h"
 #include "OpdsServerStore.h"
 #include "activities/util/KeyboardEntryActivity.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 
 namespace fui = freeink::ui;
@@ -183,21 +184,29 @@ void OpdsSettingsActivity::handleSelection() {
 }
 
 void OpdsSettingsActivity::buildScreen(UiScreen& screen) {
-  const auto& metrics = UITheme::getInstance().getMetrics();
-  // Content below the GUI.drawHeader band, above the button hints; derived
-  // from the safe area so board bezel insets apply (same as LanguageSelect).
-  const Rect safe = UITheme::getInstance().getScreenSafeArea(renderer, true, false);
-  screen.setContentMarginFromScreen(
-      fui::Insets{static_cast<int16_t>(safe.y + metrics.topPadding + metrics.headerHeight),
-                  static_cast<int16_t>(renderer.getScreenWidth() - (safe.x + safe.width)),
-                  static_cast<int16_t>(renderer.getScreenHeight() - (safe.y + safe.height) + metrics.buttonHintsHeight),
-                  static_cast<int16_t>(safe.x)});
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    AtelierChrome::drawSubHeader(renderer, tr(STR_CALIBRE_URL_HINT));
+    screen.setContentMarginFromScreen(fui::Insets{AtelierChrome::HEADER_RULE_Y + 33, 0, 24, 0});
+  } else
+#endif
+  {
+    const auto& metrics = UITheme::getInstance().getMetrics();
+    // Content below the GUI.drawHeader band, above the button hints; derived
+    // from the safe area so board bezel insets apply (same as LanguageSelect).
+    const Rect safe = UITheme::getInstance().getScreenSafeArea(renderer, true, false);
+    screen.setContentMarginFromScreen(
+        fui::Insets{static_cast<int16_t>(safe.y + metrics.topPadding + metrics.headerHeight),
+                    static_cast<int16_t>(renderer.getScreenWidth() - (safe.x + safe.width)),
+                    static_cast<int16_t>(renderer.getScreenHeight() - (safe.y + safe.height) + metrics.buttonHintsHeight),
+                    static_cast<int16_t>(safe.x)});
 
-  // URL hint where the old sub-header band sat.
-  const fui::Rect band = screen.takeTop(static_cast<int16_t>(metrics.tabBarHeight));
-  const int16_t pad = screen.theme().headerSidePadding;
-  screen.target().text(band.inset(fui::Insets{0, pad, 0, pad}), tr(STR_CALIBRE_URL_HINT), screen.theme().smallText);
-  screen.spacer(static_cast<int16_t>(metrics.verticalSpacing));
+    // URL hint where the old sub-header band sat.
+    const fui::Rect band = screen.takeTop(static_cast<int16_t>(metrics.tabBarHeight));
+    const int16_t pad = screen.theme().headerSidePadding;
+    screen.target().text(band.inset(fui::Insets{0, pad, 0, pad}), tr(STR_CALIBRE_URL_HINT), screen.theme().smallText);
+    screen.spacer(static_cast<int16_t>(metrics.verticalSpacing));
+  }
 
   // fieldRowItems' labels/actionValue were set once in the constructor; only
   // the live value pointers (already pointing at editServer's own fields, no
@@ -223,7 +232,7 @@ void OpdsSettingsActivity::buildScreen(UiScreen& screen) {
   props.labelText = screen.theme().smallText;
   props.labelText.maxLines = 2;
   syncListViewport(screen, props);
-  screen.list(props);
+  renderList(screen, props);
 }
 
 const char* OpdsSettingsActivity::headerTitle() const {
@@ -233,6 +242,12 @@ const char* OpdsSettingsActivity::headerTitle() const {
 }
 
 void OpdsSettingsActivity::drawFooter() {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer) && showSaveError) {
+    AtelierChrome::drawFooterHint(renderer, tr(STR_ERROR_GENERAL_FAILURE));
+    return;
+  }
+#endif
   UiListActivity::drawFooter();
   if (showSaveError) {
     GUI.drawPopup(renderer, tr(STR_ERROR_GENERAL_FAILURE));

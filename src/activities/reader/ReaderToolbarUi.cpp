@@ -9,6 +9,7 @@
 
 #include "CrossPointSettings.h"
 #include "MappedInputManager.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "components/icons/readerToolbarIcons.h"
 
@@ -42,7 +43,7 @@ constexpr int kPanelHeightMaxPercent = 72;
 constexpr int kLandscapePanelHeightPercent = 88;
 }  // namespace
 
-ReaderToolbarUi::ReaderToolbarUi(GfxRenderer& renderer) : UiAppHost(renderer) {}
+ReaderToolbarUi::ReaderToolbarUi(GfxRenderer& renderer) : UiAppHost(renderer), renderer_(renderer) {}
 
 void ReaderToolbarUi::begin() {
   resetUi();
@@ -90,6 +91,16 @@ void ReaderToolbarUi::onAction(const fui::ActionEvent& event, void* user) {
 
 void ReaderToolbarUi::screenFn(UiScreen& screen, void* user) {
   auto* self = static_cast<ReaderToolbarUi*>(user);
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(self->renderer_)) {
+    if (self->model_.panel) {
+      self->buildAtelierPanel(screen);
+    } else {
+      self->buildAtelierToolbar(screen);
+    }
+    return;
+  }
+#endif
   if (self->model_.panel) {
     self->buildPanel(screen);
   } else {
@@ -293,21 +304,7 @@ void ReaderToolbarUi::buildPanel(UiScreen& screen) {
   nav_.syncToProps(listRect, listProps_.rowHeight, rowGap, count, listProps_);
 
   // Materialise only the visible window of rows.
-  const int windowCount = std::min({nav_.visibleRows, count - nav_.top, kMaxWindow});
-  for (int i = 0; i < windowCount; ++i) {
-    const int index = nav_.top + i;
-    windowLabels_[i] = model_.rowText ? model_.rowText(index) : std::string();
-    windowValues_[i] = model_.rowValue ? model_.rowValue(index) : std::string();
-    fui::ListItem item;
-    item.label = windowLabels_[i].c_str();
-    item.value = windowValues_[i].empty() ? nullptr : windowValues_[i].c_str();
-    if (model_.rowCheckbox) model_.rowCheckbox(model_.rowCheckboxContext, index, item);
-    item.actionValue = static_cast<int16_t>(index);
-    windowItems_[i] = item;
-  }
-  listProps_.items = windowItems_;
-  listProps_.itemsWindowFirst = static_cast<uint16_t>(nav_.top);
-  listProps_.itemsWindowCount = static_cast<uint16_t>(std::max(0, windowCount));
+  populateWindowItems(std::min({nav_.visibleRows, count - nav_.top, kMaxWindow}));
   listProps_.valueText = tokens.bodyText;
   listProps_.valueText.bold = true;
   if (count > 0) {
@@ -324,3 +321,133 @@ void ReaderToolbarUi::buildPanel(UiScreen& screen) {
     screen.target().text(pageIndicatorRect_, buf, pageStyle);
   }
 }
+
+void ReaderToolbarUi::populateWindowItems(const int windowCount) {
+  for (int i = 0; i < windowCount; ++i) {
+    const int index = nav_.top + i;
+    windowLabels_[i] = model_.rowText ? model_.rowText(index) : std::string();
+    windowValues_[i] = model_.rowValue ? model_.rowValue(index) : std::string();
+    fui::ListItem item;
+    item.label = windowLabels_[i].c_str();
+    item.value = windowValues_[i].empty() ? nullptr : windowValues_[i].c_str();
+    if (model_.rowCheckbox) model_.rowCheckbox(model_.rowCheckboxContext, index, item);
+    item.actionValue = static_cast<int16_t>(index);
+    windowItems_[i] = item;
+  }
+  listProps_.items = windowItems_;
+  listProps_.itemsWindowFirst = static_cast<uint16_t>(nav_.top);
+  listProps_.itemsWindowCount = static_cast<uint16_t>(std::max(0, windowCount));
+}
+
+#if FREEINK_DEVICE_X4PRO
+void ReaderToolbarUi::drawAtelierToolRow(UiScreen& screen, const int topY) {
+  const char* labels[kToolCount] = {tr(STR_TOOL_CONTENTS), tr(STR_TOOL_TEXT), tr(STR_TOOL_MORE)};
+  constexpr int slotW = AtelierChrome::CONTENT_W / kToolCount;
+  for (int i = 0; i < kToolCount; ++i) {
+    const int slotX = AtelierChrome::MARGIN_X + i * slotW;
+    const int pillX = slotX + 6;
+    const int pillW = slotW - 12;
+    const int pillY = topY + 4;
+    const int pillH = 40;
+    const bool active = (i == model_.activeTool);
+    AtelierChrome::drawCapsuleButton(renderer_, pillX, pillY, pillW, pillH, labels[i],
+                                     active ? AtelierChrome::font12Bold() : AtelierChrome::font12Reg(), active);
+    screen.frame().hit(
+        fui::Rect{static_cast<int16_t>(slotX), static_cast<int16_t>(topY), static_cast<int16_t>(slotW), 52},
+        ACTION_TOOL, static_cast<int16_t>(i), fui::InputTouch);
+  }
+}
+
+void ReaderToolbarUi::buildAtelierToolbar(UiScreen& screen) {
+  constexpr int16_t sheetH = 212;
+  constexpr int16_t sheetY = 800 - sheetH;
+  AtelierChrome::fillRect(renderer_, 0, sheetY, 480, sheetH, 0);
+  AtelierChrome::fillRect(renderer_, AtelierChrome::MARGIN_X, sheetY, AtelierChrome::CONTENT_W, 1, 3);
+  AtelierChrome::fillCapsule(renderer_, 222, sheetY + 10, 36, 3);
+  screen.frame().hit(fui::Rect{0, 0, 480, sheetY}, ACTION_DISMISS, 0, fui::InputTouch);
+
+  // Meta row: chapter title left, page / book % right
+  if (model_.pageInfo) {
+    const int infoW = AtelierChrome::measureText(AtelierChrome::font11Reg(), model_.pageInfo, 0);
+    AtelierChrome::drawText(renderer_, AtelierChrome::MARGIN_X + AtelierChrome::CONTENT_W - infoW, sheetY + 30,
+                            AtelierChrome::font11Reg(), model_.pageInfo, AtelierTone::Muted, 0, infoW + 4, 2, false);
+    if (model_.chapterTitle) {
+      AtelierChrome::drawText(renderer_, AtelierChrome::MARGIN_X, sheetY + 29, AtelierChrome::font12Bold(),
+                              model_.chapterTitle, AtelierTone::Ink, 0,
+                              std::max(60, AtelierChrome::CONTENT_W - infoW - 14), 0, true);
+    }
+  } else if (model_.chapterTitle) {
+    AtelierChrome::drawText(renderer_, AtelierChrome::MARGIN_X, sheetY + 29, AtelierChrome::font12Bold(),
+                            model_.chapterTitle, AtelierTone::Ink, 0, AtelierChrome::CONTENT_W, 0, true);
+  }
+
+  // Scrub row: circular < button + 1px scrubber track + circular > button
+  constexpr int btnY = sheetY + 64;
+  constexpr int btnSize = 36;
+  AtelierChrome::strokeCapsule(renderer_, AtelierChrome::MARGIN_X, btnY, btnSize, btnSize, 3, 1.0f);
+  AtelierChrome::drawChevron(renderer_, AtelierChrome::MARGIN_X + 14.5f, btnY + 18.0f, 6.0f, 5.5f);
+  screen.frame().hit(fui::Rect{AtelierChrome::MARGIN_X - 8, btnY - 6, btnSize + 16, btnSize + 12}, ACTION_PREV, 0,
+                     fui::InputTouch);
+
+  constexpr int rightBtnX = AtelierChrome::MARGIN_X + AtelierChrome::CONTENT_W - btnSize;
+  AtelierChrome::strokeCapsule(renderer_, rightBtnX, btnY, btnSize, btnSize, 3, 1.0f);
+  AtelierChrome::drawChevron(renderer_, rightBtnX + 21.5f, btnY + 18.0f, -6.0f, 5.5f);
+  screen.frame().hit(fui::Rect{rightBtnX - 8, btnY - 6, btnSize + 16, btnSize + 12}, ACTION_NEXT, 0, fui::InputTouch);
+
+  constexpr int trackX = AtelierChrome::MARGIN_X + btnSize + 14;
+  constexpr int trackW = AtelierChrome::CONTENT_W - 2 * (btnSize + 14);
+  AtelierChrome::drawScrubberTrack(renderer_, trackX, btnY + 12, trackW, 12, model_.progressPermille, true);
+  screen.frame().hit(fui::Rect{trackX, btnY - 4, trackW, btnSize + 8}, ACTION_SCRUB, 0,
+                     fui::InputTouch | fui::InputDrag);
+
+  AtelierChrome::fillRect(renderer_, AtelierChrome::MARGIN_X, sheetY + 118, AtelierChrome::CONTENT_W, 1, 2);
+  drawAtelierToolRow(screen, sheetY + 132);
+}
+
+void ReaderToolbarUi::buildAtelierPanel(UiScreen& screen) {
+  const int count = std::max(0, model_.itemCount);
+  const int desiredListH = std::clamp(count * 56, 112, 280);
+  const int16_t sheetH = static_cast<int16_t>(std::min(460, 56 + desiredListH + 74));
+  const int16_t sheetY = static_cast<int16_t>(800 - sheetH);
+
+  // Repaint white buffer above sheetY + full sheet area so underlying page art
+  // never collides with or bleeds across the single 1px top sheet rule.
+  AtelierChrome::fillRect(renderer_, 0, sheetY - 10, 480, sheetH + 10, 0);
+  AtelierChrome::fillRect(renderer_, AtelierChrome::MARGIN_X, sheetY, AtelierChrome::CONTENT_W, 1, 3);
+  screen.frame().hit(fui::Rect{0, 0, 480, sheetY}, ACTION_DISMISS, 0, fui::InputTouch);
+
+  // Header inside sheet (16px top/bottom rhythm matching OptionPopup sheets)
+  char countStr[24]{};
+  snprintf(countStr, sizeof(countStr), tr(STR_ATELIER_COUNT_ITEMS_FMT), count);
+  const int countW = AtelierChrome::measureText(AtelierChrome::font10Bold(), countStr, 1);
+  AtelierChrome::drawText(renderer_, AtelierChrome::MARGIN_X + AtelierChrome::CONTENT_W - countW, sheetY + 21,
+                          AtelierChrome::font10Bold(), countStr, AtelierTone::Muted, 1, countW + 4, 2, false);
+  AtelierChrome::drawText(renderer_, AtelierChrome::MARGIN_X, sheetY + 16, AtelierChrome::font20Light(),
+                          model_.panelTitle ? model_.panelTitle : "", AtelierTone::Ink, 0,
+                          std::max(60, AtelierChrome::CONTENT_W - countW - 14), 0, true);
+  AtelierChrome::fillRect(renderer_, AtelierChrome::MARGIN_X, sheetY + 55, AtelierChrome::CONTENT_W, 1, 3);
+
+  screen.setContentMarginFromScreen(fui::Insets{static_cast<int16_t>(sheetY + 56), 0, 74, 0});
+  const fui::Rect listRect = screen.body();
+
+  listProps_ = fui::ListProps{};
+  listProps_.count = static_cast<uint16_t>(count);
+  listProps_.action = ACTION_ROW;
+  listProps_.inputMask = fui::InputTouch;
+  listProps_.rowHeight = 56;
+  listProps_.rowGap = 0;
+  listProps_.scrollIndicator = true;
+
+  nav_.selected = std::clamp(model_.selectedIndex, -1, count - 1);
+  nav_.followOnBuild = nav_.selected >= 0;
+  nav_.followPending = false;
+  nav_.syncToProps(listRect, 56, 0, count, listProps_);
+
+  populateWindowItems(std::min({kMaxWindow, std::max(0, count - nav_.top)}));
+
+  AtelierChrome::drawEditorialList(screen, renderer_, listProps_, nav_, false);
+
+  AtelierChrome::fillRect(renderer_, AtelierChrome::MARGIN_X, 726, AtelierChrome::CONTENT_W, 1, 2);
+  drawAtelierToolRow(screen, 734);
+}
+#endif

@@ -2,6 +2,7 @@
 
 #include <BoardConfig.h>
 #include <FreeInkUIIcon.h>
+#include <FsHelpers.h>
 #include <GfxRenderer.h>
 #include <HalStorage.h>
 #include <I18n.h>
@@ -20,6 +21,7 @@
 #include "activities/reader/ReaderActivity.h"
 #include "activities/util/ConfirmationActivity.h"
 #include "activities/util/KeyboardEntryActivity.h"
+#include "components/AtelierChrome.h"
 #include "components/UIScale.h"
 #include "components/UITheme.h"
 #include "components/icons/headerIcons.h"
@@ -27,6 +29,7 @@
 #include "components/icons/search32.h"
 #include "fontIds.h"
 #include "util/BookCacheUtils.h"
+#include "util/BookProgress.h"
 
 namespace fui = freeink::ui;
 
@@ -113,6 +116,11 @@ void LibraryListActivity::onEnter() {
     LOG_ERR("LIB", "index was built without duplicate detection");
   }
   resolvePinned();
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer) && listCount() > 0) {
+    activeNav().selected = 1;
+  }
+#endif
 
   // Entered while Confirm was still held (typical when launched from the home
   // menu): ignore its release, or we would open whatever sits at row 0.
@@ -940,6 +948,7 @@ void LibraryListActivity::buildRows(UiScreen& screen) {
   const size_t cap = static_cast<size_t>(nav.visibleRows > 0 ? nav.visibleRows : 1) + 1;
   if (winTitles.size() < cap) winTitles.resize(cap);
   if (winAuthors.size() < cap) winAuthors.resize(cap);
+  if (winValues.size() < cap) winValues.resize(cap);
   if (!groupsCollapsed && winHeaders.size() < cap) winHeaders.resize(cap);
   winItems.clear();
   if (winItems.capacity() < cap) winItems.reserve(cap);
@@ -987,7 +996,27 @@ void LibraryListActivity::buildRows(UiScreen& screen) {
 
     item.label = title.c_str();
     // Group headings stay bare; every book row gets its file-type icon.
-    if (!groupsCollapsed && !rowFile.empty()) item.icon = listIconFor(UITheme::getFileIcon(rowFile), 32);
+    if (!groupsCollapsed && !rowFile.empty()) {
+      item.icon = listIconFor(UITheme::getFileIcon(rowFile), 32);
+#if FREEINK_DEVICE_X4PRO
+      if (AtelierChrome::isPortrait480x800(renderer)) {
+        std::string& val = winValues[static_cast<size_t>(rows)];
+        val.clear();
+        if (entry < pinnedCount()) {
+          const int pct = loadBookProgress(rowFile);
+          if (pct >= 0) {
+            char pctBuf[16];
+            snprintf(pctBuf, sizeof(pctBuf), "%d%%", pct);
+            val = pctBuf;
+          }
+        }
+        if (val.empty()) {
+          val = FsHelpers::hasXtcExtension(rowFile) ? "XTC" : "EPUB";
+        }
+        item.value = val.c_str();
+      }
+#endif
+    }
     item.actionValue = static_cast<int16_t>(entry);
     winItems.push_back(item);
     rows++;
@@ -999,7 +1028,7 @@ void LibraryListActivity::buildRows(UiScreen& screen) {
 #if FREEINK_CAP_TOUCH
   configureSwipeDelete(screen, props);
 #endif
-  screen.list(props);
+  renderList(screen, props);
 #if defined(ENABLE_SERIAL_LOG) && LOG_LEVEL >= 2
   const int next = nav.drawnRows;
   const auto body = screen.body();
@@ -1032,6 +1061,50 @@ void LibraryListActivity::formatAuthorHeading(const std::string& author, std::st
 }
 
 void LibraryListActivity::buildHeader(UiScreen& screen) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    AtelierChrome::drawStatusBar(renderer, AtelierChrome::MARGIN_X, 20, AtelierChrome::CONTENT_W, 28, true);
+
+    char leftBuf[192]{};
+    if (!headerSearchTitle.empty()) {
+      snprintf(leftBuf, sizeof(leftBuf), "02.1 — %s", headerSearchTitle.c_str());
+    } else {
+      char upperTitle[160]{};
+      AtelierChrome::formatUpperVi(headerTitle(), upperTitle, sizeof(upperTitle));
+      snprintf(leftBuf, sizeof(leftBuf), "02.1 — %s", upperTitle);
+    }
+
+    char countStr[24]{};
+    snprintf(countStr, sizeof(countStr),
+             groupsCollapsed ? tr(STR_ATELIER_COUNT_GROUPS_FMT) : tr(STR_ATELIER_COUNT_BOOKS_FMT), listCount());
+
+    int rightEdge = AtelierChrome::MARGIN_X + AtelierChrome::CONTENT_W;
+    if (!degraded) {
+      AtelierChrome::strokeCapsule(renderer, 420, 54, 28, 28, 1, 1.0f);
+      AtelierChrome::drawSearchIcon(renderer, 426, 60);
+      screen.frame().hit(fui::Rect{414, 50, 38, 36}, ACTION_SEARCH, 0, fui::InputTouch, fui::StateNormal);
+      rightEdge = 412;
+
+      if (mappedInput.hasTouch()) {
+        AtelierChrome::strokeCapsule(renderer, 384, 54, 28, 28, 1, 1.0f);
+        AtelierChrome::drawRefreshIcon(renderer, 390, 60);
+        screen.frame().hit(fui::Rect{378, 50, 38, 36}, ACTION_REBUILD, 0, fui::InputTouch, fui::StateNormal);
+        rightEdge = 376;
+      }
+    }
+
+    const int countW = AtelierChrome::measureText(AtelierChrome::font10Bold(), countStr, 1);
+    const int countX = rightEdge - countW - 2;
+    AtelierChrome::drawText(renderer, countX, 60, AtelierChrome::font10Bold(), countStr, AtelierTone::Muted, 1,
+                            countW + 4, 2, false);
+    const int maxLeftW = std::max(80, countX - AtelierChrome::MARGIN_X - 10);
+    AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, 60, AtelierChrome::font10Bold(), leftBuf,
+                            AtelierTone::Ink, 1, maxLeftW, 0, true);
+    AtelierChrome::fillRect(renderer, AtelierChrome::MARGIN_X, AtelierChrome::HEADER_RULE_Y, AtelierChrome::CONTENT_W, 1,
+                            3);
+    return;
+  }
+#endif
   const auto& metrics = UITheme::getInstance().getMetrics();
   const auto& theme = screen.theme();
   fui::HeaderProps header;
@@ -1076,6 +1149,27 @@ void LibraryListActivity::buildHeader(UiScreen& screen) {
 }
 
 void LibraryListActivity::buildScreen(UiScreen& screen) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    buildHeader(screen);
+    screen.setContentMarginFromScreen(fui::Insets{88, 0, 66, 0});
+    if (!degraded) buildTabBar(screen);
+    if (bookRowCount() == 0) {
+      const char* message = tr(STR_LIBRARY_NO_RESULTS);
+      if (filterFailed) {
+        message = tr(STR_LIBRARY_SEARCH_UNAVAILABLE);
+      } else if (query.empty()) {
+        message = tr(STR_LIBRARY_EMPTY);
+      }
+      const fui::Rect b = screen.body();
+      AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, b.y + b.height / 2 - 12, AtelierChrome::font14Reg(),
+                              message, AtelierTone::Muted, 0, AtelierChrome::CONTENT_W, 1, true);
+      return;
+    }
+    buildRows(screen);
+    return;
+  }
+#endif
   const auto& metrics = UITheme::getInstance().getMetrics();
   // The position readout owns the line above the hints; rows must not overlap
   // it.
@@ -1154,12 +1248,28 @@ void LibraryListActivity::drawHoldHelp() const {
 
 // OptionPopup is a self-contained modal: it owns the whole frame (hints
 // included) whenever it is up, mirroring the FileBrowser pattern.
+void LibraryListActivity::drawOverlay() {
+  if (optionPopup.isActive()) optionPopup.render(renderer);
+}
+
 void LibraryListActivity::render(RenderLock&& lock) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    UiTabListActivity::render(std::move(lock));
+    return;
+  }
+#endif
   if (optionPopup.processRender(renderer, mappedInput)) return;
   UiTabListActivity::render(std::move(lock));
 }
 
 void LibraryListActivity::drawFooter() {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    AtelierChrome::drawBottomNav(renderer, 1);
+    return;
+  }
+#endif
   drawPositionReadout();
   drawHoldHelp();
 

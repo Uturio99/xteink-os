@@ -27,6 +27,7 @@ class OpdsSettingsActivity final : public UiListActivity {
   void buildScreen(UiScreen& screen) override;
   void activateIndex(int index) override;
   const char* headerTitle() const override;
+  const char* atelierEyebrowCode() const override { return "05.3"; }
   void drawFooter() override;
 
   int getMenuItemCount() const;

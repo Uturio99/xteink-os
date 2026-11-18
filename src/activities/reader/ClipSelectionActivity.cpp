@@ -18,6 +18,7 @@
 #include "activities/ActivityResult.h"
 #include "clippings/ClippingText.h"
 #include "clippings/SelectionGeometry.h"
+#include "components/AtelierChrome.h"
 #include "components/UIScale.h"
 #include "components/UITheme.h"
 #include "util/DictionaryRegistry.h"
@@ -32,6 +33,20 @@ constexpr unsigned long TOUCH_PAGE_ADVANCE_HOLD_MS = 1000;
 constexpr int TOUCH_PAGE_END_DWELL_SLOP_PX = 8;
 constexpr ClippingResult::Action SELECTION_ACTIONS[] = {ClippingResult::Action::Lookup, ClippingResult::Action::Clip,
                                                         ClippingResult::Action::Bookmark};
+
+void drawSelectionFooter(GfxRenderer& renderer, const MappedInputManager& mappedInput, const char* confirmLabel) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    if (!mappedInput.hasTouch()) {
+      AtelierChrome::fillRect(renderer, 0, AtelierChrome::BOTTOM_NAV_Y, 480, 60, 0);
+      AtelierChrome::drawFooterHint(renderer, confirmLabel);
+    }
+    return;
+  }
+#endif
+  const auto labels = mappedInput.mapLabels(tr(STR_BACK), confirmLabel, tr(STR_DIR_LEFT), tr(STR_DIR_RIGHT));
+  GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+}
 
 const char* cleanWordStart(const char* text) {
   if (!text) return "";
@@ -674,15 +689,28 @@ Rect ClipSelectionActivity::actionRect() const {
   safe.y = std::max(safe.y, top) + std::max(metrics.topPadding, metrics.verticalSpacing);
   safe.width = rightEdge - safe.x;
   safe.height = bottomEdge - safe.y;
-  const int font = uiScaleSpec().smallFontId;
-  const int labelWidth =
-      std::max({renderer.getTextWidth(font, tr(STR_LOOKUP)), renderer.getTextWidth(font, tr(STR_CLIP)),
-                renderer.getTextWidth(font, tr(STR_BOOKMARK_OPTION))});
   const int padding = metrics.menuSpacing;
   const int count = actionCount();
-  const int width = std::min(safe.width, count * (labelWidth + padding * 2) + padding * (count + 1));
-  const int lines = labelWidth > (width - padding * (count + 1)) / count ? 2 : 1;
-  const int height = std::max(36, renderer.getLineHeight(font) * lines + padding * 2);
+  int width = 0;
+  int height = 0;
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    const int labelWidth = std::max({AtelierChrome::measureText(AtelierChrome::font12Reg(), tr(STR_LOOKUP)),
+                                     AtelierChrome::measureText(AtelierChrome::font12Reg(), tr(STR_CLIP)),
+                                     AtelierChrome::measureText(AtelierChrome::font12Reg(), tr(STR_BOOKMARK_OPTION))});
+    width = std::min(safe.width, count * (labelWidth + 32) + padding * (count + 1));
+    height = 34 + padding * 2;
+  } else
+#endif
+  {
+    const int font = uiScaleSpec().smallFontId;
+    const int labelWidth =
+        std::max({renderer.getTextWidth(font, tr(STR_LOOKUP)), renderer.getTextWidth(font, tr(STR_CLIP)),
+                  renderer.getTextWidth(font, tr(STR_BOOKMARK_OPTION))});
+    width = std::min(safe.width, count * (labelWidth + padding * 2) + padding * (count + 1));
+    const int lines = labelWidth > (width - padding * (count + 1)) / count ? 2 : 1;
+    height = std::max(36, renderer.getLineHeight(font) * lines + padding * 2);
+  }
   int first = std::min(rangeStart, selected);
   const int last = std::max(rangeStart, selected);
   while (first < last && words[first].pageOffset < currentPageOffset) ++first;
@@ -720,7 +748,14 @@ void ClipSelectionActivity::ditherGapBetween(const WordBox& a, const WordBox& b,
   const int leftRight = std::min(a.x + a.width, b.x + b.width);
   const int rightLeft = std::max(a.x, b.x);
   if (leftRight < rightLeft) {
-    renderer.fillRectDither(leftRight + offsetX, a.y + offset, rightLeft - leftRight, a.height, Color::LightGray);
+#if FREEINK_DEVICE_X4PRO
+    if (AtelierChrome::isPortrait480x800(renderer)) {
+      renderer.fillRect(leftRight + offsetX, a.y + offset + a.height - 2, rightLeft - leftRight, 2, true);
+    } else
+#endif
+    {
+      renderer.fillRectDither(leftRight + offsetX, a.y + offset, rightLeft - leftRight, a.height, Color::LightGray);
+    }
   }
 }
 
@@ -769,7 +804,14 @@ void ClipSelectionActivity::drawWordHighlight(const int index, const int firstSe
     ditherGapBetween(word, words[index + 1], offsetX, offset);
   }
 
-  renderer.fillRectDither(word.x + offsetX, word.y + offset, word.width, word.height, Color::LightGray);
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    renderer.fillRect(word.x + offsetX, word.y + offset + word.height - 2, word.width, 2, true);
+  } else
+#endif
+  {
+    renderer.fillRectDither(word.x + offsetX, word.y + offset, word.width, word.height, Color::LightGray);
+  }
   renderer.drawText(word.fontId, word.x + offsetX, word.y + offset, word.text, true, word.style,
                     BidiUtils::BidiBaseDir::AUTO, word.characterSpacing);
 }
@@ -792,8 +834,7 @@ bool ClipSelectionActivity::renderIncremental() {
     const WordBox& cursor = words[selected];
     renderer.drawRect(cursor.x + offsetX, cursor.y + offset, cursor.width, cursor.height, true);
 
-    const auto labels = mappedInput.mapLabels(tr(STR_BACK), tr(STR_SELECT), tr(STR_DIR_LEFT), tr(STR_DIR_RIGHT));
-    GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+    drawSelectionFooter(renderer, mappedInput, tr(STR_SELECT));
     renderer.displayBuffer(HalDisplay::FAST_REFRESH);
 
     lastRenderedSelected = selected;
@@ -802,9 +843,7 @@ bool ClipSelectionActivity::renderIncremental() {
 
   // Case 2: Transition from rangeStart < 0 to rangeStart >= 0 (user just confirmed rangeStart)
   if (rangeStart >= 0 && lastRenderedRangeStart < 0 && rangeStart == selected && selected == lastRenderedSelected) {
-    const auto labels = mappedInput.mapLabels(tr(STR_BACK), isLookup() ? tr(STR_LOOKUP) : tr(STR_DONE),
-                                              tr(STR_DIR_LEFT), tr(STR_DIR_RIGHT));
-    GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+    drawSelectionFooter(renderer, mappedInput, isLookup() ? tr(STR_LOOKUP) : tr(STR_DONE));
     renderer.displayBuffer(HalDisplay::FAST_REFRESH);
 
     lastRenderedRangeStart = rangeStart;
@@ -844,9 +883,7 @@ bool ClipSelectionActivity::renderIncremental() {
     const WordBox& cursor = words[selected];
     renderer.drawRect(cursor.x + offsetX, cursor.y + offset, cursor.width, cursor.height, true);
 
-    const auto labels = mappedInput.mapLabels(tr(STR_BACK), isLookup() ? tr(STR_LOOKUP) : tr(STR_DONE),
-                                              tr(STR_DIR_LEFT), tr(STR_DIR_RIGHT));
-    GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+    drawSelectionFooter(renderer, mappedInput, isLookup() ? tr(STR_LOOKUP) : tr(STR_DONE));
     renderer.displayBuffer(HalDisplay::FAST_REFRESH);
 
     lastRenderedSelected = selected;
@@ -866,7 +903,14 @@ void ClipSelectionActivity::drawSelection() const {
     const WordBox& word = words[i];
     if (word.pageOffset != currentPageOffset) continue;
     if (previous) ditherGapBetween(*previous, word, offsetX, offset);
-    renderer.fillRectDither(word.x + offsetX, word.y + offset, word.width, word.height, Color::LightGray);
+#if FREEINK_DEVICE_X4PRO
+    if (AtelierChrome::isPortrait480x800(renderer)) {
+      renderer.fillRect(word.x + offsetX, word.y + offset + word.height - 2, word.width, 2, true);
+    } else
+#endif
+    {
+      renderer.fillRectDither(word.x + offsetX, word.y + offset, word.width, word.height, Color::LightGray);
+    }
     renderer.drawText(word.fontId, word.x + offsetX, word.y + offset, word.text, true, word.style,
                       BidiUtils::BidiBaseDir::AUTO, word.characterSpacing);
     previous = &word;
@@ -876,7 +920,28 @@ void ClipSelectionActivity::drawSelection() const {
       GUI.drawSelectionHandle(renderer, handleRect(first, true), !words[first].isRtl);
     if (words[last].pageOffset == currentPageOffset)
       GUI.drawSelectionHandle(renderer, handleRect(last, false), words[last].isRtl);
-    if (!touchDragSelecting) GUI.drawSelectionActions(renderer, actionRect(), actionCount(), firstAction());
+    if (!touchDragSelecting) {
+#if FREEINK_DEVICE_X4PRO
+      if (AtelierChrome::isPortrait480x800(renderer)) {
+        const Rect rect = actionRect();
+        const int count = actionCount();
+        const int firstAct = firstAction();
+        const int padding = UITheme::getInstance().getMetrics().menuSpacing;
+        const char* actLabels[] = {tr(STR_LOOKUP), tr(STR_CLIP), tr(STR_BOOKMARK_OPTION)};
+        AtelierChrome::fillRect(renderer, rect.x, rect.y, rect.width, rect.height, 0);
+        renderer.drawRect(rect.x, rect.y, rect.width, rect.height, 1, true);
+        for (int i = 0; i < count; ++i) {
+          const Rect button = selectionGeometry::button(rect, i, padding, count);
+          AtelierChrome::drawCapsuleButton(renderer, button.x, button.y, button.width, button.height,
+                                           actLabels[firstAct + i], AtelierChrome::font12Reg(), i == 0, true, false,
+                                           true);
+        }
+      } else
+#endif
+      {
+        GUI.drawSelectionActions(renderer, actionRect(), actionCount(), firstAction());
+      }
+    }
   } else {
     const WordBox& cursor = words[selected];
     renderer.drawRect(cursor.x + offsetX, cursor.y + offset, cursor.width, cursor.height, true);
@@ -907,10 +972,8 @@ void ClipSelectionActivity::render(RenderLock&&) {
   if (wordCount != 0) drawSelection();
   renderer.setClipRect(clip[0], clip[1], clip[2], clip[3]);
 
-  const auto labels = mappedInput.mapLabels(
-      tr(STR_BACK), rangeStart < 0 ? tr(STR_SELECT) : (isLookup() ? tr(STR_LOOKUP) : tr(STR_DONE)), tr(STR_DIR_LEFT),
-      tr(STR_DIR_RIGHT));
-  GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+  drawSelectionFooter(renderer, mappedInput,
+                      rangeStart < 0 ? tr(STR_SELECT) : (isLookup() ? tr(STR_LOOKUP) : tr(STR_DONE)));
   renderer.displayBuffer();
 
   lastRenderedPageOffset = currentPageOffset;

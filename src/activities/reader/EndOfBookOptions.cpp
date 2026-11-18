@@ -11,6 +11,7 @@
 // std::unique_ptr<Activity> members. Destroying that unique_ptr needs the complete type, so the
 // definition must be visible here.
 #include "activities/Activity.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
 #include "util/ButtonNavigator.h"
@@ -156,6 +157,22 @@ void EndOfBookOptions::listScreen(UiScreen& screen, void* user) {
 }
 
 void EndOfBookOptions::buildListScreen(UiScreen& screen) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    screen.setContentMarginFromScreen(fui::Insets{220, 0, 16, 0});
+    fui::ListProps props;
+    props.items = rowItems;
+    props.count = static_cast<uint16_t>(rowCount);
+    props.selectedIndex = static_cast<int16_t>(selector.load(std::memory_order_relaxed));
+    props.action = ACTION_ROW;
+    props.inputMask = fui::InputTouch;
+    fui::ListNav nav;
+    nav.selected = props.selectedIndex;
+    nav.visibleRows = rowCount;
+    AtelierChrome::drawEditorialList(screen, renderer, props, nav, false);
+    return;
+  }
+#endif
   const auto& metrics = UITheme::getInstance().getMetrics();
   // Same layout math as render(): the list band starts under the title/subtitle it
   // draws, and stops above the button hints (the safe-area bottom edge).
@@ -180,6 +197,23 @@ void EndOfBookOptions::buildListScreen(UiScreen& screen) {
 }
 
 void EndOfBookOptions::render(GfxRenderer& renderer, const MappedInputManager& input) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    const auto prevHook = renderer.uiTextOverrideHook();
+    renderer.setUiTextOverrideHook(AtelierChrome::textHook(false));
+    AtelierChrome::drawHeader(renderer, tr(STR_END_OF_BOOK), nullptr, true, "02.9");
+    if (!menuActive()) {
+      AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, 340, AtelierChrome::font20Light(),
+                              tr(STR_END_OF_BOOK), AtelierTone::Ink, 0, AtelierChrome::CONTENT_W, 1, true);
+    } else {
+      AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, 150, AtelierChrome::font16Med(),
+                              tr(STR_EOB_CONTINUE_WITH), AtelierTone::Muted, 0, AtelierChrome::CONTENT_W, 0, true);
+      renderUi();
+    }
+    renderer.setUiTextOverrideHook(prevHook);
+    return;
+  }
+#endif
   const auto& metrics = UITheme::getInstance().getMetrics();
 
   if (!menuActive()) {

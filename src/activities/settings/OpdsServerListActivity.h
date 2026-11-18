@@ -27,6 +27,7 @@ class OpdsServerListActivity final : public UiListActivity {
   // Picker mode backs out to the home menu rather than finishing.
   void onBackButton() override;
   const char* headerTitle() const override;
+  const char* atelierEyebrowCode() const override { return "05.2"; }
 
   bool pickerMode = false;
   OptionPopup optionPopup;

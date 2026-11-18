@@ -663,6 +663,14 @@ int GfxRenderer::getTextWidth(const int fontId, const char* text, const EpdFontF
     return 0;
   }
 
+  std::string visual;
+  const char* renderedText = resolveVisualText(text, visual, baseDir);
+
+  if (uiHook_.active && uiHook_.measureWidth) {
+    const int hookedW = uiHook_.measureWidth(fontId, renderedText, style);
+    if (hookedW >= 0) return hookedW;
+  }
+
   // Measure with the same font drawText would render with (see resolveTextFontId)
   // so wrapping, truncation and centering of non-Latin strings stay consistent.
   const int resolvedFontId = resolveTextFontId(fontId, text, style);
@@ -671,9 +679,6 @@ int GfxRenderer::getTextWidth(const int fontId, const char* text, const EpdFontF
     LOG_ERR("GFX", "Font %d not found", resolvedFontId);
     return 0;
   }
-
-  std::string visual;
-  const char* renderedText = resolveVisualText(text, visual, baseDir);
 
   // Redirected to the SD fallback: batch-load the string's glyphs so the
   // per-codepoint measurement loop below doesn't fault them in one SD read
@@ -701,12 +706,18 @@ void GfxRenderer::drawText(const int fontId, const int x, const int y, const cha
     return;
   }
 
+  std::string visual;
+  const char* renderedText = resolveVisualText(text, visual, baseDir);
+
+  if (uiHook_.active && uiHook_.drawText && (!fontCacheManager_ || !fontCacheManager_->isScanning())) {
+    if (uiHook_.drawText(*this, fontId, x, y, renderedText, black ? Color::Black : Color::White, style)) {
+      return;
+    }
+  }
+
   // Route non-Latin strings to the fallback font when the requested font
   // lacks the glyphs (e.g. Chinese book titles drawn with a Latin UI font).
   const int resolvedFontId = resolveTextFontId(fontId, text, style);
-
-  std::string visual;
-  const char* renderedText = resolveVisualText(text, visual, baseDir);
 
   // Baseline from the resolved font; when the string was redirected to the
   // fallback, the caller positioned this line with the REQUESTED font's
@@ -1039,6 +1050,25 @@ void GfxRenderer::drawPixelDither<Color::DarkGray>(const int x, const int y) con
 }
 
 void GfxRenderer::fillRectDither(const int x, const int y, const int width, const int height, Color color) const {
+  if (uiHook_.ditherAsGrayscalePlanes && (color == Color::LightGray || color == Color::DarkGray) && width > 0 &&
+      height > 0 && (!fontCacheManager_ || !fontCacheManager_->isScanning())) {
+    const uint8_t shade = (color == Color::LightGray) ? 1 : 2;
+    if (absoluteGrayPlanes) {
+      const int lx0 = std::max({0, x, clipLeft_});
+      const int ly0 = std::max({0, y, clipTop_});
+      const int lx1 = std::min({getScreenWidth(), x + width, clipRight_});
+      const int ly1 = std::min({getScreenHeight(), y + height, clipBottom_});
+      for (int py = ly0; py < ly1; ++py) {
+        for (int px = lx0; px < lx1; ++px) {
+          const auto gp = grayPlanePixel(static_cast<uint8_t>(3 - shade), renderMode == GRAYSCALE_MSB, true);
+          if (gp.write) drawPixel(px, py, gp.black);
+        }
+      }
+      return;
+    }
+    fillRect(x, y, width, height, grayPlaneBitState(shade, renderMode == BW, renderMode == GRAYSCALE_LSB));
+    return;
+  }
   switch (color) {
     case Color::Clear:
       break;
@@ -2287,6 +2317,10 @@ int GfxRenderer::drawScaledCodepoint(const int fontId, const uint32_t cp, const 
 }
 
 int GfxRenderer::getFontAscenderSize(const int fontId) const {
+  if (uiHook_.active && uiHook_.ascender) {
+    const int hooked = uiHook_.ascender(fontId);
+    if (hooked > 0) return hooked;
+  }
   const auto fontIt = fontMap.find(fontId);
   if (fontIt == fontMap.end()) {
     LOG_ERR("GFX", "Font %d not found", fontId);
@@ -2297,6 +2331,10 @@ int GfxRenderer::getFontAscenderSize(const int fontId) const {
 }
 
 int GfxRenderer::getLineHeight(const int fontId) const {
+  if (uiHook_.active && uiHook_.lineHeight) {
+    const int hooked = uiHook_.lineHeight(fontId);
+    if (hooked > 0) return hooked;
+  }
   const auto fontIt = fontMap.find(fontId);
   if (fontIt == fontMap.end()) {
     LOG_ERR("GFX", "Font %d not found", fontId);
@@ -2316,6 +2354,10 @@ int GfxRenderer::getLineHeight(const int fontId, const float compression) const 
 }
 
 int GfxRenderer::getTextHeight(const int fontId) const {
+  if (uiHook_.active && uiHook_.ascender) {
+    const int hooked = uiHook_.ascender(fontId);
+    if (hooked > 0) return hooked;
+  }
   const auto fontIt = fontMap.find(fontId);
   if (fontIt == fontMap.end()) {
     LOG_ERR("GFX", "Font %d not found", fontId);

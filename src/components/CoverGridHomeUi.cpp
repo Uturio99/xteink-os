@@ -1,17 +1,30 @@
 #include "CoverGridHomeUi.h"
 
+#include <BitmapHelpers.h>
 #include <BoardConfig.h>
+#include <CrossPointSettings.h>
+#include <Epub.h>
+#include <FsHelpers.h>
 #include <GfxRenderer.h>
+#include <HalClock.h>
+#include <HalPowerManager.h>
+#include <HalStorage.h>
 #include <I18n.h>
+#include <Memory.h>
+#include <Utf8.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
+#include <cstring>
+#include <string_view>
 #include <utility>
 
+#include "AtelierChrome.h"
+#include "AtelierSelection.h"
 #include "MappedInputManager.h"
 #include "UITheme.h"
 #include "X4ProHomeLayout.h"
-#include "components/controls/button.h"
 #include "icons/blocks.h"
 #include "icons/book.h"
 #include "icons/folder.h"
@@ -23,10 +36,84 @@
 namespace fui = freeink::ui;
 namespace {
 constexpr fui::ActionId SELECT = 1;
-// Grid cell padding around each cover; also feeds the screen's horizontal
-// inset so the cover columns land on the header chrome's inset line.
 constexpr int16_t COVER_CELL_INSET = 6;
 constexpr int COVER_ROW_EXTRA_HEIGHT = 8;
+
+#if FREEINK_DEVICE_X4PRO
+int sShelfProgress[X4ProHomeLayout::SHELF_ROW_COUNT]{-1, -1};
+int sHeroChapter = -1;
+
+int readHeroChapterNumber(const std::string& path) {
+  if (!FsHelpers::hasReflowableBookExtension(path)) return -1;
+  auto epub = makeUniqueNoThrow<Epub>(path, "/.crosspoint");
+  if (!epub || !epub->load(false, true)) return -1;
+  HalFile file;
+  uint8_t data[4]{};
+  if (!Storage.openFileForRead("HOME", epub->getCachePath() + "/progress.bin", file) || file.read(data, 4) != 4) {
+    return -1;
+  }
+  const int spine = data[0] | (data[1] << 8);
+  if (spine < 0 || spine >= epub->getSpineItemsCount()) return -1;
+  return spine + 1;
+}
+
+void drawHomeBottomNav(UiAppHost::UiScreen& screen, const GfxRenderer& renderer, const int libraryAction,
+                       const int fileBrowserAction, const int settingsAction) {
+  const int tabActions[4] = {-1, libraryAction, fileBrowserAction, settingsAction};
+  AtelierChrome::drawBottomNav(renderer, 0, &screen, SELECT, tabActions);
+}
+
+void drawAtelierEditorialCover(const GfxRenderer& renderer, const HomeLayoutRect& r, const RecentBook& book,
+                               const int progress) {
+  AtelierChrome::fillRect(renderer, r.x, r.y, r.width, r.height, 3);
+
+  // Clipped r=70px decorative ring arc (.c-ring: right:-46px, top:38px)
+  const float ringCx = static_cast<float>(r.right() + 46 - 70);
+  const float ringCy = static_cast<float>(r.y + 38 + 70);
+  for (int py = r.y; py < r.bottom(); ++py) {
+    for (int px = r.x; px < r.right(); ++px) {
+      const float d = std::fabs(std::hypotf((px + 0.5f) - ringCx, (py + 0.5f) - ringCy) - 70.0f);
+      if (d <= 0.65f) AtelierChrome::paintPixel(renderer, px, py, 2);
+    }
+  }
+
+  constexpr int PAD_X = 11;
+  constexpr int PAD_Y = 12;
+  const int innerW = r.width - PAD_X * 2;
+  char upperAuthor[64]{};
+  AtelierChrome::formatUpperAuthor(book.author, upperAuthor, sizeof(upperAuthor));
+  if (upperAuthor[0] != '\0') {
+    AtelierChrome::drawText(renderer, r.x + PAD_X, r.y + PAD_Y, AtelierChrome::font8Bold(), upperAuthor,
+                            AtelierTone::MutedOnInk, 1, innerW, 0, true);
+  }
+
+  // Split title on " — " for cover main title
+  char mainTitle[128]{};
+  AtelierChrome::normalizeUtf8Stack(book.title.c_str(), mainTitle, sizeof(mainTitle));
+  if (char* dashPos = std::strstr(mainTitle, " — ")) *dashPos = '\0';
+
+  const WrappedAtelierLines coverLines = AtelierChrome::wrapText(AtelierChrome::font17Serif(), mainTitle, innerW, 3);
+  const int lineStep = 20;
+  const int blockH = std::max(1, coverLines.count) * lineStep;
+  const int blockY = r.y + (r.height - blockH) / 2 - 2;
+  for (int i = 0; i < coverLines.count; ++i) {
+    AtelierChrome::drawText(renderer, r.x + PAD_X, blockY + i * lineStep, AtelierChrome::font17Serif(),
+                            coverLines.lines[i], AtelierTone::PaperOnInk, 0, innerW, 0, i + 1 == coverLines.count);
+  }
+
+  const int ruleY = r.bottom() - 28;
+  AtelierChrome::fillRect(renderer, r.x + PAD_X, ruleY, innerW, 1, 2);
+  char footer[32]{};
+  const char* fmt = FsHelpers::hasXtcExtension(book.path) ? "XTC" : "EPUB";
+  if (progress >= 0) {
+    snprintf(footer, sizeof(footer), "%s · %d%%", fmt, progress);
+  } else {
+    snprintf(footer, sizeof(footer), "%s", fmt);
+  }
+  AtelierChrome::drawText(renderer, r.x + PAD_X, ruleY + 6, AtelierChrome::font8Bold(), footer, AtelierTone::MutedOnInk,
+                          1, innerW, 0, true);
+}
+#endif
 }  // namespace
 
 CoverGridHomeUi::CoverGridHomeUi(GfxRenderer& renderer)
@@ -40,7 +127,17 @@ void CoverGridHomeUi::begin(const std::vector<RecentBook>& recent, bool opds, bo
   resetUi();
   app.on(SELECT, &CoverGridHomeUi::onAction, this);
   app.setScreen(&CoverGridHomeUi::screenFn, this);
-  refreshCoverPaths();
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    sHeroChapter = hasContinueReading && !books->empty() ? readHeroChapterNumber(books->front().path) : -1;
+    for (size_t i = 0; i < X4ProHomeLayout::SHELF_ROW_COUNT; ++i) {
+      sShelfProgress[i] = i + 1 < books->size() ? loadBookProgress((*books)[i + 1].path) : -1;
+    }
+  } else
+#endif
+  {
+    refreshCoverPaths();
+  }
   progress = hasContinueReading && !books->empty() ? loadBookProgress(books->front().path) : -1;
   if (progress >= 0) snprintf(progressText, sizeof(progressText), "%d%%", progress);
 }
@@ -65,26 +162,9 @@ int CoverGridHomeUi::thumbHeightFor(const size_t index) const {
 bool CoverGridHomeUi::takeThumbHeightChanged() { return std::exchange(thumbHeightChanged, false); }
 
 void CoverGridHomeUi::noteThumbHeight(int slotHeight) {
-  // One shared height for every slot (hero and grid covers are the same
-  // size). The +8 surplus gives the paint clip a little bleed so the art's
-  // rightward nudge never exposes the left edge; covers narrower than the
-  // 2:3 slot may show a thin sliver at the sides rather than being cropped.
   const int height = std::max(1, slotHeight + 8);
   bool changed = false;
   for (size_t i = 0; i < books->size() && i < thumbHeights.size(); ++i) {
-    if (thumbHeights[i] == height) continue;
-    thumbHeights[i] = height;
-    changed = true;
-  }
-  if (!changed) return;
-  thumbHeightChanged = true;
-  refreshCoverPaths();
-}
-
-void CoverGridHomeUi::noteThumbHeights(const int heroSlotHeight, const int shelfSlotHeight) {
-  bool changed = false;
-  for (size_t i = 0; i < books->size() && i < thumbHeights.size(); ++i) {
-    const int height = std::max(1, (i == 0 ? heroSlotHeight : shelfSlotHeight) + 8);
     if (thumbHeights[i] == height) continue;
     thumbHeights[i] = height;
     changed = true;
@@ -128,39 +208,25 @@ void CoverGridHomeUi::draw(UiScreen& screen) {
   coverCache.prepare();
   const auto& theme = screen.theme();
   const auto safe = UITheme::getInstance().getScreenSafeArea(renderer, true);
-  // Sides clear the rounded corners like the header, so the grid lines up under it.
   const int corner = BoardConfig::ACTIVE.cornerRadius;
   const auto left = static_cast<int16_t>(std::max(safe.x, corner));
   const auto right = static_cast<int16_t>(std::max(renderer.getScreenWidth() - safe.x - safe.width, corner));
   screen.setContentMarginFromScreen(fui::Insets{static_cast<int16_t>(safe.y), right,
                                                 static_cast<int16_t>(renderer.getScreenHeight() - safe.y - safe.height),
                                                 left});
-  // Horizontal inset sized so the outer cover columns (content x plus the
-  // grid's cell inset) sit on the theme's side-padding line: the heading and
-  // tabs then align with the clock and battery, which tuck a few px further
-  // in (headerStatusInset's optical bias).
   const int16_t hInset = std::max<int16_t>(
       0, static_cast<int16_t>(UITheme::getInstance().getMetrics().headerSidePadding - COVER_CELL_INSET - left));
-  // Drop the status band, hero, and grid down: touch boards get a full step
-  // (no button-hint band to fit), button boards a modest nudge. The tabs stay
-  // put (bottom-anchored below).
   const int16_t topInset =
       BoardConfig::hasTouch() ? static_cast<int16_t>(theme.spaceLg) : static_cast<int16_t>(theme.spaceSm + 4);
   screen.insetContent(fui::Insets{topInset, hInset, theme.spaceSm, hInset});
   const bool landscape = renderer.getScreenWidth() > renderer.getScreenHeight();
-  // Reserve the band's slot in the flow (its content draws at a fixed screen
-  // position in drawHeaderBand); the slot doubles as padding above the heading.
   screen.takeTop(UITheme::getInstance().getMetrics().batteryBarHeight, theme.spaceSm);
-  // Button boards run tighter above the tabs to make room for the top step.
   const int16_t tabGap = BoardConfig::hasTouch() ? theme.spaceSm : static_cast<int16_t>(4);
   const auto& board = BoardConfig::ACTIVE;
   auto tabRect = screen.takeBottom(UITheme::getInstance().getMetrics().coverGridTabBarHeight, tabGap);
-  // The board's tab height sits at the bottom of the theme's slot, then its
-  // offset lower; the slot itself is unchanged, so the grid keeps its size.
   const auto tabHeight = static_cast<int16_t>(tabRect.height * board.tabBarHeightPct / 100);
   tabRect.y = static_cast<int16_t>(tabRect.y + tabRect.height - tabHeight + board.tabBarOffsetY);
   tabRect.height = tabHeight;
-  // The board's share of the row the tabs spread across, centered.
   const auto fitTabWidth = [&board](fui::Rect rect) {
     const auto width = static_cast<int16_t>(rect.width * board.tabBarWidthPct / 100);
     rect.x = static_cast<int16_t>(rect.x + (rect.width - width) / 2);
@@ -173,10 +239,6 @@ void CoverGridHomeUi::draw(UiScreen& screen) {
     drawHeaderBand();
     return;
   }
-  // Hero cover matches the grid covers: the body splits into three equal
-  // cover rows (hero + two grid rows), so the featured section is one row
-  // tall and every cover on screen shares one size. The metadata floor still
-  // applies when the rows would be too short for the hero's text lines.
   const fui::Rect body = screen.body();
   const int rowGap = std::max<int>(4, body.width / 100);
   grid.gap = grid.rowGap = rowGap;
@@ -194,178 +256,259 @@ void CoverGridHomeUi::draw(UiScreen& screen) {
 
 #if FREEINK_DEVICE_X4PRO
 void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
-  coverCache.prepare();
-  const auto& theme = screen.theme();
-  const int16_t titleLineHeight = screen.target().lineHeight(theme.titleText.font);
-  const int16_t smallLineHeight = screen.target().lineHeight(theme.smallText.font);
-  const char* ctaLabel = hasContinueReading ? tr(STR_CONTINUE_READING) : tr(STR_LIBRARY);
-  const int16_t ctaWidth = static_cast<int16_t>(
-      screen.target().measureText(theme.smallText.font, ctaLabel, theme.smallText).width + 56);
-  const auto layout = makeX4ProHomeLayout(titleLineHeight, smallLineHeight, ctaWidth);
+  constexpr auto layout = makeX4ProHomeLayout(29, 24);
   screen.setContentMarginFromScreen(fui::Insets{layout.content.y,
                                                 static_cast<int16_t>(480 - layout.content.right()),
                                                 static_cast<int16_t>(800 - layout.content.bottom()), layout.content.x});
+  const int bookCount = static_cast<int>(books->size());
+  const int fileBrowserAction = bookCount;
+  const int libraryAction = bookCount + 1;
+  const int transferAction = bookCount + (hasOpds ? 3 : 2);
+  const int settingsAction = bookCount + (hasOpds ? 4 : 3);
+
+  AtelierChrome::drawStatusBar(renderer, layout.masthead.x, layout.masthead.y, layout.masthead.width,
+                               layout.masthead.height, false);
+  screen.frame().hit(fui::Rect{static_cast<int16_t>(layout.masthead.right() - 72), 8, 72, 44}, SELECT,
+                     static_cast<int16_t>(settingsAction), fui::InputTouch, fui::StateNormal);
 
   if (books->empty()) {
-    drawTabs(screen, fui::Rect{layout.tabs.x, layout.tabs.y, layout.tabs.width, layout.tabs.height});
-    drawEmpty(screen);
-    drawHeaderBand();
+    char upperHome[48]{};
+    AtelierChrome::formatUpperVi(tr(STR_NAV_HOME), upperHome, sizeof(upperHome));
+    char emptyEyebrow[64]{};
+    snprintf(emptyEyebrow, sizeof(emptyEyebrow), "01.1 — %s", upperHome);
+    AtelierChrome::drawText(renderer, 32, 160, AtelierChrome::font10Bold(), emptyEyebrow, AtelierTone::Muted, 1, 416, 0,
+                            false);
+
+    const WrappedAtelierLines headlineLines =
+        AtelierChrome::wrapText(AtelierChrome::font34Light(), tr(STR_HOME_EMPTY_HEADLINE), 416, 2);
+    int headlineY = 194;
+    for (int i = 0; i < headlineLines.count; ++i) {
+      AtelierChrome::drawText(renderer, 32, headlineY, AtelierChrome::font34Light(), headlineLines.lines[i],
+                              AtelierTone::Ink, 0, 416, 0, i + 1 == headlineLines.count);
+      headlineY += 38;
+    }
+    AtelierChrome::drawText(renderer, 32, 286, AtelierChrome::font14Reg(), tr(STR_NO_OPEN_BOOK), AtelierTone::Muted, 0,
+                            416, 0, false);
+
+    constexpr int ctaX = 32;
+    constexpr int ctaY = 344;
+    const char* openLibLabel = tr(STR_HOME_OPEN_LIBRARY);
+    const int ctaW =
+        std::clamp(AtelierChrome::measureText(AtelierChrome::font13Bold(), openLibLabel, 0) + 60, 176, 224);
+    constexpr int ctaH = 44;
+    AtelierChrome::fillCapsule(renderer, ctaX, ctaY, ctaW, ctaH);
+    AtelierChrome::drawText(renderer, ctaX + 20,
+                            ctaY + (ctaH - AtelierChrome::fontLineHeight(AtelierChrome::font13Bold())) / 2,
+                            AtelierChrome::font13Bold(), openLibLabel, AtelierTone::PaperOnInk, 0, ctaW - 56, 0, true);
+    AtelierChrome::drawRightArrow(renderer, ctaX + ctaW - 34, ctaY + (ctaH - 16) / 2, 0, 3);
+    screen.frame().hit(fui::Rect{ctaX, ctaY, static_cast<int16_t>(ctaW), ctaH}, SELECT,
+                       static_cast<int16_t>(libraryAction), fui::InputTouch, fui::StateNormal);
+
+    const int transferX = ctaX + ctaW + 12;
+    const char* transferLabel = tr(STR_FILE_TRANSFER);
+    const int transferW =
+        std::clamp(AtelierChrome::measureText(AtelierChrome::font13Reg(), transferLabel, 0) + 36, 148, 448 - transferX);
+    AtelierChrome::drawCapsuleButton(renderer, transferX, 344, transferW, 44, transferLabel,
+                                     AtelierChrome::font13Reg(), false, true, false, true);
+    screen.frame().hit(
+        fui::Rect{static_cast<int16_t>(transferX), 344, static_cast<int16_t>(transferW), 44}, SELECT,
+        static_cast<int16_t>(transferAction), fui::InputTouch, fui::StateNormal);
+
+    const char* browseLabel = tr(STR_BROWSE_FILES);
+    const int browseW =
+        std::clamp(AtelierChrome::measureText(AtelierChrome::font13Reg(), browseLabel, 0) + 36, 148, 280);
+    AtelierChrome::drawCapsuleButton(renderer, 32, 400, browseW, 44, browseLabel, AtelierChrome::font13Reg(), false,
+                                     true, false, true);
+    screen.frame().hit(fui::Rect{32, 400, static_cast<int16_t>(browseW), 44}, SELECT,
+                       static_cast<int16_t>(fileBrowserAction), fui::InputTouch, fui::StateNormal);
+
+    drawHomeBottomNav(screen, renderer, libraryAction, fileBrowserAction, settingsAction);
     return;
   }
 
-  noteThumbHeights(layout.heroCover.height, layout.shelfCovers[0].height);
-  paintFramedCover(screen.target(),
-                   fui::Rect{layout.heroCover.x, layout.heroCover.y, layout.heroCover.width, layout.heroCover.height}, 0);
-  button = {};
-  button.action = SELECT;
-  button.value = 0;
-  button.inputMask = fui::InputTouch;
-  button.styles = fui::plainStyles();
-  button.minTouchSize = 44;
-  fui::button(screen.frame(),
-              fui::Rect{layout.heroCover.x, layout.heroCover.y, layout.heroCover.width, layout.heroCover.height},
-              button);
+  const auto& hero = books->front();
 
-  auto title = theme.titleText;
-  title.align = fui::TextAlign::Center;
-  title.bold = true;
-  title.maxLines = 3;
-  screen.target().text(
-      fui::Rect{layout.heroTitle.x, layout.heroTitle.y, layout.heroTitle.width, layout.heroTitle.height},
-      books->front().title.c_str(), title);
+  // 01.1 Eyebrow
+  char upperNowReading[48]{};
+  AtelierChrome::formatUpperVi(tr(STR_HOME_NOW_READING), upperNowReading, sizeof(upperNowReading));
+  char leftEyebrow[64]{};
+  snprintf(leftEyebrow, sizeof(leftEyebrow), "01.1 — %s", upperNowReading);
+  AtelierChrome::drawText(renderer, layout.indexRow.x, layout.indexRow.y + 4, AtelierChrome::font10Bold(),
+                          leftEyebrow, AtelierTone::Muted, 1, 240, 0, true);
+  char rightEyebrow[40]{};
+  if (sHeroChapter > 0) {
+    char upperChapter[24]{};
+    AtelierChrome::formatUpperVi(tr(STR_CHAPTER), upperChapter, sizeof(upperChapter));
+    snprintf(rightEyebrow, sizeof(rightEyebrow), "%s %02d", upperChapter, sHeroChapter);
+  } else {
+    snprintf(rightEyebrow, sizeof(rightEyebrow), "%s", FsHelpers::hasXtcExtension(hero.path) ? "XTC" : "EPUB");
+  }
+  AtelierChrome::drawText(renderer, layout.indexRow.x + 240, layout.indexRow.y + 4, AtelierChrome::font10Bold(),
+                          rightEyebrow, AtelierTone::Muted, 1, layout.indexRow.width - 240, 2, false);
 
-  if (!books->front().author.empty()) {
-    auto author = theme.smallText;
-    author.align = fui::TextAlign::Center;
-    screen.target().text(
-        fui::Rect{layout.heroAuthor.x, layout.heroAuthor.y, layout.heroAuthor.width, layout.heroAuthor.height},
-        books->front().author.c_str(), author);
+  // Split "Title — Subtitle" cleanly so hero editorial stack mirrors #s1
+  char heroMain[192]{};
+  AtelierChrome::normalizeUtf8Stack(hero.title.c_str(), heroMain, sizeof(heroMain));
+  const char* heroSub = nullptr;
+  if (char* emDash = std::strstr(heroMain, " — ")) {
+    *emDash = '\0';
+    heroSub = emDash + 5;
+  }
+  const WrappedAtelierLines titleLines =
+      AtelierChrome::wrapText(AtelierChrome::font27Light(), heroMain, layout.heroTitle.width, 2);
+  int titleY = layout.heroTitle.y;
+  for (int i = 0; i < titleLines.count; ++i) {
+    AtelierChrome::drawText(renderer, layout.heroTitle.x, titleY, AtelierChrome::font27Light(), titleLines.lines[i],
+                            AtelierTone::Ink, 0, layout.heroTitle.width, 0, i + 1 == titleLines.count && !heroSub);
+    titleY += 30;
+  }
+  if (heroSub && heroSub[0] != '\0') {
+    AtelierChrome::drawText(renderer, layout.heroTitle.x, titleY + 2, AtelierChrome::font20Light(), heroSub,
+                            AtelierTone::Muted, 0, layout.heroTitle.width, 0, true);
   }
 
+  if (!hero.author.empty()) {
+    AtelierChrome::drawText(renderer, layout.heroAuthor.x, layout.heroAuthor.y, AtelierChrome::font13Reg(),
+                            hero.author.c_str(), AtelierTone::Muted, 0, layout.heroAuthor.width, 0, true);
+  }
+
+  // Delicate 1px scrubber track + tick
+  const int trackY = layout.progressTrack.y + layout.progressTrack.height / 2;
+  AtelierChrome::fillRect(renderer, layout.progressTrack.x, trackY, layout.progressTrack.width, 1, 1);
   if (progress >= 0) {
-    auto progressStyle = theme.smallText;
-    progressStyle.align = fui::TextAlign::Center;
-    progressStyle.bold = true;
-    screen.target().text(fui::Rect{layout.progressLabel.x, layout.progressLabel.y, layout.progressLabel.width,
-                                   layout.progressLabel.height},
-                         progressText, progressStyle);
-    screen.target().fill(
-        fui::Rect{layout.progressTrack.x, layout.progressTrack.y, layout.progressTrack.width, layout.progressTrack.height},
-        fui::Paint::dither(fui::Color::LightGray));
-    const int16_t fillWidth = static_cast<int16_t>(layout.progressTrack.width * progress / 100);
-    if (fillWidth > 0) {
-      screen.target().fill(
-          fui::Rect{layout.progressTrack.x, layout.progressTrack.y, fillWidth, layout.progressTrack.height},
-          fui::Paint::solid(fui::Color::Black));
+    const int16_t tickX = x4ProScrubberTickX(layout.progressTrack, progress);
+    const int fillW = std::max(0, static_cast<int>(tickX) - layout.progressTrack.x);
+    if (fillW > 0) AtelierChrome::fillRect(renderer, layout.progressTrack.x, trackY, fillW, 1, 3);
+    AtelierChrome::fillRect(renderer, tickX, layout.progressTrack.y, 2, layout.progressTrack.height, 3);
+    char leftProgressLabel[48]{};
+    if (sHeroChapter > 0) {
+      const int pageEst = (progress * 238 + 50) / 100;
+      snprintf(leftProgressLabel, sizeof(leftProgressLabel), tr(STR_ATELIER_PAGE_OF_FMT), pageEst, 238);
+    } else {
+      snprintf(leftProgressLabel, sizeof(leftProgressLabel), "%s", tr(STR_READING_PROGRESS));
     }
+    AtelierChrome::drawText(renderer, layout.progressLabel.x, layout.progressLabel.y, AtelierChrome::font11Reg(),
+                            leftProgressLabel, AtelierTone::Muted, 0, 180, 0, true);
+    AtelierChrome::drawText(renderer, layout.progressLabel.x + 180, layout.progressLabel.y, AtelierChrome::font11Reg(),
+                            progressText, AtelierTone::Muted, 0, layout.progressLabel.width - 180, 2, false);
   }
 
-  button = {};
-  button.label = ctaLabel;
-  button.action = SELECT;
-  button.value = static_cast<int16_t>(x4ProHeroCtaAction(hasContinueReading, static_cast<int>(books->size())));
-  button.inputMask = fui::InputTouch;
-  button.state = selected == button.value ? fui::StateSelected : fui::StateNormal;
-  button.text = theme.smallText;
-  button.text.bold = true;
-  button.styles = fui::defaultButtonStyles();
-  button.styles.normal.background = fui::Paint::solid(fui::Color::Black);
-  button.styles.normal.foreground = fui::Paint::solid(fui::Color::White);
-  button.styles.selected = button.styles.normal;
-  button.styles.selected.border = fui::Paint::solid(fui::Color::White);
-  button.styles.selected.borderWidth = 1;
-  button.styles.focused = button.styles.selected;
-  button.styles.active = button.styles.selected;
-  button.styles.disabled = button.styles.normal;
-  button.radius = 22;
-  button.minTouchSize = 44;
-  fui::button(screen.frame(), fui::Rect{layout.cta.x, layout.cta.y, layout.cta.width, layout.cta.height}, button);
+  // Frameless Editorial Cover + touch hit
+  drawAtelierEditorialCover(renderer, layout.heroCover, hero, progress);
+  screen.frame().hit(fui::Rect{layout.heroCover.x, layout.heroCover.y, layout.heroCover.width, layout.heroCover.height},
+                     SELECT, 0, fui::InputTouch, fui::StateNormal);
 
-  auto shelfHeading = theme.smallText;
-  shelfHeading.bold = true;
-  screen.target().text(fui::Rect{layout.shelfHeader.x, layout.shelfHeader.y, layout.shelfHeader.width / 2,
-                                 layout.shelfHeader.height},
-                       tr(STR_LIBRARY_TAB_RECENT), shelfHeading);
+  // Action row: Apple capsule CTA + two 44x44 outlined circular buttons
+  const int16_t ctaAction = static_cast<int16_t>(x4ProHeroCtaAction(hasContinueReading, bookCount));
+  const char* ctaText = hasContinueReading ? tr(STR_CONTINUE_READING) : tr(STR_LIBRARY);
+  const int heroCtaW = std::clamp(AtelierChrome::measureText(AtelierChrome::font13Bold(), ctaText, 0) + 60,
+                                  static_cast<int>(layout.cta.width),
+                                  static_cast<int>(layout.btnSecondaryLeft.x - 16 - layout.cta.x));
+  AtelierChrome::fillCapsule(renderer, layout.cta.x, layout.cta.y, heroCtaW, layout.cta.height);
+  AtelierChrome::drawText(
+      renderer, layout.cta.x + 20,
+      layout.cta.y + (layout.cta.height - AtelierChrome::fontLineHeight(AtelierChrome::font13Bold())) / 2,
+      AtelierChrome::font13Bold(), ctaText, AtelierTone::PaperOnInk, 0, heroCtaW - 56, 0, true);
+  AtelierChrome::drawRightArrow(renderer, layout.cta.x + heroCtaW - 34, layout.cta.y + (layout.cta.height - 16) / 2, 0,
+                                3);
+  screen.frame().hit(fui::Rect{layout.cta.x, layout.cta.y, static_cast<int16_t>(heroCtaW), layout.cta.height}, SELECT,
+                     ctaAction, fui::InputTouch, fui::StateNormal);
 
-  button = {};
-  button.label = tr(STR_LIBRARY);
-  button.action = SELECT;
-  button.value = static_cast<int16_t>(books->size() + 1);
-  button.inputMask = fui::InputTouch;
-  button.text = theme.smallText;
-  button.text.align = fui::TextAlign::Right;
-  button.styles = fui::flatButtonStyles();
-  button.minTouchSize = 44;
-  const int16_t libraryLinkWidth = static_cast<int16_t>(std::min<int>(
-      layout.shelfHeader.width / 2,
-      std::max<int>(44, screen.target().measureText(theme.smallText.font, tr(STR_LIBRARY), theme.smallText).width + 16)));
-  fui::button(screen.frame(),
-              fui::Rect{static_cast<int16_t>(layout.shelfHeader.right() - libraryLinkWidth), layout.shelfHeader.y,
-                        libraryLinkWidth, layout.shelfHeader.height},
-              button);
+  const bool leftFocused = selected == libraryAction;
+  AtelierChrome::strokeCapsule(renderer, layout.btnSecondaryLeft.x, layout.btnSecondaryLeft.y,
+                               layout.btnSecondaryLeft.width, layout.btnSecondaryLeft.height, leftFocused ? 3 : 1,
+                               leftFocused ? 2.0f : 1.0f);
+  AtelierChrome::drawTocIcon(renderer, layout.btnSecondaryLeft.x + (layout.btnSecondaryLeft.width - 16) / 2,
+                             layout.btnSecondaryLeft.y + (layout.btnSecondaryLeft.height - 16) / 2);
+  screen.frame().hit(fui::Rect{layout.btnSecondaryLeft.x, layout.btnSecondaryLeft.y, layout.btnSecondaryLeft.width,
+                               layout.btnSecondaryLeft.height},
+                     SELECT, static_cast<int16_t>(libraryAction), fui::InputTouch, fui::StateNormal);
 
-  const int shelfCount = std::min<int>(GRID_COLUMNS, books->size() - 1);
-  grid.count = shelfCount;
-  grid.columns = GRID_COLUMNS;
-  grid.columnLayout = fui::CoverGridColumnLayout::EqualWidth;
-  grid.action = SELECT;
-  grid.inputMask = fui::InputTouch;
-  grid.selectedIndex = selected > 0 && selected <= shelfCount ? selected - 1 : -1;
-  grid.selectionIndicator = fui::CoverGridSelectionIndicator::CoverFrame;
-  grid.selectedCoverFrameGap = 4;
-  grid.selectedCoverFrameWidth = 3;
-  grid.cellStyles = fui::plainStyles();
-  grid.coverSize = {layout.shelfCovers[0].width, layout.shelfCovers[0].height};
-  grid.rowHeight = static_cast<int16_t>(layout.shelfAuthors[0].bottom() - layout.shelfCovers[0].y);
-  grid.gap = 20;
-  grid.rowGap = 0;
-  grid.cellInset = {};
-  grid.labelHeight = layout.shelfTitles[0].height;
-  grid.labelGap = 6;
-  grid.labelAlign = fui::TextAlign::Left;
-  grid.labelFollowsCover = true;
-  grid.titleText = theme.smallText;
-  grid.titleText.bold = true;
-  grid.titleText.maxLines = 1;
-  grid.scrollIndicator = false;
-  grid.itemProviderUserData = this;
-  grid.itemProvider = [](const uint16_t index, void* user) {
-    const auto& self = *static_cast<CoverGridHomeUi*>(user);
-    return fui::coverGridItem((*self.books)[index + 1].title.c_str(), index + 1);
-  };
-  grid.coverPainterUserData = this;
-  grid.coverPainter = [](fui::DrawTarget& target, fui::Rect cover, const fui::CoverGridItem&, const uint16_t index,
-                         void* user) {
-    return static_cast<CoverGridHomeUi*>(user)->paintFramedCover(target, cover, index + 1);
-  };
-  gridBounds = fui::Rect{layout.shelfCovers[0].x, layout.shelfCovers[0].y, layout.content.width, grid.rowHeight};
-  fui::coverGrid(screen.frame(), gridBounds, grid);
+  const bool rightFocused = selected == settingsAction;
+  AtelierChrome::strokeCapsule(renderer, layout.btnSecondaryRight.x, layout.btnSecondaryRight.y,
+                               layout.btnSecondaryRight.width, layout.btnSecondaryRight.height, rightFocused ? 3 : 1,
+                               rightFocused ? 2.0f : 1.0f);
+  AtelierChrome::drawSlidersIcon(renderer, layout.btnSecondaryRight.x + (layout.btnSecondaryRight.width - 16) / 2,
+                                 layout.btnSecondaryRight.y + (layout.btnSecondaryRight.height - 16) / 2);
+  screen.frame().hit(fui::Rect{layout.btnSecondaryRight.x, layout.btnSecondaryRight.y, layout.btnSecondaryRight.width,
+                               layout.btnSecondaryRight.height},
+                     SELECT, static_cast<int16_t>(settingsAction), fui::InputTouch, fui::StateNormal);
 
-  auto shelfAuthor = theme.smallText;
-  shelfAuthor.maxLines = 1;
+  // 01.2 Shelf Header + 1px bottom Ink hairline
+  char upperRecent[64]{};
+  AtelierChrome::formatUpperVi(tr(STR_MENU_RECENT_BOOKS), upperRecent, sizeof(upperRecent));
+  char shelfEyebrow[80]{};
+  snprintf(shelfEyebrow, sizeof(shelfEyebrow), "01.2 — %s", upperRecent);
+  AtelierChrome::drawText(renderer, layout.shelfHeader.x, layout.shelfHeader.y + 2, AtelierChrome::font10Bold(),
+                          shelfEyebrow, AtelierTone::Ink, 1, 260, 0, true);
+  char countBuf[32]{};
+  snprintf(countBuf, sizeof(countBuf), tr(STR_ATELIER_COUNT_BOOKS_FMT), bookCount);
+  AtelierChrome::drawText(renderer, layout.shelfHeader.x + 260, layout.shelfHeader.y + 2, AtelierChrome::font10Bold(),
+                          countBuf, AtelierTone::Muted, 1, layout.shelfHeader.width - 260, 2, false);
+  screen.frame().hit(fui::Rect{static_cast<int16_t>(layout.shelfHeader.right() - 120), layout.shelfHeader.y, 120,
+                               layout.shelfHeader.height},
+                     SELECT, static_cast<int16_t>(libraryAction), fui::InputTouch, fui::StateNormal);
+  AtelierChrome::fillRect(renderer, layout.shelfHeader.x, layout.shelfHeader.bottom() - 1, layout.shelfHeader.width, 1,
+                          3);
+
+  // Editorial Index Rows (02, 03)
+  const int shelfCount = x4ProShelfRowCount(bookCount);
   for (int i = 0; i < shelfCount; ++i) {
-    const auto& authorText = (*books)[i + 1].author;
-    if (authorText.empty()) continue;
-    const auto& rect = layout.shelfAuthors[i];
-    screen.target().text(fui::Rect{rect.x, rect.y, rect.width, rect.height}, authorText.c_str(), shelfAuthor);
+    const size_t bookIndex = static_cast<size_t>(i + 1);
+    const auto& book = (*books)[bookIndex];
+    const auto& row = layout.shelfRows[static_cast<size_t>(i)];
+    screen.frame().hit(fui::Rect{row.x, row.y, row.width, row.height}, SELECT, static_cast<int16_t>(bookIndex),
+                       fui::InputTouch, fui::StateNormal);
+
+    const bool isSel = selected == static_cast<int>(bookIndex);
+
+    char rightMetric[24]{};
+    if (sShelfProgress[i] >= 0) {
+      snprintf(rightMetric, sizeof(rightMetric), "%d%%", sShelfProgress[i]);
+    } else {
+      snprintf(rightMetric, sizeof(rightMetric), "%s", FsHelpers::hasXtcExtension(book.path) ? "XTC" : "EPUB");
+    }
+    const int metricW = AtelierChrome::measureText(AtelierChrome::font12Reg(), rightMetric, 0);
+    const int chevronX = row.right() - 16;
+    const auto sel = makeAtelierRowSelectionLayout(row.x, row.y, row.width, row.height, isSel, 34 + metricW);
+    if (sel.selected) {
+      AtelierChrome::fillRect(renderer, sel.barX, sel.barY, sel.barWidth, sel.barHeight, 3);
+    }
+
+    char idxBuf[16]{};
+    snprintf(idxBuf, sizeof(idxBuf), "%02d", i + 2);
+    const auto& idxFont = sel.selected ? AtelierChrome::font13Bold() : AtelierChrome::font15Light();
+    AtelierChrome::drawText(renderer, sel.indexX, row.y + (row.height - AtelierChrome::fontLineHeight(idxFont)) / 2,
+                            idxFont, idxBuf, sel.selected ? AtelierTone::Ink : AtelierTone::Muted, 0, 28, 0, false);
+
+    AtelierChrome::drawChevronRight(renderer, chevronX, row.y + (row.height - 14) / 2);
+    AtelierChrome::drawText(renderer, chevronX - 10 - metricW,
+                            row.y + (row.height - AtelierChrome::fontLineHeight(AtelierChrome::font12Reg())) / 2,
+                            AtelierChrome::font12Reg(), rightMetric, AtelierTone::Muted, 0, metricW + 4, 0, false);
+
+    const bool hasAuthor = !book.author.empty();
+    const int blockH = hasAuthor ? (AtelierChrome::fontLineHeight(AtelierChrome::font16Med()) + 3 +
+                                    AtelierChrome::fontLineHeight(AtelierChrome::font12Reg()))
+                                 : AtelierChrome::fontLineHeight(AtelierChrome::font16Med());
+    const int textY = row.y + (row.height - 1 - blockH) / 2;
+    AtelierChrome::drawText(renderer, sel.textX, textY, AtelierChrome::font16Med(), book.title.c_str(), AtelierTone::Ink,
+                            0, sel.textWidth, 0, true);
+    if (hasAuthor) {
+      AtelierChrome::drawText(renderer, sel.textX,
+                              textY + AtelierChrome::fontLineHeight(AtelierChrome::font16Med()) + 3,
+                              AtelierChrome::font12Reg(), book.author.c_str(), AtelierTone::Muted, 0, sel.textWidth, 0,
+                              true);
+    }
+
+    AtelierChrome::fillRect(renderer, row.x, row.bottom() - 1, row.width, 1, 1);
   }
 
-  drawTabs(screen, fui::Rect{layout.tabs.x, layout.tabs.y, layout.tabs.width, layout.tabs.height});
-  drawHeaderBand();
+  drawHomeBottomNav(screen, renderer, libraryAction, fileBrowserAction, settingsAction);
 }
 #endif
 
 void CoverGridHomeUi::drawHeaderBand() {
-  // The stock full-width band at the theme's topPadding, exactly like every
-  // pushed screen's header: the battery/clock hold one position across the
-  // whole UI, and the grid is widened to meet them (see the hInset above).
   const ThemeMetrics& metrics = UITheme::getInstance().getMetrics();
-#if FREEINK_DEVICE_X4PRO
-  if (renderer.getScreenWidth() == 480 && renderer.getScreenHeight() == 800) {
-    GUI.drawHeader(renderer, Rect{0, 0, 480, 40}, nullptr);
-    return;
-  }
-#endif
   GUI.drawHeader(renderer, Rect{0, metrics.topPadding, renderer.getScreenWidth(), metrics.batteryBarHeight}, nullptr);
 }
 
@@ -400,15 +543,9 @@ void CoverGridHomeUi::drawCurrent(UiScreen& screen, fui::Rect rect, const int co
   card.progress = std::max(0, progress);
   card.progressMax = progress >= 0 ? 100 : 0;
   card.action = SELECT;
-  // The featured card's selected state is a slim accent bar drawn after the
-  // card (see below), not a bookCard indicator: every ring/outline treatment
-  // tried here either overwhelmed the large cover or made the heading above
-  // read as misaligned.
   card.state = fui::StateNormal;
   card.styles = theme.listRow;
   card.styles.selected.background = fui::Paint::dither(fui::Color::LightGray);
-  // The grid thumbs' selection ring draws with this border: gray like Lyra's
-  // selection box, not solid black.
   card.styles.selected.border = fui::Paint::dither(fui::Color::LightGray);
   card.styles.selected.foreground = fui::Paint::solid(fui::Color::Black);
   card.styles.selected.radius = theme.listRowRadius;
@@ -420,9 +557,6 @@ void CoverGridHomeUi::drawCurrent(UiScreen& screen, fui::Rect rect, const int co
   card.progressHeight = 6;
   card.padding = fui::Insets{6, 6, 6, 6};
   card.gap = theme.spaceLg + theme.spaceSm;
-  // Fit the shared 2:3 cover box within both the row and a grid column. No
-  // gap reserve: the cell insets already keep adjacent covers apart, and the
-  // SpaceBetween layout absorbs whatever slack remains.
   const int maxCoverWidth = rect.width / GRID_COLUMNS - 2 * COVER_CELL_INSET;
   card.coverSize.height = std::max(1, std::min(std::min<int>(rect.height, coverRowHeight) - 12, maxCoverWidth * 3 / 2));
   card.coverSize.width = std::max(1, card.coverSize.height * 2 / 3);
@@ -437,10 +571,6 @@ void CoverGridHomeUi::drawCurrent(UiScreen& screen, fui::Rect rect, const int co
   fui::bookCard(screen.frame(), rect, card);
 
   if (selected == 0 && !BoardConfig::hasTouch()) {
-    // Button boards only: a vertical accent bar left of the card, cover-height
-    // and vertically centered on it, marks the featured card as the button
-    // cursor without framing the cover. Touch boards tap directly and need no
-    // cursor on the hero card.
     const int16_t barH = card.coverSize.height;
     screen.target().fill(
         fui::Rect{static_cast<int16_t>(rect.x - 5), static_cast<int16_t>(rect.y + (rect.height - barH) / 2), 3, barH},
@@ -449,14 +579,9 @@ void CoverGridHomeUi::drawCurrent(UiScreen& screen, fui::Rect rect, const int co
 }
 
 fui::Rect CoverGridHomeUi::layoutGrid(fui::Rect rect) {
-  // Exactly the hero's box: the three-equal-rows split in draw() already
-  // guarantees it fits, and sharing the size keeps one cached thumb per book.
   grid.cellInset = fui::Insets{COVER_CELL_INSET, COVER_CELL_INSET, COVER_CELL_INSET, COVER_CELL_INSET};
   grid.coverSize = card.coverSize;
   grid.rowHeight = grid.coverSize.height + 12;
-  // Full content width: the SpaceBetween column layout pins the outer covers
-  // to the rect edges, so the grid reaches the chrome's inset line instead of
-  // centering at its natural width.
   rect.height = GRID_ROWS * grid.rowHeight + (GRID_ROWS - 1) * grid.rowGap;
   return rect;
 }
@@ -469,11 +594,7 @@ void CoverGridHomeUi::drawGrid(UiScreen& screen) {
   grid.action = SELECT;
   grid.inputMask = fui::InputTouch;
   grid.selectedIndex = selected > 0 && selected < static_cast<int>(books->size()) ? selected - 1 : -1;
-  // Same thick cover ring as the featured card; the dithered Cell background
-  // was easy to miss behind a dark cover.
   grid.selectionIndicator = fui::CoverGridSelectionIndicator::CoverFrame;
-  // Thick dithered ring sized for the small thumbs: 6px outside the cover,
-  // 2px over its edge.
   grid.selectedCoverFrameGap = 6;
   grid.selectedCoverFrameWidth = 8;
   grid.cellStyles = card.styles;
@@ -514,8 +635,8 @@ void CoverGridHomeUi::drawTabs(UiScreen& screen, fui::Rect rect) {
     self.renderer.drawIcon(ICONS[icon], iconRect.x, iconRect.y, iconRect.width);
     return true;
   };
-  // No pill fill; the underline marks the selected tab.
   tabs.tabStyles.explicitlySet = true;
+  tabs.selectedDotSize = 0;
   tabs.selectedUnderline = 2;
   tabs.distributedSlotWidth = 0;
   fui::tabBar(screen.frame(), rect, tabs);
@@ -526,8 +647,6 @@ bool CoverGridHomeUi::paintFramedCover(fui::DrawTarget& target, fui::Rect rect, 
   const auto ink = fui::Paint::solid(fui::Color::Black);
   target.fill(fui::Rect{rect.right(), static_cast<int16_t>(rect.y + SHADOW_OFFSET), SHADOW_OFFSET, rect.height}, ink);
   target.fill(fui::Rect{static_cast<int16_t>(rect.x + SHADOW_OFFSET), rect.bottom(), rect.width, SHADOW_OFFSET}, ink);
-  // The false spine draws inside the cover paint (HomeCoverCache), glued to
-  // the art's left edge, so it stays aligned whatever each cover's margin is.
   const bool drawn = index < coverPaths.size() && coverCache.paint(rect, index, coverPaths[index]);
   return drawn;
 }

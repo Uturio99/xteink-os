@@ -1,5 +1,6 @@
 #pragma once
 
+#include <BoardConfig.h>
 #include <Epub.h>
 #include <Epub/FootnoteEntry.h>
 #include <Epub/PageLink.h>
@@ -56,6 +57,18 @@ class EpubReaderActivity final : public ReaderActivity {
   int idlePrewarmSpine = -1;
   int idlePrewarmPage = -1;
   unsigned long lastRenderCompleteMs = 0;
+#if FREEINK_DEVICE_X4PRO
+  int cachedNextSpineIndex = -1;
+  int cachedNextPageIndex = -1;
+  std::unique_ptr<Page> cachedNextPage;
+#endif
+  void invalidateNextPageCache() {
+#if FREEINK_DEVICE_X4PRO
+    cachedNextSpineIndex = -1;
+    cachedNextPageIndex = -1;
+    cachedNextPage.reset();
+#endif
+  }
   bool bookmarkRemoved = false;
   std::vector<BookmarkEntry> cachedBookmarks;
   bool recentsEntryRemoved = false;
@@ -251,6 +264,7 @@ class EpubReaderActivity final : public ReaderActivity {
       : ReaderActivity("EpubReader", renderer, mappedInput, std::move(bookPath), allowFastInitialRefresh) {}
   ~EpubReaderActivity() override;
 
+  void onExit() override;
   void loop() override;
   void render(RenderLock&& lock) override;
 

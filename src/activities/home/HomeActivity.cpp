@@ -23,6 +23,8 @@
 #include "MappedInputManager.h"
 #include "OpdsServerStore.h"
 #include "RecentBooksStore.h"
+#include "components/AtelierChrome.h"
+#include "components/AtelierSelection.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
 
@@ -232,6 +234,25 @@ void HomeActivity::loadRecentCovers(int coverHeight) {
 
 void HomeActivity::onEnter() {
   Activity::onEnter();
+#if FREEINK_DEVICE_X4PRO
+  x4ProFocus.reset();
+#endif
+
+#if FREEINK_DEVICE_X4PRO
+  const int pendingTab = AtelierChrome::takePendingBottomNavTab();
+  if (pendingTab == 1) {
+    onLibraryOpen();
+    return;
+  }
+  if (pendingTab == 2) {
+    onFileBrowserOpen();
+    return;
+  }
+  if (pendingTab == 3) {
+    onSettingsOpen();
+    return;
+  }
+#endif
 
   hasOpdsServers = OPDS_STORE.hasServers();
   // Plugin System is the global opt-in. Once enabled, expose the Plugins entry
@@ -254,11 +275,15 @@ void HomeActivity::onEnter() {
   }
 
   const auto base = static_cast<int>(recentBooks.size());
-  selectorIndex = initialMenuItem == HomeMenuItem::NONE
-                      ? (coverGridUi && !hasContinueReading ? base + menuItemToIndex(HomeMenuItem::LIBRARY,
-                                                                                    hasLibrarySlot())
-                                                           : 0)
-                      : base + menuItemToIndex(initialMenuItem, hasLibrarySlot());
+  if (initialMenuItem == HomeMenuItem::CONTINUE) {
+    selectorIndex = 0;
+  } else {
+    selectorIndex = initialMenuItem == HomeMenuItem::NONE
+                        ? (coverGridUi && !hasContinueReading ? base + menuItemToIndex(HomeMenuItem::LIBRARY,
+                                                                                      hasLibrarySlot())
+                                                             : 0)
+                        : base + menuItemToIndex(initialMenuItem, hasLibrarySlot());
+  }
 
   // Trigger first update
   requestUpdate();
@@ -359,6 +384,9 @@ void HomeActivity::loop() {
     const int visibleBooks = coverGridUi ? coverGridUi->visibleBookCount() : 0;
     const int count = visibleBooks > 0 ? visibleBooks : menuCount;
     selectorIndex = ButtonNavigator::nextIndex(selectorIndex < count ? selectorIndex : count - 1, count);
+#if FREEINK_DEVICE_X4PRO
+    x4ProFocus.pendingFocusOnly = true;
+#endif
     requestUpdate();
     return;
   }
@@ -366,6 +394,9 @@ void HomeActivity::loop() {
     const int visibleBooks = coverGridUi ? coverGridUi->visibleBookCount() : 0;
     const int count = visibleBooks > 0 ? visibleBooks : menuCount;
     selectorIndex = ButtonNavigator::previousIndex(selectorIndex < count ? selectorIndex : 0, count);
+#if FREEINK_DEVICE_X4PRO
+    x4ProFocus.pendingFocusOnly = true;
+#endif
     requestUpdate();
     return;
   }
@@ -409,6 +440,9 @@ void HomeActivity::loop() {
         idx = (idx + count + dir) % count;
       }
       selectorIndex = base + idx;
+#if FREEINK_DEVICE_X4PRO
+      x4ProFocus.pendingFocusOnly = true;
+#endif
       requestUpdate();
     };
     buttonNavigator.onPressAndContinuous({MappedInputManager::Button::Up},
@@ -488,17 +522,40 @@ void HomeActivity::render(RenderLock&&) {
   // self-insets in drawHeader, so only the cover/menu need it here.
   const Rect content = UITheme::getInstance().getContentArea(renderer);
 
-  renderer.clearScreen();
   if (coverGridUi) {
-    coverGridUi->setSelection(selectorIndex);
-    UITheme::getInstance().drawCoverGridHome(*coverGridUi);
-    // Front Left/Right walk the tabs, so their hints read Left/Right; the
-    // side page buttons (unhinted) walk the covers.
-    const auto labels = mappedInput.mapLabels(hasContinueReading ? tr(STR_RESUME) : "", tr(STR_SELECT),
-                                              tr(STR_DIR_LEFT), tr(STR_DIR_RIGHT));
-    GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
-    renderer.displayBuffer(cleanInitialRefresh && !firstRenderDone ? HalDisplay::HALF_REFRESH
-                                                                   : HalDisplay::FAST_REFRESH);
+#if FREEINK_DEVICE_X4PRO
+    if (pageWidth == 480 && pageHeight == 800) {
+      struct RenderCtx {
+        HomeActivity* self;
+        int selector;
+        bool hasContinue;
+      } ctx{this, selectorIndex, hasContinueReading};
+      x4ProFocus.render(
+          renderer, firstRenderDone && recentsLoaded, 0, cleanInitialRefresh && !firstRenderDone,
+          [](void* raw) {
+            auto* c = static_cast<RenderCtx*>(raw);
+            c->self->renderer.clearScreen();
+            c->self->coverGridUi->setSelection(c->selector);
+            UITheme::getInstance().drawCoverGridHome(*c->self->coverGridUi);
+            const auto labels = c->self->mappedInput.mapLabels(c->hasContinue ? tr(STR_RESUME) : "", tr(STR_SELECT),
+                                                                tr(STR_DIR_LEFT), tr(STR_DIR_RIGHT));
+            GUI.drawButtonHints(c->self->renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+          },
+          &ctx);
+    } else
+#endif
+    {
+      renderer.clearScreen();
+      coverGridUi->setSelection(selectorIndex);
+      UITheme::getInstance().drawCoverGridHome(*coverGridUi);
+      // Front Left/Right walk the tabs, so their hints read Left/Right; the
+      // side page buttons (unhinted) walk the covers.
+      const auto labels = mappedInput.mapLabels(hasContinueReading ? tr(STR_RESUME) : "", tr(STR_SELECT),
+                                                tr(STR_DIR_LEFT), tr(STR_DIR_RIGHT));
+      GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+      const auto refresh = cleanInitialRefresh && !firstRenderDone ? HalDisplay::HALF_REFRESH : HalDisplay::FAST_REFRESH;
+      renderer.displayBuffer(refresh);
+    }
     // Slot heights are recorded during the draw above; a change (first layout
     // pass, orientation switch) means the paths must point at those sizes and
     // any missing thumbs must be generated. Refreshing the paths right away
@@ -518,6 +575,7 @@ void HomeActivity::render(RenderLock&&) {
     }
     return;
   }
+  renderer.clearScreen();
   bool bufferRestored = coverRendered && coverBufferStored && restoreCoverBuffer();
 
   // Band spans topPadding..homeTopPadding: the cover tile starts at the fixed

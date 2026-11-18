@@ -13,6 +13,7 @@
 
 #include "CrossPointSettings.h"
 #include "MappedInputManager.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "components/UIThemeTokens.h"
 #include "components/icons/customListIcons.h"
@@ -284,6 +285,18 @@ void FrontlightPanelActivity::loop() {
 }
 
 int FrontlightPanelActivity::computePanelBottom() const {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    int y = 58;
+    if (Frontlight.present()) {
+      y += 66;
+      if (Frontlight.hasColorTemperature()) y += 66;
+      y += 10;
+    }
+    if (mappedInput.hasTouch()) y += 52;
+    return y + 24;
+  }
+#endif
   const auto tokens = uiThemeTokens(uiTarget);
   const auto& metrics = UITheme::getInstance().getMetrics();
   const int16_t lineHeight = uiTarget.lineHeight(tokens.smallText.font);
@@ -348,6 +361,113 @@ void FrontlightPanelActivity::addSliderRow(UiScreen& screen, const char* label, 
 }
 
 void FrontlightPanelActivity::buildPanelScreen(UiScreen& screen) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    const int bottom = panelBottom > 0 ? panelBottom : computePanelBottom();
+    AtelierChrome::fillRect(renderer, 0, 0, 480, bottom, 0);
+    AtelierChrome::fillRect(renderer, 0, bottom - 1, 480, 1, 3);
+    AtelierChrome::fillRect(renderer, 216, bottom - 11, 48, 3, 2);
+    AtelierChrome::drawStatusBar(renderer, AtelierChrome::MARGIN_X, 18, AtelierChrome::CONTENT_W, 28, false);
+
+    int y = 58;
+    auto drawAtelierSlider = [&](const char* label, const uint8_t value, const fui::ActionId sliderAct,
+                                 const fui::ActionId stepAct, const bool showToggle) {
+      char pct[8]{};
+      snprintf(pct, sizeof(pct), "%u%%", static_cast<unsigned>(value));
+      AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, y, AtelierChrome::font10Bold(), label,
+                              AtelierTone::Muted, 1, 240, 0, true);
+      AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X + 240, y, AtelierChrome::font12Bold(), pct,
+                              AtelierTone::Ink, 0, AtelierChrome::CONTENT_W - 240, 2, true);
+      const int rowY = y + 20;
+      const int btnSize = 36;
+      const int toggleReserve = showToggle ? (btnSize + 10) : 0;
+      const int trackX = AtelierChrome::MARGIN_X + btnSize + 12;
+      const int rightBtnsX = AtelierChrome::MARGIN_X + AtelierChrome::CONTENT_W - toggleReserve - btnSize;
+      const int trackW = rightBtnsX - 12 - trackX;
+
+      AtelierChrome::drawCapsuleButton(renderer, AtelierChrome::MARGIN_X, rowY, btnSize, btnSize, "-",
+                                       AtelierChrome::font16Med(), false, true, false, false);
+      screen.frame().hit(fui::Rect{AtelierChrome::MARGIN_X, static_cast<int16_t>(rowY), btnSize, btnSize}, stepAct,
+                         -BRIGHTNESS_STEP, fui::InputTouch);
+
+      AtelierChrome::drawScrubberTrack(renderer, trackX, rowY + 12, trackW, 12, static_cast<int>(value) * 10, true,
+                                       false);
+      screen.frame().hit(
+          fui::Rect{static_cast<int16_t>(trackX), static_cast<int16_t>(rowY), static_cast<int16_t>(trackW), btnSize},
+          sliderAct, 0, fui::InputTouch | fui::InputDrag);
+
+      AtelierChrome::drawCapsuleButton(renderer, rightBtnsX, rowY, btnSize, btnSize, "+",
+                                       AtelierChrome::font16Med(), false, true, false, false);
+      screen.frame().hit(fui::Rect{static_cast<int16_t>(rightBtnsX), static_cast<int16_t>(rowY), btnSize, btnSize},
+                         stepAct, BRIGHTNESS_STEP, fui::InputTouch);
+
+      if (showToggle) {
+        const int togX = AtelierChrome::MARGIN_X + AtelierChrome::CONTENT_W - btnSize;
+        AtelierChrome::drawCapsuleButton(renderer, togX, rowY, btnSize, btnSize, lightOn ? "ON" : "OFF",
+                                         AtelierChrome::font10Bold(), lightOn, true, false, false);
+        screen.frame().hit(fui::Rect{static_cast<int16_t>(togX), static_cast<int16_t>(rowY), btnSize, btnSize},
+                           ACTION_TOGGLE, 0, fui::InputTouch);
+      }
+      y += 66;
+    };
+
+    if (Frontlight.present()) {
+      drawAtelierSlider(tr(STR_BRIGHTNESS), brightness, ACTION_BRIGHTNESS, ACTION_BRIGHTNESS_STEP,
+                        !slideSwitchOwnsLight());
+      if (Frontlight.hasColorTemperature()) {
+        drawAtelierSlider(tr(STR_WARMTH), warmth, ACTION_WARMTH, ACTION_WARMTH_STEP, false);
+      }
+      y += 10;
+    }
+
+    if (mappedInput.hasTouch()) {
+      const int tileCount = bleturner::status().compiledIn ? kTileCount : kTileCount - 1;
+      const fui::BitmapRef icons[kTileCount] = {
+          fui::bitmapFromIcon(icon_moon_32), fui::bitmapFromIcon(icon_refresh_cw_32),
+          fui::bitmapFromIcon(icon_reader_text_24), fui::bitmapFromIcon(icon_pointer_32),
+          fui::bitmapFromIcon(SETTINGS.ble.enabled ? icon_bluetooth_32 : icon_bluetooth_off_32)};
+      const bool enabled[kTileCount] = {SETTINGS.screenInverted != 0, false, false,
+                                        SETTINGS.touchReaderControls != CrossPointSettings::TOUCH_READER_OFF,
+                                        SETTINGS.ble.enabled != 0};
+      static constexpr fui::Rotation rotations[] = {fui::Rotation::None, fui::Rotation::CW90, fui::Rotation::R180,
+                                                    fui::Rotation::CCW90};
+      static constexpr fui::Rect underlines[] = {{4, 29, 24, 3}, {0, 4, 3, 24}, {4, 0, 24, 3}, {29, 4, 3, 24}};
+      const fui::Paint ink = fui::Paint::solid(fui::Color::Black);
+      const int tileSize = 44;
+      for (int id = 0; id < tileCount; ++id) {
+        const int slotLeft = AtelierChrome::MARGIN_X + AtelierChrome::CONTENT_W * id / tileCount;
+        const int slotRight = AtelierChrome::MARGIN_X + AtelierChrome::CONTENT_W * (id + 1) / tileCount;
+        const int cx = slotLeft + ((slotRight - slotLeft) - tileSize) / 2;
+        if (enabled[id]) {
+          AtelierChrome::fillCapsule(renderer, cx, y, tileSize, tileSize);
+        } else {
+          AtelierChrome::strokeCapsule(renderer, cx, y, tileSize, tileSize, 3, 1.0f);
+        }
+        const fui::Rect iconRect{static_cast<int16_t>(cx + (tileSize - kQuickIconSize) / 2),
+                                 static_cast<int16_t>(y + (tileSize - kQuickIconSize) / 2), kQuickIconSize,
+                                 kQuickIconSize};
+        const fui::Paint fg = fui::Paint::solid(enabled[id] ? fui::Color::White : fui::Color::Black);
+        const int orientation = SETTINGS.orientation % CrossPointSettings::ORIENTATION_COUNT;
+        screen.target().bitmap(iconRect, icons[id], fui::BitmapMode::Center, fg,
+                               id == 2 ? rotations[orientation] : fui::Rotation::None);
+        if (id == 2) {
+          const auto& line = underlines[orientation];
+          screen.target().fill(fui::Rect{static_cast<int16_t>(iconRect.x + line.x),
+                                         static_cast<int16_t>(iconRect.y + line.y), line.width, line.height},
+                               ink);
+        }
+        const bool switchOwned = (id == 0 && slideSwitchOwns(CrossPointSettings::SLIDE_SWITCH_NIGHT_MODE)) ||
+                                 (id == 3 && slideSwitchOwns(CrossPointSettings::SLIDE_SWITCH_TOUCH_CONTROLS));
+        if (!switchOwned) {
+          screen.frame().hit(fui::Rect{static_cast<int16_t>(slotLeft), static_cast<int16_t>(y),
+                                       static_cast<int16_t>(slotRight - slotLeft), tileSize},
+                             ACTION_TILE, static_cast<int16_t>(id), fui::InputTouch);
+        }
+      }
+    }
+    return;
+  }
+#endif
   const auto& theme = screen.theme();
 
   // Sheet chrome first: the card body, the 2px rule along its bottom edge, and
@@ -435,6 +555,18 @@ void FrontlightPanelActivity::buildPanelScreen(UiScreen& screen) {
 
 void FrontlightPanelActivity::render(RenderLock&&) {
   panelBottom = computePanelBottom();
+
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    const auto prevHook = renderer.uiTextOverrideHook();
+    renderer.setUiTextOverrideHook(AtelierChrome::textHook(false));
+    renderUi();
+    renderer.setUiTextOverrideHook(prevHook);
+    renderer.displayBuffer(cleanRefreshPending ? HalDisplay::HALF_REFRESH : HalDisplay::FAST_REFRESH);
+    cleanRefreshPending = false;
+    return;
+  }
+#endif
 
   // fui::sheet draws the card body, its bottom rule, and the grabber during
   // renderUi(); the battery band at the card's top is part of the screen build.

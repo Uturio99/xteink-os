@@ -10,6 +10,7 @@
 #include "MappedInputManager.h"
 #include "activities/home/FileBrowserActivity.h"
 #include "activities/util/ConfirmationActivity.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
 #include "network/FirmwareFlasher.h"
@@ -209,6 +210,40 @@ void SdFirmwareUpdateActivity::loop() {
 }
 
 void SdFirmwareUpdateActivity::render(RenderLock&&) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    AtelierChrome::AtelierStatusScreenSpec spec;
+    spec.eyebrowCode = "04.11";
+    spec.title = recoveryMode ? tr(STR_RECOVERY_MODE) : tr(STR_SD_FIRMWARE_UPDATE);
+    if (state == State::UPDATING) {
+      const unsigned int pct = firmwareSize > 0 ? static_cast<unsigned int>((writtenBytes * 100) / firmwareSize) : 0;
+      if (pct == lastRenderedPercent) return;
+      lastRenderedPercent = pct;
+      char pctBuf[16]{};
+      snprintf(pctBuf, sizeof(pctBuf), "%u%%", pct);
+      spec.headline = tr(STR_UPDATING);
+      spec.body = tr(STR_FIRMWARE_UPDATE_DO_NOT_POWER_OFF);
+      spec.progressPct = static_cast<int>(pct);
+      spec.progressLabel = pctBuf;
+      AtelierChrome::drawStatusScreen(renderer, spec, HalDisplay::FAST_REFRESH, true);
+      return;
+    }
+    if (state == State::VALIDATING) {
+      spec.headline = tr(STR_VALIDATING_FIRMWARE);
+    } else if (state == State::SUCCESS) {
+      spec.headline = tr(STR_UPDATE_COMPLETE);
+      spec.body = tr(STR_RESTARTING_HINT);
+    } else if (state == State::FAILED) {
+      spec.headline = tr(STR_UPDATE_FAILED);
+      spec.body = errorMessage.empty() ? nullptr : errorMessage.c_str();
+      spec.footerHint = tr(STR_TAP_BACK_TO_RETURN);
+    } else if (recoveryMode) {
+      spec.headline = tr(STR_RECOVERY_MODE_HINT);
+    }
+    AtelierChrome::drawStatusScreen(renderer, spec);
+    return;
+  }
+#endif
   const auto& metrics = UITheme::getInstance().getMetrics();
   const auto pageWidth = renderer.getScreenWidth();
   const auto pageHeight = renderer.getScreenHeight();

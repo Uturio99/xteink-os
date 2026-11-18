@@ -45,6 +45,7 @@ Use the table to find guidance for the decisions being changed. Read relevant se
 | Cache formats, layout persistence, or invalidation | [versioning](.agents/rules/generated-files-cache.md#cache-file-format-versioning) and [invalidation](.agents/rules/generated-files-cache.md#cache-invalidation-rules) |
 | New features, activities, settings, libraries, or dependencies | `SCOPE.md` and the `scope-discipline` skill |
 | Restructuring, extraction, or separating unrelated cleanup | the `refactor-for-review` skill |
+| CrossPoint UI experiment exploration, layout specs, or delegation | [ui-experiment.md](.agents/rules/ui-experiment.md) |
 
 Repository-local skills live under `.agents/skills/`. Their descriptions identify specific procedures to use when needed; a keyword match alone does not require loading a skill.
 

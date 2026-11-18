@@ -11,6 +11,7 @@
 #include "SilentRestart.h"
 #include "activities/network/WifiSelectionActivity.h"
 #include "activities/util/KeyboardEntryActivity.h"
+#include "components/AtelierChrome.h"
 #include "components/CatalogScreens.h"
 #include "components/icons/search32.h"
 
@@ -218,20 +219,27 @@ void CatalogActivity::screenHeader(UiScreen& screen, const char* title) {
 bool CatalogActivity::buildStatusScreen(UiScreen& screen, const bool boldError, const bool showDownloadTotal) {
   switch (state) {
     case State::DOWNLOADING:
-      catalogDownloadScreen(screen, statusMessage.c_str(), downloadProgress, showDownloadTotal ? downloadTotal : 0,
-                            ACTION_CANCEL);
+      catalogDownloadScreen(screen, renderer, statusMessage.c_str(), downloadProgress,
+                            showDownloadTotal ? downloadTotal : 0, ACTION_CANCEL);
       break;
     case State::ERROR:
       if (mappedInput.hasTouch()) {
-        catalogCenteredBlock(screen, {{tr(STR_ERROR_MSG), boldError}, {errorMessage.c_str()}, {tr(STR_TAP_TO_RETRY)}});
+        catalogCenteredBlock(screen, renderer,
+                             {{tr(STR_ERROR_MSG), boldError}, {errorMessage.c_str()}, {tr(STR_TAP_TO_RETRY)}});
       } else {
-        catalogCenteredBlock(screen, {{tr(STR_ERROR_MSG), boldError}, {errorMessage.c_str()}});
+        catalogCenteredBlock(screen, renderer, {{tr(STR_ERROR_MSG), boldError}, {errorMessage.c_str()}});
       }
       break;
     case State::CHECK_WIFI:
     case State::WIFI_SELECTION:
     case State::SEARCH_INPUT:
     case State::LOADING:
+#if FREEINK_DEVICE_X4PRO
+      if (AtelierChrome::isPortrait480x800(renderer)) {
+        catalogCenteredBlock(screen, renderer, {{statusMessage.c_str()}});
+        break;
+      }
+#endif
       screen.centeredText(statusMessage.c_str(), screen.theme().bodyText);
       break;
     default:

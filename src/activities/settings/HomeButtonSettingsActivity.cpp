@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 
 namespace fui = freeink::ui;
@@ -26,16 +27,33 @@ void HomeButtonSettingsActivity::activateIndex(int index) {
   requestUpdate();
 }
 
+void HomeButtonSettingsActivity::drawOverlay() {
+  if (optionPopup.isActive()) optionPopup.render(renderer);
+}
+
 void HomeButtonSettingsActivity::render(RenderLock&& lock) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    UiListActivity::render(std::move(lock));
+    return;
+  }
+#endif
   if (optionPopup.processRender(renderer, mappedInput)) return;
   UiListActivity::render(std::move(lock));
 }
 
 void HomeButtonSettingsActivity::buildScreen(UiScreen& screen) {
-  const auto& metrics = UITheme::getInstance().getMetrics();
-  screen.setContentMarginFromScreen(fui::Insets{static_cast<int16_t>(metrics.topPadding + metrics.headerHeight), 0,
-                                                static_cast<int16_t>(metrics.buttonHintsHeight), 0});
-  screen.spacer(static_cast<int16_t>(metrics.verticalSpacing));
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    screen.setContentMarginFromScreen(fui::Insets{90, 0, 16, 0});
+  } else
+#endif
+  {
+    const auto& metrics = UITheme::getInstance().getMetrics();
+    screen.setContentMarginFromScreen(fui::Insets{static_cast<int16_t>(metrics.topPadding + metrics.headerHeight), 0,
+                                                  static_cast<int16_t>(metrics.buttonHintsHeight), 0});
+    screen.spacer(static_cast<int16_t>(metrics.verticalSpacing));
+  }
   for (int i = 0; i < listCount(); ++i) {
     rows[i].label = I18N.get(home_button::GESTURE_LABELS[i]);
     rows[i].actionValue = static_cast<int16_t>(i);
@@ -53,5 +71,5 @@ void HomeButtonSettingsActivity::buildScreen(UiScreen& screen) {
   // A default smallText style is treated as inherited by screen.list().
   props.labelText.maxLines = 2;
   syncListViewport(screen, props);
-  screen.list(props);
+  renderList(screen, props);
 }

@@ -44,6 +44,16 @@ class GfxRenderer {
     LandscapeCounterClockwise  // 800x480 logical coordinates, native panel orientation
   };
 
+  struct UiTextOverrideHook {
+    bool active = false;
+    bool ditherAsGrayscalePlanes = false;
+    int (*lineHeight)(int fontId) = nullptr;
+    int (*ascender)(int fontId) = nullptr;
+    int (*measureWidth)(int fontId, const char* text, EpdFontFamily::Style style) = nullptr;
+    bool (*drawText)(const GfxRenderer& renderer, int fontId, int x, int y, const char* text, Color color,
+                     EpdFontFamily::Style style) = nullptr;
+  };
+
  private:
   static constexpr size_t BW_BUFFER_CHUNK_SIZE = 8000;  // 8KB chunks to allow for non-contiguous memory
 
@@ -98,6 +108,7 @@ class GfxRenderer {
   mutable int clipTop_ = 0;
   mutable int clipRight_ = 32767;
   mutable int clipBottom_ = 32767;
+  mutable UiTextOverrideHook uiHook_{};
 
   // CJK UI font fallback map: primary (built-in, Latin-only) UI font id -> a
   // size-matched SD-card font id that carries CJK glyphs. When a string drawn
@@ -201,6 +212,8 @@ class GfxRenderer {
   void clearFallbackFonts() { fallbackFontMap_.clear(); }
 
   void setFontVariantProvider(const FontVariantProvider& provider) { fontVariantProvider_ = provider; }
+  void setUiTextOverrideHook(const UiTextOverrideHook& hook) const { uiHook_ = hook; }
+  const UiTextOverrideHook& uiTextOverrideHook() const { return uiHook_; }
   int resolveFontVariant(const int fontId, const float scale) const {
     return fontVariantProvider_.resolveFont(fontId, scale);
   }

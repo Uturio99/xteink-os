@@ -13,6 +13,7 @@
 #include <utility>
 
 #include "CrossPointSettings.h"
+#include "components/AtelierChrome.h"
 #include "fontIds.h"
 
 namespace textsettings {
@@ -70,11 +71,28 @@ void renderPreview(const GfxRenderer& renderer, PreviewLayout& layout, int previ
   const int width = bounds.width - (previewPadding * 2);
   if (width <= 0 || height <= 0) return;
 
+#if FREEINK_DEVICE_X4PRO
+  int labelH = 0;
+  int labelReserved = 0;
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    labelH = AtelierChrome::fontLineHeight(AtelierChrome::font10Bold());
+    labelReserved = labelH + labelGap + previewPadding;
+    const int labelY = top + height - previewPadding - labelH;
+    AtelierChrome::drawText(renderer, left, labelY, AtelierChrome::font10Bold(), caption, AtelierTone::Muted, 1, width,
+                            0, true);
+  } else {
+    labelH = renderer.getTextHeight(UI_10_FONT_ID);
+    labelReserved = labelH + labelGap + previewPadding;
+    const int labelY = top + height - previewPadding - labelH;
+    renderer.drawText(UI_10_FONT_ID, left, labelY, caption);
+  }
+#else
   const int labelH = renderer.getTextHeight(UI_10_FONT_ID);
   const int labelReserved = labelH + labelGap + previewPadding;
 
   const int labelY = top + height - previewPadding - labelH;
   renderer.drawText(UI_10_FONT_ID, left, labelY, caption);
+#endif
 
   const int fontId = SETTINGS.getReaderFontId();
   if (fontId == 0) return;

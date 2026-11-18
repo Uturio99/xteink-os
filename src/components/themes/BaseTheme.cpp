@@ -16,6 +16,7 @@
 #include "I18n.h"
 #include "RecentBooksStore.h"
 #include "clippings/SelectionGeometry.h"
+#include "components/AtelierChrome.h"
 #include "components/HeaderBackTapTarget.h"
 #include "components/UIScale.h"
 #include "components/UITheme.h"
@@ -169,6 +170,19 @@ void BaseTheme::drawProgressBar(const GfxRenderer& renderer, Rect rect, const si
   // Use 64-bit arithmetic to avoid overflow for large files
   const int percent = static_cast<int>((static_cast<uint64_t>(current) * 100) / total);
 
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    const int permille = static_cast<int>((static_cast<uint64_t>(current) * 1000) / total);
+    AtelierChrome::drawScrubberTrack(renderer, AtelierChrome::MARGIN_X, rect.y, AtelierChrome::CONTENT_W, 24,
+                                     permille, false, false);
+    char pctBuf[16]{};
+    snprintf(pctBuf, sizeof(pctBuf), "%d%%", percent);
+    AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, rect.y + 28, AtelierChrome::font12Bold(), pctBuf,
+                            AtelierTone::Ink, 1, AtelierChrome::CONTENT_W, 1, false);
+    return;
+  }
+#endif
+
   LOG_DBG("UI", "Drawing progress bar: current=%u, total=%u, percent=%d", current, total, percent);
   // Draw outline
   renderer.drawRect(rect.x, rect.y, rect.width, rect.height);
@@ -218,6 +232,24 @@ void BaseTheme::drawButtonHints(GfxRenderer& renderer, const char* btn1, const c
   if (gpio.hasTouch()) {
     return;
   }
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    char combined[128]{};
+    size_t pos = 0;
+    for (const char* lbl : {btn1, btn2, btn3, btn4}) {
+      if (!lbl || lbl[0] == '\0') continue;
+      if (pos > 0 && pos + 4 < sizeof(combined)) {
+        const int n = snprintf(combined + pos, sizeof(combined) - pos, " · %s", lbl);
+        if (n > 0) pos = std::min(sizeof(combined) - 1, pos + static_cast<size_t>(n));
+      } else if (pos == 0) {
+        const int n = snprintf(combined, sizeof(combined), "%s", lbl);
+        if (n > 0) pos = std::min(sizeof(combined) - 1, static_cast<size_t>(n));
+      }
+    }
+    if (pos > 0) AtelierChrome::drawFooterHint(renderer, combined);
+    return;
+  }
+#endif
 
   const GfxRenderer::Orientation orig_orientation = renderer.getOrientation();
   renderer.setOrientation(GfxRenderer::Orientation::Portrait);
@@ -404,6 +436,17 @@ freeink::ui::Rect BaseTheme::headerBand(const GfxRenderer& renderer, const freei
 
 void BaseTheme::drawHeader(const GfxRenderer& renderer, Rect rect, const char* title, const char* subtitle,
                            const bool backButton) const {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    if (title == nullptr && !backButton) {
+      HeaderBackTapTarget::clear();
+      AtelierChrome::drawStatusBar(renderer, AtelierChrome::MARGIN_X, 20, AtelierChrome::CONTENT_W, 28, false);
+    } else {
+      AtelierChrome::drawHeader(renderer, title, subtitle, backButton);
+    }
+    return;
+  }
+#endif
   // Every activity header renders through the FreeInkUI header + battery
   // indicator components, styled by the active theme's tokens (padding,
   // centering, underline). Non-interactive frame: no hit rects registered.
@@ -470,6 +513,12 @@ void BaseTheme::drawHeader(const GfxRenderer& renderer, Rect rect, const char* t
 }
 
 void BaseTheme::drawSubHeader(const GfxRenderer& renderer, Rect rect, const char* label, const char* rightLabel) const {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    AtelierChrome::drawSubHeader(renderer, label, rightLabel);
+    return;
+  }
+#endif
   constexpr int labelGap = 10;
   const int contentWidth = std::max(0, rect.width - BaseMetrics::values.contentSidePadding * 2);
 
@@ -752,6 +801,20 @@ void BaseTheme::drawButtonMenu(GfxRenderer& renderer, Rect rect, int buttonCount
 }
 
 Rect BaseTheme::drawPopup(const GfxRenderer& renderer, const char* message) const {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    const int x = AtelierChrome::MARGIN_X;
+    const int w = AtelierChrome::CONTENT_W;
+    const int h = 52;
+    const int y = 132;
+    AtelierChrome::fillRect(renderer, x, y, w, h, 0);
+    renderer.drawRect(x, y, w, h, 1, true);
+    AtelierChrome::drawText(renderer, x + 16, y + (h - AtelierChrome::fontLineHeight(AtelierChrome::font13Bold())) / 2,
+                            AtelierChrome::font13Bold(), message ? message : "", AtelierTone::Ink, 0, w - 32, 1, true);
+    renderer.displayBuffer();
+    return Rect{x, y, w, h};
+  }
+#endif
   const auto& metrics = UITheme::getInstance().getMetrics();
   const int marginX = metrics.popupMarginX;
   const int marginY = metrics.popupMarginY;
@@ -783,6 +846,22 @@ Rect BaseTheme::drawPopup(const GfxRenderer& renderer, const char* message) cons
 }
 
 void BaseTheme::fillPopupProgress(const GfxRenderer& renderer, const Rect& layout, const int progress) const {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    const int barW = std::max(0, layout.width - 32);
+    const int barX = layout.x + 16;
+    const int barY = layout.y + layout.height - 9;
+    if (barW > 0) {
+      const int pct = std::clamp(progress, 0, 100);
+      AtelierChrome::fillRect(renderer, barX, barY, barW, 2, 0);
+      renderer.drawLine(barX, barY, barX + barW - 1, barY, true);
+      const int fillW = barW * pct / 100;
+      if (fillW > 0) renderer.fillRect(barX, barY - 1, fillW, 3, true);
+    }
+    renderer.displayBuffer(HalDisplay::FAST_REFRESH);
+    return;
+  }
+#endif
   const auto& metrics = UITheme::getInstance().getMetrics();
   const int barHeight = metrics.popupProgressBarHeight;
   const int barWidth =

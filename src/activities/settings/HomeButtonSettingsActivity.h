@@ -18,6 +18,8 @@ class HomeButtonSettingsActivity final : public UiListActivity {
   int listCount() const override { return GESTURE_COUNT; }
   const char* headerTitle() const override { return tr(STR_HOME_BUTTON); }
   void buildScreen(UiScreen& screen) override;
+  void drawOverlay() override;
+  const char* atelierEyebrowCode() const override { return "04.4"; }
   void activateIndex(int index) override;
   bool handleCustomInput() override;
   void render(RenderLock&&) override;

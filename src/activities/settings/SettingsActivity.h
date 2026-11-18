@@ -212,6 +212,9 @@ class SettingsActivity final : public UiListActivity {
   bool handleCustomInput() override;
   const char* headerTitle() const override;
   void drawFooter() override;
+  void drawOverlay() override;
+  int atelierBottomNavTab() const override { return 3; }
+  const char* atelierEyebrowCode() const override { return "04.2"; }
 
  public:
   SettingsActivity(GfxRenderer& renderer, MappedInputManager& mappedInput, SettingsSection section);

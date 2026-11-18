@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cstdio>
 
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "components/UiSliderDialog.h"
 #include "fontIds.h"
@@ -160,6 +161,7 @@ void EpubReaderPercentSelectionActivity::buildPercentScreen(UiScreen& screen) {
   snprintf(hint2, sizeof(hint2), "%s %d%%", I18N.get(StrId::STR_STEP_HINT_SIDE), kLargeStep);
 
   UiSliderDialogSpec spec;
+  spec.renderer = &renderer;
   spec.title = tr(STR_GO_TO_PERCENT);
   spec.readout = readout;
   spec.value = percent;
@@ -176,6 +178,16 @@ void EpubReaderPercentSelectionActivity::buildPercentScreen(UiScreen& screen) {
 }
 
 void EpubReaderPercentSelectionActivity::render(RenderLock&&) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    const auto prevHook = renderer.uiTextOverrideHook();
+    renderer.setUiTextOverrideHook(AtelierChrome::textHook(false));
+    renderUi();
+    renderer.setUiTextOverrideHook(prevHook);
+    renderer.displayBuffer();
+    return;
+  }
+#endif
   // No clearScreen: the dialog is a popup — it dims the frame it opened over
   // and draws the card on top. Everything renders through the app so the
   // slider, -/+ zones, and Cancel/OK register touch hit rects.

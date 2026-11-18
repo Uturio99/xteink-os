@@ -13,6 +13,7 @@
 #include "CrossPointSettings.h"
 #include "MappedInputManager.h"
 #include "activities/reader/DictionaryDefinitionActivity.h"
+#include "components/AtelierChrome.h"
 #include "components/CatalogScreens.h"
 #include "components/UITheme.h"
 #include "util/DictHtmlPages.h"
@@ -216,6 +217,35 @@ void DetailsActivity::buildScreen(UiScreen& screen) {
 }
 
 void DetailsActivity::render(RenderLock&&) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    const auto prevHook = renderer.uiTextOverrideHook();
+    renderer.setUiTextOverrideHook(AtelierChrome::textHook(false));
+    renderer.clearScreen();
+    renderUi();
+    if (needsLayout()) {
+      renderer.setUiTextOverrideHook(prevHook);
+      return;
+    }
+    if (coverRect.width > 0 && coverRect.height > 0) {
+      if (ImageToFramebufferDecoder* decoder = ImageDecoderFactory::getDecoder(spec.coverPath)) {
+        RenderConfig cfg{coverRect.x, coverRect.y, coverRect.width, coverRect.height};
+        decoder->decodeToFramebuffer(spec.coverPath, renderer, cfg);
+      }
+    }
+    if (!pages.empty()) {
+      const int fontId = SETTINGS.getReaderFontId();
+      auto* fcm = renderer.getFontCacheManager();
+      auto scope = fcm->createPrewarmScope();
+      pages[0]->render(renderer, fontId, descriptionRect.x, descriptionRect.y);
+      scope.endScanAndPrewarm();
+      pages[0]->render(renderer, fontId, descriptionRect.x, descriptionRect.y);
+    }
+    renderer.setUiTextOverrideHook(prevHook);
+    renderer.displayBuffer();
+    return;
+  }
+#endif
   renderer.clearScreen();
   renderUi();
   // The first paint only discovers the description area; loop() lays the

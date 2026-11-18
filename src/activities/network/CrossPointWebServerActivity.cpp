@@ -15,6 +15,7 @@
 #include "SilentRestart.h"
 #include "WifiSelectionActivity.h"
 #include "activities/network/CalibreConnectActivity.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
 #include "util/PluginEvents.h"
@@ -444,6 +445,83 @@ void CrossPointWebServerActivity::render(RenderLock&&) {
   // Only render our own UI when server is running
   // Subactivities handle their own rendering
   if (state == WebServerActivityState::SERVER_RUNNING || state == WebServerActivityState::AP_STARTING) {
+#if FREEINK_DEVICE_X4PRO
+    if (AtelierChrome::isPortrait480x800(renderer)) {
+      if (state == WebServerActivityState::AP_STARTING) {
+        AtelierChrome::AtelierStatusScreenSpec spec;
+        spec.eyebrowCode = "04.7";
+        spec.title = isApMode ? tr(STR_HOTSPOT_MODE) : tr(STR_FILE_TRANSFER);
+        spec.headline = tr(STR_STARTING_HOTSPOT);
+        AtelierChrome::drawStatusScreen(renderer, spec);
+        return;
+      }
+      struct Ctx {
+        const CrossPointWebServerActivity* self;
+      } ctx{this};
+      AtelierChrome::renderGrayscalePass(
+          renderer, HalDisplay::FAST_REFRESH,
+          [](void* raw) {
+            auto* self = static_cast<Ctx*>(raw)->self;
+            auto& r = self->renderer;
+            r.clearScreen();
+            const bool wifiUp = (WiFi.status() == WL_CONNECTED) && (self->consecutiveDisconnects == 0);
+            AtelierChrome::drawHeader(r, self->isApMode ? tr(STR_HOTSPOT_MODE) : tr(STR_FILE_TRANSFER),
+                                      self->isApMode ? "AP MODE" : (wifiUp ? "WI-FI OK" : "OFFLINE"), true, "04.7");
+            AtelierChrome::drawSubHeader(r, self->connectedSSID.c_str(),
+                                         self->isApMode ? nullptr : self->connectedIP.c_str());
+            if (self->isApMode) {
+              int y = AtelierChrome::HEADER_RULE_Y + 48;
+              AtelierChrome::drawText(r, AtelierChrome::MARGIN_X, y, AtelierChrome::font13Bold(),
+                                      tr(STR_CONNECT_WIFI_HINT), AtelierTone::Ink, 0, AtelierChrome::CONTENT_W, 0, true);
+              y += 28;
+              const std::string wifiConfig = std::string("WIFI:T:nopass;S:") + self->connectedSSID + ";;";
+              if (r.getRenderMode() == GfxRenderer::BW) {
+                QrUtils::drawQrCode(r, Rect(AtelierChrome::MARGIN_X, y, QR_CODE_WIDTH, QR_CODE_HEIGHT), wifiConfig);
+              }
+              AtelierChrome::drawText(r, AtelierChrome::MARGIN_X + QR_CODE_WIDTH + 16, y + 76,
+                                      AtelierChrome::font13Reg(), self->connectedSSID.c_str(), AtelierTone::Ink, 0,
+                                      AtelierChrome::CONTENT_W - QR_CODE_WIDTH - 16, 0, true);
+              y += QR_CODE_HEIGHT + 24;
+              AtelierChrome::drawText(r, AtelierChrome::MARGIN_X, y, AtelierChrome::font13Bold(), tr(STR_OPEN_URL_HINT),
+                                      AtelierTone::Ink, 0, AtelierChrome::CONTENT_W, 0, true);
+              y += 28;
+              const std::string hostUrl = std::string("http://") + AP_HOSTNAME + ".local/";
+              const std::string ipUrl = std::string(tr(STR_OR_HTTP_PREFIX)) + self->connectedIP + "/";
+              if (r.getRenderMode() == GfxRenderer::BW) {
+                QrUtils::drawQrCode(r, Rect(AtelierChrome::MARGIN_X, y, QR_CODE_WIDTH, QR_CODE_HEIGHT), hostUrl);
+              }
+              AtelierChrome::drawText(r, AtelierChrome::MARGIN_X + QR_CODE_WIDTH + 16, y + 66,
+                                      AtelierChrome::font13Reg(), hostUrl.c_str(), AtelierTone::Ink, 0,
+                                      AtelierChrome::CONTENT_W - QR_CODE_WIDTH - 16, 0, true);
+              AtelierChrome::drawText(r, AtelierChrome::MARGIN_X + QR_CODE_WIDTH + 16, y + 90,
+                                      AtelierChrome::font11Reg(), ipUrl.c_str(), AtelierTone::Muted, 0,
+                                      AtelierChrome::CONTENT_W - QR_CODE_WIDTH - 16, 0, true);
+            } else {
+              int y = AtelierChrome::HEADER_RULE_Y + 60;
+              AtelierChrome::drawText(r, AtelierChrome::MARGIN_X, y, AtelierChrome::font16Med(), tr(STR_OPEN_URL_HINT),
+                                      AtelierTone::Ink, 0, AtelierChrome::CONTENT_W, 1, true);
+              y += 26;
+              AtelierChrome::drawText(r, AtelierChrome::MARGIN_X, y, AtelierChrome::font13Reg(), tr(STR_SCAN_QR_HINT),
+                                      AtelierTone::Muted, 0, AtelierChrome::CONTENT_W, 1, true);
+              y += 36;
+              const std::string webInfo = "http://" + self->connectedIP + "/";
+              if (r.getRenderMode() == GfxRenderer::BW) {
+                QrUtils::drawQrCode(r, Rect((480 - QR_CODE_WIDTH) / 2, y, QR_CODE_WIDTH, QR_CODE_HEIGHT), webInfo);
+              }
+              y += QR_CODE_HEIGHT + 28;
+              AtelierChrome::drawText(r, AtelierChrome::MARGIN_X, y, AtelierChrome::font16Med(), webInfo.c_str(),
+                                      AtelierTone::Ink, 0, AtelierChrome::CONTENT_W, 1, true);
+              y += 28;
+              const std::string hostUrl = std::string(tr(STR_OR_HTTP_PREFIX)) + AP_HOSTNAME + ".local/";
+              AtelierChrome::drawText(r, AtelierChrome::MARGIN_X, y, AtelierChrome::font12Reg(), hostUrl.c_str(),
+                                      AtelierTone::Muted, 0, AtelierChrome::CONTENT_W, 1, true);
+            }
+            AtelierChrome::drawFooterHint(r, tr(STR_TAP_BACK_TO_RETURN));
+          },
+          &ctx);
+      return;
+    }
+#endif
     renderer.clearScreen();
     const auto& metrics = UITheme::getInstance().getMetrics();
     const auto pageWidth = renderer.getScreenWidth();

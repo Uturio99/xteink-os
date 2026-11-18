@@ -20,6 +20,7 @@ class KeyboardLayoutsActivity final : public UiListActivity {
   void buildScreen(UiScreen& screen) override;
   void activateIndex(int index) override;
   const char* headerTitle() const override;
+  const char* atelierEyebrowCode() const override { return "04.20"; }
 
   bool isLocked(uint8_t i) const;
 

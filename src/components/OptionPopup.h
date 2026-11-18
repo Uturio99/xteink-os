@@ -9,6 +9,7 @@
 
 #include "GfxRenderer.h"
 #include "MappedInputManager.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "components/UiAppHelpers.h"
 
@@ -151,6 +152,16 @@ class OptionPopup {
 
   bool processRender(GfxRenderer& renderer, const MappedInputManager& input) const {
     if (!active) return false;
+#if FREEINK_DEVICE_X4PRO
+    if (AtelierChrome::isPortrait480x800(renderer)) {
+      const auto prevHook = renderer.uiTextOverrideHook();
+      renderer.setUiTextOverrideHook(AtelierChrome::textHook(false));
+      render(renderer);
+      renderer.setUiTextOverrideHook(prevHook);
+      renderer.displayBuffer();
+      return true;
+    }
+#endif
     const auto popupLabels = input.mapLabels(tr(STR_BACK), tr(STR_SELECT), tr(STR_DIR_UP), tr(STR_DIR_DOWN));
     GUI.drawButtonHints(renderer, popupLabels.btn1, popupLabels.btn2, popupLabels.btn3, popupLabels.btn4);
     render(renderer);
@@ -182,9 +193,31 @@ class OptionPopup {
     interactions.beginPublishCycle();
     fui::Frame<INTERACTION_CAPACITY> frame(target, device, noInput, interactions);
 
-    const auto& metrics = UITheme::getInstance().getMetrics();
     const int totalOptions = static_cast<int>(ownedStrings.size());
     const uint8_t count = static_cast<uint8_t>(totalOptions > MAX_OPTIONS ? MAX_OPTIONS : totalOptions);
+
+#if FREEINK_DEVICE_X4PRO
+    if (AtelierChrome::isPortrait480x800(renderer)) {
+      const char* optPtrs[MAX_OPTIONS]{};
+      for (uint8_t i = 0; i < count; ++i) {
+        optPtrs[i] = ownedStrings[i].c_str();
+      }
+      AtelierChrome::AtelierOptionSheetSpec spec;
+      spec.title = title.empty() ? nullptr : title.c_str();
+      spec.headline = headline.empty() ? nullptr : headline.c_str();
+      spec.message = message.empty() ? nullptr : message.c_str();
+      spec.options = optPtrs;
+      spec.optionCount = count;
+      spec.selectedIndex = selectedIndex;
+      spec.primaryIndex = 1;
+      AtelierChrome::renderOptionSheet(frame, renderer, spec, ACTION_OPTION, ACTION_CHROME);
+      interactions.publish();
+      uiReady = true;
+      return;
+    }
+#endif
+
+    const auto& metrics = UITheme::getInstance().getMetrics();
 
     fui::DialogOption options[MAX_OPTIONS];
     for (uint8_t i = 0; i < count; ++i) {

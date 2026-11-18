@@ -29,6 +29,7 @@
 #include "activities/settings/PluginHubInstallActivity.h"
 #include "activities/util/ConfirmationActivity.h"
 #include "activities/util/DetailsActivity.h"
+#include "components/AtelierChrome.h"
 #include "components/CatalogScreens.h"
 #include "components/UITheme.h"
 #include "network/HttpDownloader.h"
@@ -1533,6 +1534,15 @@ void PluginCatalogActivity::showItemDetails(const int itemIndex) {
 }
 
 void PluginCatalogActivity::drawFooter() {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    if (state == State::AUTH && authQrRect.width > 0 && renderer.getRenderMode() == GfxRenderer::BW) {
+      QrUtils::drawQrCode(renderer, Rect{authQrRect.x, authQrRect.y, authQrRect.width, authQrRect.height},
+                          authVerifyUrl);
+    }
+    return;
+  }
+#endif
   // The QR is a raw-renderer overlay (FreeInkUI has no QR component); the base
   // render() calls drawFooter() after the app has painted.
   if (state == State::AUTH && authQrRect.width > 0) {
@@ -1600,11 +1610,12 @@ void PluginCatalogActivity::buildScreen(UiScreen& screen) {
       buildAuthScreen(screen);
       return;
     case State::DONE:
-      catalogCenteredBlock(screen, {{tr(STR_DOWNLOAD_COMPLETE), true}, {statusMessage.c_str()}});
+      catalogCenteredBlock(screen, renderer, {{tr(STR_DOWNLOAD_COMPLETE), true}, {statusMessage.c_str()}});
       return;
     case State::NO_TOKEN:
-      catalogCenteredBlock(screen,
-                           {{manifest.hasDeviceCode() ? tr(STR_PLUGIN_SIGN_IN_HINT) : tr(STR_PLUGIN_NOT_SIGNED_IN)}});
+      catalogCenteredBlock(
+          screen, renderer,
+          {{manifest.hasDeviceCode() ? tr(STR_PLUGIN_SIGN_IN_HINT) : tr(STR_PLUGIN_NOT_SIGNED_IN)}});
       return;
     default:
       return;
@@ -1655,6 +1666,13 @@ void PluginCatalogActivity::buildBrowsingScreen(UiScreen& screen) {
   }
 
   if (rowItems.empty()) {
+#if FREEINK_DEVICE_X4PRO
+    if (AtelierChrome::isPortrait480x800(renderer)) {
+      catalogCenteredBlock(screen, renderer,
+                           {{state == State::PLUGIN_PICKER ? tr(STR_NO_PLUGINS_INSTALLED) : tr(STR_NO_ENTRIES)}});
+      return;
+    }
+#endif
     screen.centeredText(state == State::PLUGIN_PICKER ? tr(STR_NO_PLUGINS_INSTALLED) : tr(STR_NO_ENTRIES),
                         screen.theme().bodyText);
     return;
@@ -1681,7 +1699,7 @@ void PluginCatalogActivity::buildBrowsingScreen(UiScreen& screen) {
   if (state == State::PLUGIN_PICKER) {
     fitPluginSubtitleToViewport(screen.target(), screen.body().height, props);
   }
-  screen.list(props);
+  renderList(screen, props);
 }
 
 // Derives rowItems from the current state's row source: the browse lists

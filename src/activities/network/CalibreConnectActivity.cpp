@@ -9,6 +9,7 @@
 #include "MappedInputManager.h"
 #include "SilentRestart.h"
 #include "WifiSelectionActivity.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
 #include "util/TaskWatchdog.h"
@@ -173,6 +174,70 @@ void CalibreConnectActivity::loop() {
 }
 
 void CalibreConnectActivity::render(RenderLock&&) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    if (state == CalibreConnectState::SERVER_STARTING || state == CalibreConnectState::ERROR) {
+      AtelierChrome::AtelierStatusScreenSpec spec;
+      spec.eyebrowCode = "04.8";
+      spec.title = tr(STR_CALIBRE_WIRELESS);
+      spec.headline = state == CalibreConnectState::SERVER_STARTING ? tr(STR_CALIBRE_STARTING) : tr(STR_CONNECTION_FAILED);
+      if (state == CalibreConnectState::ERROR) spec.footerHint = tr(STR_TAP_BACK_TO_RETURN);
+      AtelierChrome::drawStatusScreen(renderer, spec);
+      return;
+    }
+    if (state == CalibreConnectState::SERVER_RUNNING) {
+      struct Ctx {
+        const CalibreConnectActivity* self;
+      } ctx{this};
+      AtelierChrome::renderGrayscalePass(
+          renderer, HalDisplay::FAST_REFRESH,
+          [](void* raw) {
+            auto* self = static_cast<Ctx*>(raw)->self;
+            auto& r = self->renderer;
+            r.clearScreen();
+            const std::string ipSub = std::string(tr(STR_IP_ADDRESS_PREFIX)) + self->connectedIP;
+            AtelierChrome::drawHeader(r, tr(STR_CALIBRE_WIRELESS), nullptr, true, "04.8");
+            AtelierChrome::drawSubHeader(r, self->connectedSSID.c_str(), ipSub.c_str());
+            int y = AtelierChrome::HEADER_RULE_Y + 64;
+            AtelierChrome::drawText(r, AtelierChrome::MARGIN_X, y, AtelierChrome::font16Med(), tr(STR_CALIBRE_SETUP),
+                                    AtelierTone::Ink, 0, AtelierChrome::CONTENT_W, 0, true);
+            y += 32;
+            const char* steps[4] = {tr(STR_CALIBRE_INSTRUCTION_1), tr(STR_CALIBRE_INSTRUCTION_2),
+                                    tr(STR_CALIBRE_INSTRUCTION_3), tr(STR_CALIBRE_INSTRUCTION_4)};
+            for (const char* s : steps) {
+              AtelierChrome::drawText(r, AtelierChrome::MARGIN_X, y, AtelierChrome::font13Reg(), s, AtelierTone::Muted,
+                                      0, AtelierChrome::CONTENT_W, 0, true);
+              y += 24;
+            }
+            y += 24;
+            AtelierChrome::drawText(r, AtelierChrome::MARGIN_X, y, AtelierChrome::font16Med(), tr(STR_CALIBRE_STATUS),
+                                    AtelierTone::Ink, 0, AtelierChrome::CONTENT_W, 0, true);
+            y += 32;
+            if (self->lastProgressTotal > 0 && self->lastProgressReceived <= self->lastProgressTotal) {
+              std::string label = tr(STR_CALIBRE_RECEIVING);
+              if (!self->currentUploadName.empty()) label += ": " + self->currentUploadName;
+              AtelierChrome::drawText(r, AtelierChrome::MARGIN_X, y, AtelierChrome::font13Reg(), label.c_str(),
+                                      AtelierTone::Ink, 0, AtelierChrome::CONTENT_W, 0, true);
+              y += 26;
+              const int pct = static_cast<int>(static_cast<uint64_t>(self->lastProgressReceived) * 100 /
+                                               self->lastProgressTotal);
+              AtelierChrome::fillRect(r, AtelierChrome::MARGIN_X, y + 2, AtelierChrome::CONTENT_W, 1, 1);
+              const int fillW = AtelierChrome::CONTENT_W * std::clamp(pct, 0, 100) / 100;
+              if (fillW > 0) AtelierChrome::fillRect(r, AtelierChrome::MARGIN_X, y, fillW, 4, 3);
+              y += 22;
+            }
+            if (self->lastCompleteAt > 0 && (millis() - self->lastCompleteAt) < 6000) {
+              const std::string msg = std::string(tr(STR_CALIBRE_RECEIVED)) + self->lastCompleteName;
+              AtelierChrome::drawText(r, AtelierChrome::MARGIN_X, y, AtelierChrome::font13Reg(), msg.c_str(),
+                                      AtelierTone::Muted, 0, AtelierChrome::CONTENT_W, 0, true);
+            }
+            AtelierChrome::drawFooterHint(r, tr(STR_TAP_BACK_TO_RETURN));
+          },
+          &ctx);
+    }
+    return;
+  }
+#endif
   const auto& metrics = UITheme::getInstance().getMetrics();
   const auto pageWidth = renderer.getScreenWidth();
   const auto pageHeight = renderer.getScreenHeight();

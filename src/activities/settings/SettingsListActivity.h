@@ -22,6 +22,8 @@ class SettingsListActivity final : public UiListActivity {
   void activateIndex(int index) override;
   void onBackButton() override;
   void drawChrome() override;
+  int atelierBottomNavTab() const override { return 3; }
+  const char* atelierEyebrowCode() const override { return "04.1"; }
 
  public:
   explicit SettingsListActivity(GfxRenderer& renderer, MappedInputManager& mappedInput,

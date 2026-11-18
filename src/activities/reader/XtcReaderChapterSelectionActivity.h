@@ -23,6 +23,7 @@ class XtcReaderChapterSelectionActivity final : public UiListActivity {
   // guard consumes the pass after Back so nothing else runs without a book.
   bool handleButtons() override;
   void drawChrome() override;
+  const char* atelierEyebrowCode() const override { return "02.3"; }
   int findChapterIndexForPage(uint32_t page) const;
 
  public:

@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "activities/Activity.h"
+#include "components/AtelierChrome.h"
 #include "components/UiAppHost.h"
 #include "util/ButtonNavigator.h"
 
@@ -109,6 +110,13 @@ class WifiSelectionActivity final : public Activity, private UiAppHost {
   // Viewport memory (top/visibleRows) for the network list; `selected` is
   // mirrored from selectedNetworkIndex at build/move time.
   freeink::ui::ListNav listNav;
+#if FREEINK_DEVICE_X4PRO
+  AtelierChrome::AtelierFocusRefreshTracker x4ProFocus;
+  int x4ProLastRenderedTop = -1;
+  int x4ProLastRenderedRows = 0;
+  size_t x4ProLastRenderedCount = 0;
+  WifiSelectionState x4ProLastState = WifiSelectionState::SCANNING;
+#endif
 
   static void listScreen(UiScreen& screen, void* user);
   static void onRowEvent(const freeink::ui::ActionEvent& event, void* user);

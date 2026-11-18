@@ -22,6 +22,7 @@
 #include "activities/ActivityManager.h"
 #include "activities/network/WifiSelectionActivity.h"
 #include "clippings/ClippingSync.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "components/UiAppHelpers.h"  // list icons for the compare rows
 #include "fontIds.h"
@@ -521,6 +522,95 @@ void KOReaderSyncActivity::resultScreen(UiScreen& screen, void* user) {
 }
 
 void KOReaderSyncActivity::buildResultScreen(UiScreen& screen) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    screen.setContentMarginFromScreen(fui::Insets{AtelierChrome::LIST_TOP_MIN_Y, 0, 16, 0});
+    if (state == SHOWING_RESULT) {
+      const int remoteTocIndex = epub->getTocIndexForSpineIndex(remotePosition.spineIndex);
+      const std::string remoteChapter =
+          (remoteTocIndex >= 0) ? epub->getTocItem(remoteTocIndex).title
+                                : (std::string(tr(STR_SECTION_PREFIX)) + std::to_string(remotePosition.spineIndex + 1));
+      char localChapterFallback[32];
+      const char* localChapter = localChapterName.c_str();
+      if (localChapterName.empty()) {
+        snprintf(localChapterFallback, sizeof(localChapterFallback), "%s%d", tr(STR_SECTION_PREFIX),
+                 localPosition.spineIndex + 1);
+        localChapter = localChapterFallback;
+      }
+      char remoteVal[64];
+      snprintf(remoteVal, sizeof(remoteVal), tr(STR_PAGE_OVERALL_FORMAT), remotePosition.pageNumber + 1,
+               remoteProgress.percentage * 100);
+      char localVal[64];
+      snprintf(localVal, sizeof(localVal), tr(STR_PAGE_TOTAL_OVERALL_FORMAT), localPosition.pageNumber + 1,
+               localPosition.totalPages, localProgress.percentage * 100);
+      char deviceStr[80];
+      deviceStr[0] = '\0';
+      if (!remoteProgress.device.empty()) {
+        snprintf(deviceStr, sizeof(deviceStr), tr(STR_DEVICE_FROM_FORMAT), remoteProgress.device.c_str());
+      }
+      int y = AtelierChrome::LIST_TOP_MIN_Y + 14;
+      auto drawBlock = [&](const char* title, const char* ch, const char* val, const char* dev) {
+        AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, y, AtelierChrome::font10Bold(), title,
+                                AtelierTone::Muted, 1, AtelierChrome::CONTENT_W, 0, true);
+        y += 18;
+        AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, y, AtelierChrome::font16Med(), ch,
+                                AtelierTone::Ink, 0, AtelierChrome::CONTENT_W, 0, true);
+        y += 24;
+        AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, y, AtelierChrome::font13Reg(), val,
+                                AtelierTone::Muted, 0, AtelierChrome::CONTENT_W, 0, true);
+        y += 20;
+        if (dev && dev[0] != '\0') {
+          AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, y, AtelierChrome::font12Reg(), dev,
+                                  AtelierTone::Muted, 0, AtelierChrome::CONTENT_W, 0, true);
+          y += 18;
+        }
+        y += 16;
+      };
+      drawBlock(tr(STR_REMOTE_LABEL), remoteChapter.c_str(), remoteVal, deviceStr);
+      drawBlock(tr(STR_LOCAL_LABEL), localChapter, localVal, nullptr);
+      AtelierChrome::fillRect(renderer, AtelierChrome::MARGIN_X, y, AtelierChrome::CONTENT_W, 1, 1);
+      screen.setContentMarginFromScreen(fui::Insets{static_cast<int16_t>(y + 8), 0, 16, 0});
+
+      fui::ListItem actions[2];
+      actions[0].label = tr(STR_APPLY_REMOTE);
+      actions[0].actionValue = 0;
+      actions[1].label = tr(STR_UPLOAD_LOCAL);
+      actions[1].actionValue = 1;
+      fui::ListProps actionProps;
+      actionProps.items = actions;
+      actionProps.count = 2;
+      actionProps.selectedIndex = static_cast<int16_t>(selectedOption);
+      actionProps.action = ACTION_ROW;
+      actionProps.inputMask = fui::InputTouch;
+      actionProps.scrollIndicator = false;
+      fui::ListNav nav;
+      nav.selected = selectedOption;
+      nav.visibleRows = 2;
+      AtelierChrome::drawEditorialList(screen, renderer, actionProps, nav, false);
+    } else if (state == NO_REMOTE_PROGRESS) {
+      AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, 200, AtelierChrome::font20Light(),
+                              tr(STR_NO_REMOTE_MSG), AtelierTone::Ink, 0, AtelierChrome::CONTENT_W, 1, true);
+      AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, 238, AtelierChrome::font14Reg(),
+                              tr(STR_UPLOAD_PROMPT), AtelierTone::Muted, 0, AtelierChrome::CONTENT_W, 1, true);
+      screen.setContentMarginFromScreen(fui::Insets{620, 0, 16, 0});
+      fui::ListItem action;
+      action.label = tr(STR_UPLOAD_LOCAL);
+      action.actionValue = 0;
+      fui::ListProps actionProps;
+      actionProps.items = &action;
+      actionProps.count = 1;
+      actionProps.selectedIndex = 0;
+      actionProps.action = ACTION_ROW;
+      actionProps.inputMask = fui::InputTouch;
+      actionProps.scrollIndicator = false;
+      fui::ListNav nav;
+      nav.selected = 0;
+      nav.visibleRows = 1;
+      AtelierChrome::drawEditorialList(screen, renderer, actionProps, nav, false);
+    }
+    return;
+  }
+#endif
   const auto& metrics = UITheme::getInstance().getMetrics();
   // Side padding is 0 here (like the other FreeInkApp screens): the action list
   // supplies its own theme side padding, and the raw comparison text is indented
@@ -662,6 +752,46 @@ void KOReaderSyncActivity::buildResultScreen(UiScreen& screen) {
 }
 
 void KOReaderSyncActivity::render(RenderLock&&) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    if (state == SHOWING_RESULT || state == NO_REMOTE_PROGRESS) {
+      struct Ctx {
+        KOReaderSyncActivity* self;
+      } ctx{this};
+      AtelierChrome::renderGrayscalePass(
+          renderer, HalDisplay::FAST_REFRESH,
+          [](void* raw) {
+            auto* self = static_cast<Ctx*>(raw)->self;
+            self->renderer.clearScreen();
+            AtelierChrome::drawHeader(self->renderer,
+                                      self->state == SHOWING_RESULT ? tr(STR_PROGRESS_FOUND) : tr(STR_KOREADER_SYNC),
+                                      nullptr, true, "02.6");
+            self->renderUi();
+          },
+          &ctx);
+      return;
+    }
+    AtelierChrome::AtelierStatusScreenSpec spec;
+    spec.eyebrowCode = "02.6";
+    spec.title = tr(STR_KOREADER_SYNC);
+    if (state == NO_CREDENTIALS) {
+      spec.headline = tr(STR_NO_CREDENTIALS_MSG);
+      spec.body = tr(STR_KOREADER_SETUP_HINT);
+      spec.footerHint = tr(STR_TAP_BACK_TO_RETURN);
+    } else if (state == SYNCING || state == UPLOADING) {
+      spec.headline = statusMessage.c_str();
+    } else if (state == UPLOAD_COMPLETE || state == SYNC_COMPLETE) {
+      spec.headline = state == UPLOAD_COMPLETE ? tr(STR_UPLOAD_SUCCESS) : tr(STR_ALREADY_SYNCED);
+      spec.footerHint = tr(STR_TAP_BACK_TO_RETURN);
+    } else if (state == SYNC_FAILED) {
+      spec.headline = tr(STR_SYNC_FAILED_MSG);
+      spec.body = statusMessage.c_str();
+      spec.footerHint = tr(STR_TAP_BACK_TO_RETURN);
+    }
+    AtelierChrome::drawStatusScreen(renderer, spec);
+    return;
+  }
+#endif
   renderer.clearScreen();
 
   Rect screen = UITheme::getInstance().getScreenSafeArea(renderer, true, false);

@@ -26,6 +26,8 @@
 #include "OpdsTokenStore.h"
 #include "activities/util/DetailsActivity.h"
 #include "activities/util/KeyboardEntryActivity.h"
+#include "components/AtelierChrome.h"
+#include "components/CatalogScreens.h"
 #include "components/UITheme.h"
 #include "components/icons/opdsIcons.h"
 #include "network/HttpDownloader.h"
@@ -256,6 +258,12 @@ void OpdsBookBrowserActivity::buildBrowsingScreen(UiScreen& screen) {
   }
 
   if (entries.empty()) {
+#if FREEINK_DEVICE_X4PRO
+    if (AtelierChrome::isPortrait480x800(renderer)) {
+      catalogCenteredBlock(screen, renderer, {{tr(STR_NO_ENTRIES)}});
+      return;
+    }
+#endif
     screen.centeredText(tr(STR_NO_ENTRIES), screen.theme().bodyText);
     return;
   }
@@ -269,10 +277,13 @@ void OpdsBookBrowserActivity::buildBrowsingScreen(UiScreen& screen) {
   props.inputMask = fui::InputTouch;  // physical buttons stay in loop()
   props.valueInset = 8;               // air between the nav chevron and the row edge
   syncListViewport(screen, props);
-  screen.list(props);
+  renderList(screen, props);
 }
 
 void OpdsBookBrowserActivity::drawFooter() {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) return;
+#endif
   MappedInputManager::Labels labels;
   switch (state) {
     case State::BROWSING: {

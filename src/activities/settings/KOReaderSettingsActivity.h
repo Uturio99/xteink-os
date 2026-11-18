@@ -25,6 +25,7 @@ class KOReaderSettingsActivity final : public UiListActivity {
   void activateIndex(int index) override;
   bool handleCustomInput() override;
   const char* headerTitle() const override;
+  const char* atelierEyebrowCode() const override { return "04.23"; }
 
   // Row storage: MENU_ITEMS is a compile-time constant, so fixed-capacity
   // storage avoids any heap allocation for the row list. Labels are set once

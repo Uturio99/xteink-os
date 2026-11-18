@@ -19,6 +19,7 @@ class AboutActivity final : public UiListActivity {
   void buildScreen(UiScreen& screen) override;
   void activateIndex(int) override {}
   const char* headerTitle() const override;
+  const char* atelierEyebrowCode() const override { return "04.17"; }
 
   std::string rowValues_[ITEM_COUNT];
   freeink::ui::ListItem rowItems_[ITEM_COUNT]{};

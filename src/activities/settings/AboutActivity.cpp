@@ -10,6 +10,7 @@
 #include <cstdio>
 
 #include "MappedInputManager.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 
 namespace fui = freeink::ui;
@@ -97,7 +98,7 @@ void AboutActivity::onEnter() {
   // profile and applyXteinkDisplayController() may have promoted the display
   // controller to the panel actually found on the bus.
   rowValues_[ITEM_DEVICE] = BoardConfig::ACTIVE.name;
-  rowValues_[ITEM_FIRMWARE] = CROSSPOINT_VERSION;
+  rowValues_[ITEM_FIRMWARE] = std::string("NoveOS ") + CROSSPOINT_VERSION;
   snprintf(buf, sizeof(buf), "%s rev %u", ESP.getChipModel(), static_cast<unsigned>(ESP.getChipRevision()));
   rowValues_[ITEM_CHIP] = buf;
   snprintf(buf, sizeof(buf), "%u MB", static_cast<unsigned>(ESP.getFlashChipSize() / (1024u * 1024u)));
@@ -107,10 +108,10 @@ void AboutActivity::onEnter() {
            static_cast<unsigned>(BoardConfig::ACTIVE.displayHeight));
   rowValues_[ITEM_RESOLUTION] = buf;
   const char* touch = touchControllerName(BoardConfig::ACTIVE.touch.controller);
-  rowValues_[ITEM_TOUCH] = touch ? touch : "No";
-  rowValues_[ITEM_FRONTLIGHT] = Frontlight.present() ? "Yes" : "No";
-  rowValues_[ITEM_RTC] = halClock.isAvailable() ? "Yes" : "No";
-  rowValues_[ITEM_IMU] = halTiltSensor.isAvailable() ? "Yes" : "No";
+  rowValues_[ITEM_TOUCH] = touch ? touch : tr(STR_NO);
+  rowValues_[ITEM_FRONTLIGHT] = Frontlight.present() ? tr(STR_YES) : tr(STR_NO);
+  rowValues_[ITEM_RTC] = halClock.isAvailable() ? tr(STR_YES) : tr(STR_NO);
+  rowValues_[ITEM_IMU] = halTiltSensor.isAvailable() ? tr(STR_YES) : tr(STR_NO);
   uint8_t mac[6] = {0};
   esp_read_mac(mac, ESP_MAC_WIFI_STA);
   snprintf(buf, sizeof(buf), "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
@@ -118,10 +119,17 @@ void AboutActivity::onEnter() {
 }
 
 void AboutActivity::buildScreen(UiScreen& screen) {
-  const auto& metrics = UITheme::getInstance().getMetrics();
-  screen.setContentMarginFromScreen(fui::Insets{static_cast<int16_t>(metrics.topPadding + metrics.headerHeight), 0,
-                                                static_cast<int16_t>(metrics.buttonHintsHeight), 0});
-  screen.spacer(static_cast<int16_t>(metrics.verticalSpacing));
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    screen.setContentMarginFromScreen(fui::Insets{AtelierChrome::LIST_TOP_MIN_Y, 0, 24, 0});
+  } else
+#endif
+  {
+    const auto& metrics = UITheme::getInstance().getMetrics();
+    screen.setContentMarginFromScreen(fui::Insets{static_cast<int16_t>(metrics.topPadding + metrics.headerHeight), 0,
+                                                  static_cast<int16_t>(metrics.buttonHintsHeight), 0});
+    screen.spacer(static_cast<int16_t>(metrics.verticalSpacing));
+  }
 
   for (int i = 0; i < ITEM_COUNT; i++) {
     rowItems_[i].value = rowValues_[i].c_str();
@@ -136,5 +144,5 @@ void AboutActivity::buildScreen(UiScreen& screen) {
   props.labelText = screen.theme().smallText;
   props.labelText.maxLines = 1;
   syncListViewport(screen, props);
-  screen.list(props);
+  renderList(screen, props);
 }

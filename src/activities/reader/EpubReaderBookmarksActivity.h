@@ -35,6 +35,9 @@ class EpubReaderBookmarksActivity final : public UiListActivity {
  private:
   int listCount() const override { return static_cast<int>(bookmarks.size()); }
   void buildScreen(UiScreen& screen) override;
+  void drawOverlay() override;
+  const char* headerTitle() const override { return tr(STR_BOOKMARKS); }
+  const char* atelierEyebrowCode() const override { return "02.4"; }
   void activateIndex(int index) override;
   void onRowLongPress(int index) override;
 #if FREEINK_CAP_TOUCH

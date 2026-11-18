@@ -44,6 +44,8 @@ class UiTabListActivity : public UiListActivity {
   bool handleButtons() override = 0;
 
   // --- ring plumbing ---------------------------------------------------------
+  int atelierFullRefreshKey() const override { return activeTab(); }
+  int atelierSelectionOffset() const override { return 1; }
   freeink::ui::ListNav& activeNav() override;
   // Ring position of the active tab (0 = tab bar) for const contexts.
   int ringPos() const;

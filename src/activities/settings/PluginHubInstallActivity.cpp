@@ -160,6 +160,6 @@ void PluginHubInstallActivity::buildScreen(UiScreen& screen) {
   if (buildStatusScreen(screen, true, true)) return;
 
   if (state == State::DONE) {
-    catalogCenteredBlock(screen, {{tr(STR_PLUGIN_HUB_INSTALLED), true}, {tr(STR_PLUGIN_HUB_INSTALLED_HINT)}});
+    catalogCenteredBlock(screen, renderer, {{tr(STR_PLUGIN_HUB_INSTALLED), true}, {tr(STR_PLUGIN_HUB_INSTALLED_HINT)}});
   }
 }

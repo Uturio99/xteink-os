@@ -17,6 +17,7 @@ class TimezonePickerActivity final : public UiListActivity {
   void buildScreen(UiScreen& screen) override;
   void activateIndex(int index) override;
   const char* headerTitle() const override;
+  const char* atelierEyebrowCode() const override { return "04.22"; }
 
   std::vector<std::string> offsetLabels_;
   std::vector<freeink::ui::ListItem> rowItems_;

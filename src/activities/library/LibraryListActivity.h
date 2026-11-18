@@ -58,6 +58,9 @@ class LibraryListActivity final : public UiTabListActivity {
   // The FreeInkUI header owns both the title and search touch target.
   void drawChrome() override {}
   void drawFooter() override;
+  void drawOverlay() override;
+  int atelierBottomNavTab() const override { return 1; }
+  const char* atelierEyebrowCode() const override { return "02.1"; }
   // OptionPopup is a self-contained modal: it owns rendering (and the button
   // hints) whenever it is up.
   void render(RenderLock&& lock) override;
@@ -180,6 +183,7 @@ class LibraryListActivity final : public UiTabListActivity {
   std::vector<std::string> winTitles;
   std::vector<std::string> winAuthors;
   std::vector<std::string> winHeaders;
+  std::vector<std::string> winValues;
 
   // Pinned overlay state: per store entry its RecentAsc row (0xFFFF when the
   // book is not in the index), and the current-direction rows to skip, sorted

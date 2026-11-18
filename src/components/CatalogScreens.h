@@ -26,10 +26,12 @@ struct CatalogLine {
 
 // Vertically centered stack of short lines in the remaining content band
 // (error screens, completion notices, sign-in hints).
-void catalogCenteredBlock(UiAppHost::UiScreen& screen, std::initializer_list<CatalogLine> lines);
+void catalogCenteredBlock(UiAppHost::UiScreen& screen, const GfxRenderer& renderer,
+                          std::initializer_list<CatalogLine> lines);
 
 // Centered download screen: heading, item title, download progress and, when
 // cancelAction is a real action, a Cancel button. A progress bar is shown when
 // the total is known (total > 0), otherwise a running byte count.
-void catalogDownloadScreen(UiAppHost::UiScreen& screen, const char* status, size_t progress, size_t total,
+void catalogDownloadScreen(UiAppHost::UiScreen& screen, const GfxRenderer& renderer, const char* status,
+                           size_t progress, size_t total,
                            freeink::ui::ActionId cancelAction = freeink::ui::NO_ACTION);

@@ -44,7 +44,6 @@ class CoverGridHomeUi final : public UiAppHost {
   bool paintFramedCover(freeink::ui::DrawTarget& target, freeink::ui::Rect rect, size_t index);
   void refreshCoverPath(size_t index);
   void noteThumbHeight(int slotHeight);
-  void noteThumbHeights(int heroSlotHeight, int shelfSlotHeight);
 
   HomeCoverCache coverCache;
   GfxRenderer& renderer;

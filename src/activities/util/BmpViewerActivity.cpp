@@ -14,6 +14,7 @@
 
 #include "CrossPointSettings.h"
 #include "activities/util/ConfirmationActivity.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
 
@@ -41,6 +42,33 @@ bool overlaySleepMode() {
   const uint8_t mode = SETTINGS.sleepScreen;
   return mode == CrossPointSettings::SLEEP_SCREEN_MODE::TRANSPARENT_CUSTOM ||
          mode == CrossPointSettings::SLEEP_SCREEN_MODE::COVER_TRANSPARENT;
+}
+
+void drawViewerButtonHints(GfxRenderer& renderer, const MappedInputManager::Labels& labels) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) return;
+#endif
+  GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+}
+
+void drawErrorScreen(GfxRenderer& renderer, const MappedInputManager& mappedInput, const int pageHeight,
+                     const char* message) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    AtelierChrome::AtelierStatusScreenSpec spec;
+    spec.eyebrowCode = "06.2";
+    spec.title = tr(STR_BROWSE_FILES);
+    spec.headline = message;
+    spec.footerHint = tr(STR_BACK);
+    AtelierChrome::drawStatusScreen(renderer, spec, HalDisplay::HALF_REFRESH);
+    return;
+  }
+#endif
+  renderer.clearScreen();
+  renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2, message);
+  const auto labels = mappedInput.mapLabels(tr(STR_BACK), "", "", "");
+  GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+  renderer.displayBuffer(HalDisplay::HALF_REFRESH);
 }
 }  // namespace
 
@@ -122,7 +150,7 @@ bool BmpViewerActivity::renderImage() {
                                             hasPrevious ? "<" : "", hasNext ? ">" : "");
   const auto drawImage = [&]() {
     if (!decoder.decodeToFramebuffer(filePath, renderer, config)) return false;
-    GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+    drawViewerButtonHints(renderer, labels);
     return true;
   };
 
@@ -173,11 +201,7 @@ void BmpViewerActivity::onEnter() {
   if (FsHelpers::hasPngExtension(filePath) || FsHelpers::hasJpgExtension(filePath)) {
     renderer.clearScreen();
     if (!renderImage()) {
-      renderer.clearScreen();
-      renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2, tr(STR_FILE_OPEN_FAILED));
-      const auto labels = mappedInput.mapLabels(tr(STR_BACK), "", "", "");
-      GUI.drawButtonHints(renderer, labels.btn1, "", "", "");
-      renderer.displayBuffer(HalDisplay::HALF_REFRESH);
+      drawErrorScreen(renderer, mappedInput, pageHeight, tr(STR_FILE_OPEN_FAILED));
     }
     return;
   }
@@ -224,14 +248,12 @@ void BmpViewerActivity::onEnter() {
 
       renderer.clearScreen();
       if (!renderer.drawBitmap(bitmap, x, y, pageWidth, pageHeight, 0, 0)) {
-        renderer.clearScreen();
-        renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2, tr(STR_FILE_OPEN_FAILED));
-        renderer.displayBuffer(HalDisplay::HALF_REFRESH);
+        drawErrorScreen(renderer, mappedInput, pageHeight, tr(STR_FILE_OPEN_FAILED));
         return;
       }
 
       // Draw UI hints on the base layer
-      GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+      drawViewerButtonHints(renderer, labels);
       if (bitmap.hasGreyscale()) {
         const bool absolute = renderer.grayscaleCapabilities(HalDisplay::GrayscaleMode::Absolute).supported();
         if (absolute && !renderer.displayGrayscaleBase(HalDisplay::GrayscaleMode::Absolute)) return;
@@ -249,7 +271,7 @@ void BmpViewerActivity::onEnter() {
             planesReady = false;
             break;
           }
-          GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+          drawViewerButtonHints(renderer, labels);
           if (mode == GfxRenderer::GRAYSCALE_LSB) {
             renderer.copyGrayscaleLsbBuffers();
           } else {
@@ -264,10 +286,18 @@ void BmpViewerActivity::onEnter() {
         if (bitmap.rewindToData() != BmpReaderError::Ok ||
             !renderer.drawBitmap(bitmap, x, y, pageWidth, pageHeight, 0, 0)) {
           LOG_ERR("BMP", "Failed to rewind bitmap to restore the BW framebuffer");
-          renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2, tr(STR_FILE_OPEN_FAILED));
+#if FREEINK_DEVICE_X4PRO
+          if (AtelierChrome::isPortrait480x800(renderer)) {
+            AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, pageHeight / 2, AtelierChrome::font14Reg(),
+                                    tr(STR_FILE_OPEN_FAILED), AtelierTone::Ink, 0, AtelierChrome::CONTENT_W, 1, true);
+          } else
+#endif
+          {
+            renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2, tr(STR_FILE_OPEN_FAILED));
+          }
           planesReady = false;
         }
-        GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+        drawViewerButtonHints(renderer, labels);
         renderer.cleanupGrayscaleWithFrameBuffer();
         if (!planesReady) renderer.displayBuffer(HalDisplay::HALF_REFRESH);
       } else {
@@ -276,21 +306,13 @@ void BmpViewerActivity::onEnter() {
 
     } else {
       // Handle file parsing error
-      renderer.clearScreen();
-      renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2, tr(STR_INVALID_BMP_FILE));
-      const auto labels = mappedInput.mapLabels(tr(STR_BACK), "", "", "");
-      GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
-      renderer.displayBuffer(HalDisplay::HALF_REFRESH);
+      drawErrorScreen(renderer, mappedInput, pageHeight, tr(STR_INVALID_BMP_FILE));
     }
 
     file.close();
   } else {
     // Handle file open error
-    renderer.clearScreen();
-    renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2, tr(STR_FILE_OPEN_FAILED));
-    const auto labels = mappedInput.mapLabels(tr(STR_BACK), "", "", "");
-    GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
-    renderer.displayBuffer(HalDisplay::HALF_REFRESH);
+    drawErrorScreen(renderer, mappedInput, pageHeight, tr(STR_FILE_OPEN_FAILED));
   }
 }
 

@@ -65,6 +65,9 @@ class FileBrowserActivity final : public UiListActivity {
   // footer labels depend on path depth and picker mode.
   void drawChrome() override;
   void drawFooter() override;
+  void drawOverlay() override;
+  int atelierBottomNavTab() const override { return mode == Mode::Books ? 2 : -1; }
+  const char* atelierEyebrowCode() const override { return "03.1"; }
   void activateSelected();
 
   // Data loading

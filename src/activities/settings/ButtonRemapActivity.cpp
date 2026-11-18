@@ -5,6 +5,7 @@
 
 #include "CrossPointSettings.h"
 #include "MappedInputManager.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 
 namespace fui = freeink::ui;
@@ -99,6 +100,32 @@ void ButtonRemapActivity::loop() {
 }
 
 void ButtonRemapActivity::render(RenderLock&&) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    if (currentStep >= kRoleCount) return;
+    struct Ctx {
+      ButtonRemapActivity* self;
+    } ctx{this};
+    AtelierChrome::renderGrayscalePass(
+        renderer, HalDisplay::FAST_REFRESH,
+        [](void* raw) {
+          auto* self = static_cast<Ctx*>(raw)->self;
+          self->renderer.clearScreen();
+          AtelierChrome::drawHeader(self->renderer, tr(STR_REMAP_FRONT_BUTTONS), nullptr, true, "04.16");
+          AtelierChrome::drawSubHeader(self->renderer, tr(STR_REMAP_PROMPT));
+          self->renderUi();
+          const char* hint = !self->errorMessage.empty() ? self->errorMessage.c_str() : tr(STR_REMAP_RESET_HINT);
+          AtelierChrome::drawFooterHint(self->renderer, hint);
+          if (self->errorMessage.empty()) {
+            AtelierChrome::drawText(self->renderer, AtelierChrome::MARGIN_X, 718, AtelierChrome::font11Reg(),
+                                    tr(STR_REMAP_CANCEL_HINT), AtelierTone::Muted, 0, AtelierChrome::CONTENT_W, 1,
+                                    true);
+          }
+        },
+        &ctx);
+    return;
+  }
+#endif
   const auto labelForHardware = [&](uint8_t hardwareIndex) -> const char* {
     for (uint8_t i = 0; i < kRoleCount; i++) {
       if (tempMapping[i] == hardwareIndex) {
@@ -150,6 +177,28 @@ void ButtonRemapActivity::screenTrampoline(UiScreen& screen, void* user) {
 }
 
 void ButtonRemapActivity::buildScreen(UiScreen& screen) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    screen.setContentMarginFromScreen(fui::Insets{AtelierChrome::HEADER_RULE_Y + 33, 0, 90, 0});
+    for (uint8_t i = 0; i < kRoleCount; ++i) {
+      const uint8_t assignedButton = tempMapping[i];
+      rowItems[i].value = assignedButton == kUnassigned ? tr(STR_UNASSIGNED) : getHardwareName(assignedButton);
+    }
+    fui::ListProps props;
+    props.items = rowItems;
+    props.count = kRoleCount;
+    props.selectedIndex = currentStep;
+    props.inputMask = fui::InputNone;
+    props.scrollIndicator = false;
+    props.labelText = screen.theme().smallText;
+    props.labelText.maxLines = 2;
+    fui::ListNav nav;
+    nav.selected = currentStep;
+    nav.visibleRows = kRoleCount;
+    AtelierChrome::drawEditorialList(screen, renderer, props, nav, false);
+    return;
+  }
+#endif
   const auto& metrics = UITheme::getInstance().getMetrics();
   const Rect safe = UITheme::getInstance().getScreenSafeArea(renderer, true, false);
   const int topOffset = metrics.topPadding + metrics.headerHeight + metrics.tabBarHeight + metrics.verticalSpacing;

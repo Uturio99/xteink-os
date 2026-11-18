@@ -10,6 +10,7 @@
 #include "HapticFeedback.h"
 #include "KeyboardLayoutSet.h"
 #include "MappedInputManager.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
 
@@ -441,24 +442,36 @@ bool KeyboardEntryActivity::cursorPositionFromPoint(const int x, const int y, si
   // inset panels (EEGO A4).
   const Rect content = UITheme::getContentArea(renderer);
 
+#if FREEINK_DEVICE_X4PRO
+  const bool atelier = AtelierChrome::isPortrait480x800(renderer);
+  constexpr int atelierMarginX = AtelierChrome::MARGIN_X;
+  constexpr int atelierContentW = AtelierChrome::CONTENT_W;
+#else
+  const bool atelier = false;
+  constexpr int atelierMarginX = 0;
+  constexpr int atelierContentW = 0;
+#endif
   const int lineHeight = renderer.getLineHeight(UI_12_FONT_ID);
-  const int inputStartY = metrics.topPadding + metrics.headerHeight + metrics.verticalSpacing +
-                          metrics.verticalSpacing * 4 + metrics.keyboardVerticalOffset;
+  const int inputStartY = atelier
+                              ? 126
+                              : metrics.topPadding + metrics.headerHeight + metrics.verticalSpacing +
+                                    metrics.verticalSpacing * 4 + metrics.keyboardVerticalOffset;
 
   int availableWidth = content.width;
   if (gpio.deviceIsX3()) {
     availableWidth -= 2 * metrics.sideButtonHintsWidth;
   }
-  const int effectiveMargin = (content.width - availableWidth * metrics.keyboardTextFieldWidthPercent / 100) / 2;
-  const int textLeft = content.x + effectiveMargin;
-  const int toggleGap = inputType == InputType::Password ? 4 : 0;
+  const int effectiveMargin = atelier ? atelierMarginX
+                                      : (content.width - availableWidth * metrics.keyboardTextFieldWidthPercent / 100) / 2;
+  const int textLeft = atelier ? atelierMarginX : content.x + effectiveMargin;
+  const int toggleGap = inputType == InputType::Password ? (atelier ? 8 : 4) : 0;
   const int toggleReserve = inputType == InputType::Password ? std::max(renderer.getTextWidth(UI_12_FONT_ID, "[abc]"),
                                                                         renderer.getTextWidth(UI_12_FONT_ID, "[***]")) +
                                                                    toggleGap
                                                              : 0;
-  const int textAreaWidth = content.width - 2 * effectiveMargin - toggleReserve;
+  const int textAreaWidth = (atelier ? atelierContentW : content.width - 2 * effectiveMargin) - toggleReserve;
   const int maxLineWidth = textAreaWidth;
-  const bool centerText = metrics.keyboardCenteredText;
+  const bool centerText = atelier ? false : metrics.keyboardCenteredText;
   std::string displayText = displayTextForCurrentState();
 
   int lineStartIdx = 0;
@@ -527,6 +540,18 @@ bool KeyboardEntryActivity::cursorPositionFromPoint(const int x, const int y, si
 }
 
 fui::Rect KeyboardEntryActivity::keyboardRect() const {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    const int pageHeight = renderer.getScreenHeight();
+    const int rows = currentLayout().rowCount;
+    const int keyH = mappedInput.hasTouch() ? 52 : BUTTON_KEY_HEIGHT;
+    const int gap = 6;
+    const int height = rows * keyH + (rows > 1 ? (rows - 1) * gap : 0);
+    const int y = pageHeight - 20 - height;
+    return fui::Rect{AtelierChrome::MARGIN_X, static_cast<int16_t>(y), AtelierChrome::CONTENT_W,
+                     static_cast<int16_t>(pageHeight - y)};
+  }
+#endif
   const auto& metrics = UITheme::getInstance().getMetrics();
   const Rect content = UITheme::getContentArea(renderer);  // clear the bezel on rounded panels
   const int pageHeight = renderer.getScreenHeight();
@@ -737,55 +762,59 @@ void KeyboardEntryActivity::loop() {
   }
 }
 
-void KeyboardEntryActivity::render(RenderLock&&) {
+void KeyboardEntryActivity::renderFrame(const bool atelierPortrait) {
   renderer.clearScreen();
 
   const auto pageWidth = renderer.getScreenWidth();
-  const Rect content = UITheme::getContentArea(renderer);  // bezel-safe content bounds
+  const Rect content = UITheme::getContentArea(renderer);
   const auto& metrics = UITheme::getInstance().getMetrics();
 
-  GUI.drawHeader(renderer, Rect{0, metrics.topPadding, pageWidth, metrics.headerHeight}, title.c_str());
+  int inputStartY = metrics.topPadding + metrics.headerHeight + metrics.verticalSpacing +
+                    metrics.verticalSpacing * 4 + metrics.keyboardVerticalOffset;
+  int availableWidth = content.width;
+  if (gpio.deviceIsX3()) availableWidth -= 2 * metrics.sideButtonHintsWidth;
+  const int effectiveMargin = (content.width - availableWidth * metrics.keyboardTextFieldWidthPercent / 100) / 2;
+  int textLeft = content.x + effectiveMargin;
+  const bool isPassword = (inputType == InputType::Password);
+  int toggleGap = isPassword ? 4 : 0;
+  int fieldRight = content.x + content.width - effectiveMargin;
+  bool centerText = metrics.keyboardCenteredText;
+
+#if FREEINK_DEVICE_X4PRO
+  if (atelierPortrait) {
+    AtelierChrome::drawHeader(renderer, title.c_str(), nullptr, true, "00.3");
+    inputStartY = 126;
+    textLeft = AtelierChrome::MARGIN_X;
+    toggleGap = 8;
+    fieldRight = AtelierChrome::MARGIN_X + AtelierChrome::CONTENT_W;
+    centerText = false;
+  } else
+#endif
+  {
+    (void)atelierPortrait;
+    GUI.drawHeader(renderer, Rect{0, metrics.topPadding, pageWidth, metrics.headerHeight}, title.c_str());
+  }
 
   const int lineHeight = renderer.getLineHeight(UI_12_FONT_ID);
-  const int inputStartY = metrics.topPadding + metrics.headerHeight + metrics.verticalSpacing +
-                          metrics.verticalSpacing * 4 + metrics.keyboardVerticalOffset;
   int inputHeight = 0;
-
   std::string displayText = displayTextForCurrentState();
-
-  const bool isPassword = (inputType == InputType::Password);
-  // Field text/cursor share the bezel-safe content box the underline and
-  // keyboard use (matches cursorPositionFromPoint); content.x offsets them past
-  // the bezel on inset panels (EEGO A4).
-  int availableWidth = content.width;
-  if (gpio.deviceIsX3()) {
-    availableWidth -= 2 * metrics.sideButtonHintsWidth;
-  }
-  const int effectiveMargin = (content.width - availableWidth * metrics.keyboardTextFieldWidthPercent / 100) / 2;
-  const int textLeft = content.x + effectiveMargin;
-  const int toggleGap = isPassword ? 4 : 0;
   const int toggleReserve = isPassword ? std::max(renderer.getTextWidth(UI_12_FONT_ID, "[abc]"),
                                                   renderer.getTextWidth(UI_12_FONT_ID, "[***]")) +
                                              toggleGap
                                        : 0;
-  const int textAreaWidth = content.width - 2 * effectiveMargin - toggleReserve;
-  const int maxLineWidth = textAreaWidth;
-  const bool centerText = metrics.keyboardCenteredText;
+  const int maxLineWidth = (fieldRight - textLeft) - toggleReserve;
 
-  // The cursor spans a whole code point: a lone byte of it renders as a replacement glyph.
-  // Masking is per byte, so displayText keeps text's length and the same span applies to both.
   const size_t cursorCharBytes = (cursorPos < text.length()) ? utf8Next(text, cursorPos) - cursorPos : 0;
-  char cursorChar[8] = {};         // the character under the cursor
-  char displayCursorChar[8] = {};  // same span of displayText, masked for passwords
+  char cursorChar[8] = {};
+  char displayCursorChar[8] = {};
   if (cursorCharBytes > 0) {
     const size_t n = std::min(cursorCharBytes, sizeof(cursorChar) - 1);
     memcpy(cursorChar, text.data() + cursorPos, n);
     memcpy(displayCursorChar, displayText.data() + cursorPos, n);
   }
-
   int cursorCharWidth = 6;
   if (cursorCharBytes > 0) {
-    int w = renderer.getTextWidth(UI_12_FONT_ID, cursorChar);
+    const int w = renderer.getTextWidth(UI_12_FONT_ID, cursorChar);
     if (w > cursorCharWidth) cursorCharWidth = w;
   }
 
@@ -794,191 +823,178 @@ void KeyboardEntryActivity::render(RenderLock&&) {
   int cursorPixelX = textLeft;
   int cursorLineY = inputStartY;
   bool cursorDrawn = false;
-
   while (true) {
     const int lineEndIdx = lineBreakEnd(displayText, lineStartIdx, maxLineWidth);
     const std::string lineText = displayText.substr(lineStartIdx, lineEndIdx - lineStartIdx);
     textWidth = renderer.getTextAdvanceX(UI_12_FONT_ID, lineText.c_str(), EpdFontFamily::REGULAR);
-    {
-      const bool isRtl = rangeIsRtl(displayText, lineStartIdx, lineEndIdx);
-      const int lineStartX = centerText ? textLeft + (maxLineWidth - textWidth) / 2 : textLeft;
-      const bool isLastLine = (lineEndIdx == static_cast<int>(displayText.length()));
-      bool isCursorLine = false;
-      if (!cursorDrawn && cursorPos >= lineStartIdx &&
-          (isLastLine ? cursorPos <= lineEndIdx : cursorPos < lineEndIdx)) {
-        std::string beforeCursor;
-        if (isPassword && !passwordVisible && cursorMode) {
-          beforeCursor = std::string(cursorPos - lineStartIdx, '*');
-        } else {
-          beforeCursor = displayText.substr(lineStartIdx, cursorPos - lineStartIdx);
-        }
-        int beforeWidth = renderer.getTextAdvanceX(UI_12_FONT_ID, beforeCursor.c_str(), EpdFontFamily::REGULAR);
-        int throughCursorWidth = beforeWidth;
-        int kernOffset = 0;
-        if (cursorCharBytes > 0) {
-          std::string beforeAndCursor = beforeCursor + displayCursorChar;
-          throughCursorWidth = renderer.getTextAdvanceX(UI_12_FONT_ID, beforeAndCursor.c_str(), EpdFontFamily::REGULAR);
-          int charAdvance = renderer.getTextAdvanceX(UI_12_FONT_ID, displayCursorChar, EpdFontFamily::REGULAR);
-          kernOffset = throughCursorWidth - beforeWidth - charAdvance;
-        }
-        if (isRtl) {
-          const int logicalWidth = cursorMode && cursorCharBytes > 0 ? throughCursorWidth : beforeWidth;
-          cursorPixelX = lineStartX + textWidth - logicalWidth;
-        } else {
-          cursorPixelX = lineStartX + beforeWidth + kernOffset;
-        }
-        cursorLineY = inputStartY + inputHeight;
-        cursorDrawn = true;
-        isCursorLine = true;
-      }
-
-      if (isCursorLine && cursorMode && isPassword && !passwordVisible && !togglePos) {
-        // Draw text in 3 parts to avoid block cursor overflowing onto next char.
-        // displayText uses '*' for all chars; actual char may be wider than '*'.
-        // Part 1: chars before cursor position
-        const std::string part1 = displayText.substr(lineStartIdx, cursorPos - lineStartIdx);
-        renderer.drawText(UI_12_FONT_ID, lineStartX, inputStartY + inputHeight, part1.c_str());
-        // Part 2: skip cursor slot (block + actual char drawn later)
-        // Part 3: chars after cursor position (skip char under cursor), starting at cursorPixelX + cursorCharWidth
-        const int afterStart = static_cast<int>(cursorPos + cursorCharBytes);
-        const int afterEnd = lineEndIdx;
-        if (afterStart < afterEnd) {
-          const std::string part3 = displayText.substr(afterStart, afterEnd - afterStart);
-          renderer.drawText(UI_12_FONT_ID, cursorPixelX + cursorCharWidth, inputStartY + inputHeight, part3.c_str());
-        }
+    const bool isRtl = rangeIsRtl(displayText, lineStartIdx, lineEndIdx);
+    const int lineStartX = centerText ? textLeft + (maxLineWidth - textWidth) / 2 : textLeft;
+    const bool isLastLine = (lineEndIdx == static_cast<int>(displayText.length()));
+    bool isCursorLine = false;
+    if (!cursorDrawn && cursorPos >= static_cast<size_t>(lineStartIdx) &&
+        (isLastLine ? cursorPos <= static_cast<size_t>(lineEndIdx)
+                    : cursorPos < static_cast<size_t>(lineEndIdx))) {
+      std::string beforeCursor;
+      if (isPassword && !passwordVisible && cursorMode) {
+        beforeCursor = std::string(cursorPos - lineStartIdx, '*');
       } else {
-        renderer.drawText(UI_12_FONT_ID, lineStartX, inputStartY + inputHeight, lineText.c_str());
+        beforeCursor = displayText.substr(lineStartIdx, cursorPos - lineStartIdx);
       }
-      if (lineEndIdx == static_cast<int>(displayText.length())) {
-        break;
+      const int beforeWidth = renderer.getTextAdvanceX(UI_12_FONT_ID, beforeCursor.c_str(), EpdFontFamily::REGULAR);
+      int throughCursorWidth = beforeWidth;
+      int kernOffset = 0;
+      if (cursorCharBytes > 0) {
+        const std::string beforeAndCursor = beforeCursor + displayCursorChar;
+        throughCursorWidth =
+            renderer.getTextAdvanceX(UI_12_FONT_ID, beforeAndCursor.c_str(), EpdFontFamily::REGULAR);
+        const int charAdvance = renderer.getTextAdvanceX(UI_12_FONT_ID, displayCursorChar, EpdFontFamily::REGULAR);
+        kernOffset = throughCursorWidth - beforeWidth - charAdvance;
       }
-
-      inputHeight += lineHeight;
-      lineStartIdx = lineEndIdx;
+      if (isRtl) {
+        const int logicalWidth = cursorMode && cursorCharBytes > 0 ? throughCursorWidth : beforeWidth;
+        cursorPixelX = lineStartX + textWidth - logicalWidth;
+      } else {
+        cursorPixelX = lineStartX + beforeWidth + kernOffset;
+      }
+      cursorLineY = inputStartY + inputHeight;
+      cursorDrawn = true;
+      isCursorLine = true;
     }
+
+    if (!atelierPortrait && isCursorLine && cursorMode && isPassword && !passwordVisible && !togglePos) {
+      const std::string part1 = displayText.substr(lineStartIdx, cursorPos - lineStartIdx);
+      renderer.drawText(UI_12_FONT_ID, lineStartX, inputStartY + inputHeight, part1.c_str());
+      const int afterStart = static_cast<int>(cursorPos + cursorCharBytes);
+      if (afterStart < lineEndIdx) {
+        const std::string part3 = displayText.substr(afterStart, lineEndIdx - afterStart);
+        renderer.drawText(UI_12_FONT_ID, cursorPixelX + cursorCharWidth, inputStartY + inputHeight, part3.c_str());
+      }
+    } else {
+      renderer.drawText(UI_12_FONT_ID, lineStartX, inputStartY + inputHeight, lineText.c_str());
+    }
+    if (lineEndIdx == static_cast<int>(displayText.length())) break;
+    inputHeight += lineHeight;
+    lineStartIdx = lineEndIdx;
   }
 
-  const int fieldWidth = (inputHeight > 0) ? maxLineWidth : textWidth;
-  const int lineMargin = effectiveMargin;
-  GUI.drawTextField(renderer, Rect{content.x, inputStartY, content.width, inputHeight}, fieldWidth, cursorMode,
-                    lineMargin, content.width - 2 * lineMargin);
+  const int underlineY = inputStartY + inputHeight + lineHeight + 12;
+  const auto fillBox = [&](const int bx, const int by, const int bw, const int bh) {
+#if FREEINK_DEVICE_X4PRO
+    if (atelierPortrait) {
+      AtelierChrome::fillRect(renderer, bx, by, bw, bh, 3);
+      return;
+    }
+#endif
+    renderer.fillRect(bx, by, bw, bh, true);
+  };
+
+#if FREEINK_DEVICE_X4PRO
+  if (atelierPortrait) {
+    AtelierChrome::fillRect(renderer, AtelierChrome::MARGIN_X, underlineY, AtelierChrome::CONTENT_W,
+                            cursorMode ? 2 : 1, 3);
+  } else
+#endif
+  {
+    const int fieldWidth = (inputHeight > 0) ? maxLineWidth : textWidth;
+    GUI.drawTextField(renderer, Rect{content.x, inputStartY, content.width, inputHeight}, fieldWidth, cursorMode,
+                      effectiveMargin, content.width - 2 * effectiveMargin);
+  }
 
   if (cursorMode && !togglePos && cursorPos <= displayText.length()) {
-    static constexpr int blockPadding = 1;
-    renderer.fillRect(cursorPixelX - blockPadding, cursorLineY, cursorCharWidth + blockPadding * 2, lineHeight, true);
-    if (cursorCharBytes > 0) {
-      renderer.drawText(UI_12_FONT_ID, cursorPixelX, cursorLineY, cursorChar, false);
-    }
+    fillBox(cursorPixelX - 1, cursorLineY, cursorCharWidth + 2, lineHeight);
+    if (cursorCharBytes > 0) renderer.drawText(UI_12_FONT_ID, cursorPixelX, cursorLineY, cursorChar, false);
   } else if (cursorPos <= displayText.length()) {
-    static constexpr int serifW = 3;
-    const int cX = cursorPixelX;
-    const int cY = cursorLineY;
-    const int cBottom = cursorLineY + lineHeight - 1;
-    renderer.fillRect(cX, cY, 2, lineHeight, true);
-    renderer.drawLine(cX - serifW, cY, cX - 1, cY, 2, true);
-    renderer.drawLine(cX + 1, cY, cX + serifW, cY, 2, true);
-    renderer.drawLine(cX - serifW, cBottom, cX - 1, cBottom, 2, true);
-    renderer.drawLine(cX + 1, cBottom, cX + serifW, cBottom, 2, true);
+    fillBox(cursorPixelX, cursorLineY, 2, lineHeight);
+    if (!atelierPortrait) {
+      static constexpr int serifW = 3;
+      const int cBottom = cursorLineY + lineHeight - 1;
+      renderer.drawLine(cursorPixelX - serifW, cursorLineY, cursorPixelX - 1, cursorLineY, 2, true);
+      renderer.drawLine(cursorPixelX + 1, cursorLineY, cursorPixelX + serifW, cursorLineY, 2, true);
+      renderer.drawLine(cursorPixelX - serifW, cBottom, cursorPixelX - 1, cBottom, 2, true);
+      renderer.drawLine(cursorPixelX + 1, cBottom, cursorPixelX + serifW, cBottom, 2, true);
+    }
   }
 
   if (isPassword) {
     const char* toggleLabel = passwordVisible ? "[***]" : "[abc]";
     const int toggleWidth = renderer.getTextWidth(UI_12_FONT_ID, toggleLabel);
-    const int toggleX = content.x + content.width - effectiveMargin - toggleWidth;
+    const int toggleX = fieldRight - toggleWidth;
     const int toggleY = inputStartY + inputHeight;
-    const bool toggleSelected = cursorMode && togglePos;
-
-    if (toggleSelected) {
-      renderer.fillRect(toggleX - 2, toggleY, toggleWidth + 5, lineHeight + 3, true);
+    if (cursorMode && togglePos) {
+      fillBox(toggleX - 2, toggleY, toggleWidth + (atelierPortrait ? 4 : 5), lineHeight + (atelierPortrait ? 2 : 3));
       renderer.drawText(UI_12_FONT_ID, toggleX, toggleY, toggleLabel, false);
     } else {
       renderer.drawText(UI_12_FONT_ID, toggleX, toggleY, toggleLabel, true);
     }
   }
 
-  if (hintVisible && cursorMode && !text.empty()) {
-    const int hintLh = renderer.getLineHeight(SMALL_FONT_ID);
-    const int underlineY = inputStartY + inputHeight + lineHeight + metrics.verticalSpacing;
-    const int hintY = underlineY + 4;
-    int hintLineY = hintY;
-    if (inputType == InputType::Password && togglePos) {
-      renderer.drawCenteredText(
-          SMALL_FONT_ID, hintLineY,
-          passwordVisible ? tr(STR_KB_HINT_TOGGLE_HIDE_PASSWORD) : tr(STR_KB_HINT_TOGGLE_SHOW_PASSWORD), true);
-      hintLineY += hintLh;
-      renderer.drawCenteredText(SMALL_FONT_ID, hintLineY, tr(STR_KB_HINT_RETURN_CURSOR), true);
-    } else {
-      renderer.drawCenteredText(SMALL_FONT_ID, hintLineY, tr(STR_KB_HINT_MOVE_CURSOR), true);
-      hintLineY += hintLh;
-      if (inputType == InputType::Password) {
-        const char* passTip = passwordVisible ? tr(STR_KB_HINT_HIDE_PASSWORD) : tr(STR_KB_HINT_SHOW_PASSWORD);
-        renderer.drawCenteredText(SMALL_FONT_ID, hintLineY, passTip, true);
-      }
-    }
-  }
-
   const fui::Rect kbRect = keyboardRect();
-  const int keysHeight = keyboardKeysHeight(metrics, currentLayout().rowCount, mappedInput.hasTouch());
-  const fui::Rect keysRect{kbRect.x, static_cast<int16_t>(kbRect.y + (kbRect.height - keysHeight) / 2), kbRect.width,
-                           static_cast<int16_t>(keysHeight)};
-
-  const int tipsLh = renderer.getLineHeight(SMALL_FONT_ID);
-  const int underlineBottom = inputStartY + inputHeight + lineHeight + metrics.verticalSpacing + 4;
-  auto drawTip = [&](const char* tip, int y) { renderer.drawCenteredText(SMALL_FONT_ID, y, tip, true); };
-
-  // Reserve the Clear Text row even when the entry is empty.
-  const int tipCount = cursorMode ? 1 : urlPanel ? 3 : symbols ? 2 : 3 + (inputType == InputType::Url ? 1 : 0);
-  const int tipsHeight = (tipCount + 1) * tipsLh;
-  // Reserve cursor instructions even for an empty field; passwords need a second row.
-  const int tipsTop = underlineBottom + (cursorMode ? (isPassword ? 2 : 1) * tipsLh : 0);
-
-  if (kbRect.y - tipsTop >= tipsHeight) {
-    int y = tipsTop + (kbRect.y - tipsTop - tipsHeight) / 2;
-    drawTip(tr(STR_KB_TIPS), y);
-    y += tipsLh;
-    if (!cursorMode) {
-      drawTip(tr(STR_KB_HINT_EDIT_ENTRY), y);
-      y += tipsLh;
-    }
+  auto emitAllTips = [&](auto&& emitTip) {
+    emitTip(tr(STR_KB_TIPS));
+    if (!cursorMode) emitTip(tr(STR_KB_HINT_EDIT_ENTRY));
     if (cursorMode) {
-      drawTip(tr(STR_KB_HINT_RETURN_KEYBOARD), y);
+      emitTip(tr(STR_KB_HINT_RETURN_KEYBOARD));
     } else if (urlPanel) {
-      drawTip(tr(STR_KB_HINT_EXIT_URL_MODE), y);
-      y += tipsLh;
-      if (!text.empty()) {
-        drawTip(tr(STR_KB_HINT_CLEAR_TEXT), y);
-      }
+      emitTip(tr(STR_KB_HINT_EXIT_URL_MODE));
+      if (!text.empty()) emitTip(tr(STR_KB_HINT_CLEAR_TEXT));
     } else if (symbols) {
-      if (!text.empty()) {
-        drawTip(tr(STR_KB_HINT_CLEAR_TEXT), y);
-      }
+      if (!text.empty()) emitTip(tr(STR_KB_HINT_CLEAR_TEXT));
     } else {
-      const char* altCharTip;
-      if (inputType == InputType::Url) {
-        altCharTip = tr(STR_KB_HINT_SECONDARY_CHAR);
-      } else if (shifted) {
-        altCharTip = tr(STR_KB_HINT_LOWER_SECONDARY);
+      emitTip(inputType == InputType::Url
+                  ? tr(STR_KB_HINT_SECONDARY_CHAR)
+                  : (shifted ? tr(STR_KB_HINT_LOWER_SECONDARY) : tr(STR_KB_HINT_UPPER_SECONDARY)));
+      if (inputType == InputType::Url) emitTip(tr(STR_KB_HINT_URL_SNIPPETS));
+      if (!text.empty()) emitTip(tr(STR_KB_HINT_CLEAR_TEXT));
+    }
+  };
+
+#if FREEINK_DEVICE_X4PRO
+  if (atelierPortrait) {
+    const int tipsLh = AtelierChrome::fontLineHeight(AtelierChrome::font11Reg()) + 4;
+    int tipY = underlineY + 26;
+    emitAllTips([&](const char* tip) {
+      if (tipY + tipsLh <= kbRect.y - 12) {
+        AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, tipY, AtelierChrome::font11Reg(), tip,
+                                AtelierTone::Muted, 0, AtelierChrome::CONTENT_W, 0, true);
+        tipY += tipsLh;
+      }
+    });
+  } else
+#endif
+  {
+    if (hintVisible && cursorMode && !text.empty()) {
+      const int hintLh = renderer.getLineHeight(SMALL_FONT_ID);
+      int hintLineY = inputStartY + inputHeight + lineHeight + metrics.verticalSpacing + 4;
+      if (inputType == InputType::Password && togglePos) {
+        renderer.drawCenteredText(
+            SMALL_FONT_ID, hintLineY,
+            passwordVisible ? tr(STR_KB_HINT_TOGGLE_HIDE_PASSWORD) : tr(STR_KB_HINT_TOGGLE_SHOW_PASSWORD), true);
+        hintLineY += hintLh;
+        renderer.drawCenteredText(SMALL_FONT_ID, hintLineY, tr(STR_KB_HINT_RETURN_CURSOR), true);
       } else {
-        altCharTip = tr(STR_KB_HINT_UPPER_SECONDARY);
+        renderer.drawCenteredText(SMALL_FONT_ID, hintLineY, tr(STR_KB_HINT_MOVE_CURSOR), true);
+        hintLineY += hintLh;
+        if (inputType == InputType::Password) {
+          renderer.drawCenteredText(
+              SMALL_FONT_ID, hintLineY,
+              passwordVisible ? tr(STR_KB_HINT_HIDE_PASSWORD) : tr(STR_KB_HINT_SHOW_PASSWORD), true);
+        }
       }
-      drawTip(altCharTip, y);
-      y += tipsLh;
-      if (inputType == InputType::Url) {
-        drawTip(tr(STR_KB_HINT_URL_SNIPPETS), y);
+    }
+    const int tipsLh = renderer.getLineHeight(SMALL_FONT_ID);
+    const int underlineBottom = inputStartY + inputHeight + lineHeight + metrics.verticalSpacing + 4;
+    const int tipCount = cursorMode ? 1 : urlPanel ? 3 : symbols ? 2 : 3 + (inputType == InputType::Url ? 1 : 0);
+    const int tipsHeight = (tipCount + 1) * tipsLh;
+    const int tipsTop = underlineBottom + (cursorMode ? (isPassword ? 2 : 1) * tipsLh : 0);
+    if (kbRect.y - tipsTop >= tipsHeight) {
+      int y = tipsTop + (kbRect.y - tipsTop - tipsHeight) / 2;
+      emitAllTips([&](const char* tip) {
+        renderer.drawCenteredText(SMALL_FONT_ID, y, tip, true);
         y += tipsLh;
-      }
-      if (!text.empty()) {
-        drawTip(tr(STR_KB_HINT_CLEAR_TEXT), y);
-      }
+      });
     }
   }
 
-  // The FreeInkUI keyboard draws the keys and registers their hit rects into
-  // `interactions`; loop() (the main task) routes touch snapshots against
-  // that table via TouchHoldRouter, which reads the published generation
-  // (routePublished()/publishedData()) — beginPublishCycle() here makes this
-  // render build into the OTHER generation, so loop() never sees a
-  // half-rebuilt table no matter when it runs relative to this.
   interactions.beginPublishCycle();
   fui::GfxRendererTarget target(renderer);
   target.setFont(fui::GfxRendererTarget::FONT_SMALL, SMALL_FONT_ID);
@@ -990,34 +1006,76 @@ void KeyboardEntryActivity::render(RenderLock&&) {
   fui::KeyboardProps props;
   const fui::KeyboardLayout& layout = currentLayout();
   props.layout = &layout;
-  props.keyAction = ACTION_KEY;  // one action id; loop() dispatches on key value
+  props.keyAction = ACTION_KEY;
   props.okLabel = tr(STR_OK_BUTTON);
-  // Match the label to the layer the mode key leads back from: the symbols
-  // layer and the URL snippet panel both label it "abc" in the static tables.
   props.modeLabel =
       (symbols || (inputType == InputType::Url && urlPanel)) ? tr(STR_KEY_MODE_ABC) : tr(STR_KEY_MODE_SYMBOLS);
   props.inputMask = static_cast<uint16_t>(fui::InputTouch | fui::InputLongPress);
   props.selectedIndex = (cursorMode || mappedInput.hasTouch()) ? -1 : static_cast<int16_t>(selectedLogicalIndex());
-  // The 12-column Arabic rows need the smaller font for wide isolated letters.
   props.labelText.font = layoutId == fui::KeyboardLayoutId::ArabicAr && !symbols ? fui::GfxRendererTarget::FONT_SMALL
                                                                                  : fui::GfxRendererTarget::FONT_BODY;
   props.altText.font = fui::GfxRendererTarget::FONT_SMALL;
-  props.gap = props.rowGap = static_cast<int16_t>(keyboardGap(metrics));
-  if (urlPanel) props.uniformKeyWidth = false;  // Shortcut rows stretch independently.
-  if (!mappedInput.hasTouch()) props.background = fui::Paint::none();
-  frame.target().fill(kbRect, props.background);
-  const int bottomEdge =
-      mappedInput.hasTouch() ? renderer.getScreenHeight() : renderer.getScreenHeight() - metrics.buttonHintsHeight;
-  props.bottomHitOverflow = static_cast<int16_t>(std::max(0, bottomEdge - keysRect.bottom()));
+  if (urlPanel) props.uniformKeyWidth = false;
+
+  fui::Rect keysRect{};
+  if (atelierPortrait) {
+    props.padding = fui::Insets{0, 0, 0, 0};
+    props.gap = 4;
+    props.rowGap = 6;
+    props.keyRadius = 6;
+    props.background = fui::Paint::none();
+    props.keyStyles.explicitlySet = true;
+    props.keyStyles.normal.background = fui::Paint::solid(fui::Color::White);
+    props.keyStyles.normal.foreground = fui::Paint::solid(fui::Color::Black);
+    props.keyStyles.normal.border = fui::Paint::solid(fui::Color::Black);
+    props.keyStyles.normal.borderWidth = 1;
+    props.keyStyles.normal.radius = 6;
+    props.keyStyles.selected = props.keyStyles.normal;
+    props.keyStyles.selected.background = fui::Paint::solid(fui::Color::Black);
+    props.keyStyles.selected.foreground = fui::Paint::solid(fui::Color::White);
+    props.keyStyles.focused = props.keyStyles.selected;
+    props.keyStyles.active = props.keyStyles.selected;
+    props.keyStyles.disabled = props.keyStyles.normal;
+    const int rows = layout.rowCount;
+    const int keyH = mappedInput.hasTouch() ? 52 : BUTTON_KEY_HEIGHT;
+    const int keysH = rows * keyH + (rows > 1 ? (rows - 1) * 6 : 0);
+    keysRect = fui::Rect{kbRect.x, kbRect.y, kbRect.width, static_cast<int16_t>(keysH)};
+    props.bottomHitOverflow = static_cast<int16_t>(std::max(0, renderer.getScreenHeight() - keysRect.bottom()));
+  } else {
+    const int keysHeight = keyboardKeysHeight(metrics, layout.rowCount, mappedInput.hasTouch());
+    keysRect = fui::Rect{kbRect.x, static_cast<int16_t>(kbRect.y + (kbRect.height - keysHeight) / 2), kbRect.width,
+                         static_cast<int16_t>(keysHeight)};
+    props.gap = props.rowGap = static_cast<int16_t>(keyboardGap(metrics));
+    if (!mappedInput.hasTouch()) props.background = fui::Paint::none();
+    frame.target().fill(kbRect, props.background);
+    const int bottomEdge =
+        mappedInput.hasTouch() ? renderer.getScreenHeight() : renderer.getScreenHeight() - metrics.buttonHintsHeight;
+    props.bottomHitOverflow = static_cast<int16_t>(std::max(0, bottomEdge - keysRect.bottom()));
+  }
+
   fui::keyboard(frame, keysRect, props);
-  interactions.publish();
-  interactionsReady = true;
+  if (!atelierPortrait || renderer.getRenderMode() == GfxRenderer::BW) {
+    interactions.publish();
+    interactionsReady = true;
+  }
 
-  const auto labels = mappedInput.mapLabels(tr(STR_BACK), tr(STR_SELECT), tr(STR_DIR_LEFT), tr(STR_DIR_RIGHT));
-  GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+  if (!atelierPortrait) {
+    const auto labels = mappedInput.mapLabels(tr(STR_BACK), tr(STR_SELECT), tr(STR_DIR_LEFT), tr(STR_DIR_RIGHT));
+    GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
+    GUI.drawSideButtonHints(renderer, ">", "<");
+  }
+}
 
-  GUI.drawSideButtonHints(renderer, ">", "<");
-
+void KeyboardEntryActivity::render(RenderLock&&) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    AtelierChrome::renderGrayscalePass(
+        renderer, HalDisplay::FAST_REFRESH,
+        [](void* raw) { static_cast<KeyboardEntryActivity*>(raw)->renderFrame(true); }, this);
+    return;
+  }
+#endif
+  renderFrame(false);
   renderer.displayBuffer();
 }
 

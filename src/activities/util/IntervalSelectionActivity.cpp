@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <utility>
 
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "components/UiSliderDialog.h"
 #include "fontIds.h"
@@ -185,6 +186,7 @@ void IntervalSelectionActivity::buildIntervalScreen(UiScreen& screen) {
   formatValue(maxText, sizeof(maxText), maxValue);
 
   UiSliderDialogSpec spec;
+  spec.renderer = &renderer;
   spec.title = I18N.get(titleId);
   spec.readout = readout;
   spec.value = value - minValue;
@@ -201,6 +203,16 @@ void IntervalSelectionActivity::buildIntervalScreen(UiScreen& screen) {
 }
 
 void IntervalSelectionActivity::render(RenderLock&&) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    const auto prevHook = renderer.uiTextOverrideHook();
+    renderer.setUiTextOverrideHook(AtelierChrome::textHook(false));
+    renderUi();
+    renderer.setUiTextOverrideHook(prevHook);
+    renderer.displayBuffer();
+    return;
+  }
+#endif
   // No clearScreen: the dialog is a popup — it dims the frame it opened over
   // and draws the card on top. Everything renders through the app so the
   // interactive elements register touch hit rects.

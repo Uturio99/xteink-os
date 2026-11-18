@@ -17,6 +17,7 @@
 #include "RecentBooksStore.h"
 #include "activities/util/ConfirmationActivity.h"
 #include "activities/util/KeyboardEntryActivity.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "components/UiAppHelpers.h"
 #include "fontIds.h"
@@ -156,6 +157,22 @@ void FileBrowserActivity::provideRow(void* ctx, const uint16_t index, fui::ListI
   formatFileName(entry, self->rowNameBuf, sizeof(self->rowNameBuf));
   item.label = self->rowNameBuf;
   formatFileExtension(entry, self->rowExtBuf, sizeof(self->rowExtBuf));
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(self->renderer)) {
+    if (entry.back() == '/') {
+      if (self->rowNameBuf[0] >= 'a' && self->rowNameBuf[0] <= 'z') {
+        self->rowNameBuf[0] = static_cast<char>(self->rowNameBuf[0] - 'a' + 'A');
+      }
+      char upperFolder[16]{};
+      AtelierChrome::formatUpperVi(tr(STR_ATELIER_FOLDER), upperFolder, sizeof(upperFolder));
+      snprintf(self->rowExtBuf, sizeof(self->rowExtBuf), "%s", upperFolder);
+    } else if (self->rowExtBuf[0] == '.') {
+      char upperExt[16]{};
+      AtelierChrome::formatUpperVi(self->rowExtBuf + 1, upperExt, sizeof(upperExt));
+      snprintf(self->rowExtBuf, sizeof(self->rowExtBuf), "%s", upperExt);
+    }
+  }
+#endif
   if (self->rowExtBuf[0] != '\0') {
     item.value = self->rowExtBuf;
   }
@@ -587,7 +604,17 @@ bool FileBrowserActivity::handleButtons() {
   return false;
 }
 
+void FileBrowserActivity::drawOverlay() {
+  if (optionPopup.isActive()) optionPopup.render(renderer);
+}
+
 void FileBrowserActivity::render(RenderLock&& lock) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    UiListActivity::render(std::move(lock));
+    return;
+  }
+#endif
   if (optionPopup.processRender(renderer, mappedInput)) return;
   UiListActivity::render(std::move(lock));
 }
@@ -601,6 +628,37 @@ std::string getFileExtension(const std::string& filename) {
 }
 
 void FileBrowserActivity::buildScreen(UiScreen& screen) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    screen.setContentMarginFromScreen(
+        fui::Insets{90, 0, static_cast<int16_t>(mode == Mode::Books ? 66 : 16), 0});
+    if (files.empty()) {
+      const char* msg = mode == Mode::PickFirmware ? tr(STR_NO_BIN_FILES) : tr(STR_NO_FILES_FOUND);
+      const fui::Rect b = screen.body();
+      AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, b.y + b.height / 2 - 12, AtelierChrome::font14Reg(),
+                              msg, AtelierTone::Muted, 0, AtelierChrome::CONTENT_W, 1, true);
+      return;
+    }
+    fui::ListProps props;
+    props.rowProvider = &FileBrowserActivity::provideRow;
+    props.rowProviderCtx = this;
+    props.count = static_cast<uint16_t>(files.size());
+    props.action = ACTION_ROW;
+    props.inputMask = fui::InputTouch | fui::InputLongPress;
+    props.valueInset = 8;
+    fui::TextStyle label = screen.theme().smallText;
+    label.maxLines = 2;
+    props.labelText = label;
+    props.balanceWrappedLabelWithValue = false;
+    syncListViewport(screen, props);
+    prewarmRowGlyphs(nav.top);
+#if FREEINK_CAP_TOUCH
+    if (mode == Mode::Books) configureSwipeDelete(screen, props);
+#endif
+    renderList(screen, props);
+    return;
+  }
+#endif
   const auto& metrics = UITheme::getInstance().getMetrics();
   // Content below the GUI.drawHeader band, above the button hints.
   screen.setContentMarginFromScreen(fui::Insets{static_cast<int16_t>(metrics.topPadding + metrics.headerHeight), 0,
@@ -666,10 +724,19 @@ void FileBrowserActivity::buildScreen(UiScreen& screen) {
 #if FREEINK_CAP_TOUCH
   if (mode == Mode::Books) configureSwipeDelete(screen, props);
 #endif
-  screen.list(props);
+  renderList(screen, props);
 }
 
 void FileBrowserActivity::drawChrome() {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    AtelierChrome::drawHeader(
+        renderer, mode == Mode::PickFirmware ? tr(STR_SELECT_FIRMWARE_FILE) : tr(STR_BROWSE_FILES),
+        mode == Mode::PickFirmware ? nullptr : (basepath == "/" ? tr(STR_ATELIER_ROOT) : basepath.c_str()), true,
+        "03.1", listCount());
+    return;
+  }
+#endif
   const auto pageWidth = renderer.getScreenWidth();
   const auto& metrics = UITheme::getInstance().getMetrics();
 
@@ -683,6 +750,12 @@ void FileBrowserActivity::drawChrome() {
 }
 
 void FileBrowserActivity::drawFooter() {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    if (mode == Mode::Books) AtelierChrome::drawBottomNav(renderer, 2);
+    return;
+  }
+#endif
   const char* backLabel = (basepath == "/") ? (mode == Mode::PickFirmware ? tr(STR_BACK) : tr(STR_HOME)) : tr(STR_BACK);
   // In PickFirmware mode, Confirm on a .bin returns the path to the caller (not "open"); show
   // STR_SELECT instead. Directories in the same picker still descend, so keep STR_OPEN there.

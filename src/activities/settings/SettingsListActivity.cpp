@@ -1,6 +1,7 @@
 #include "SettingsListActivity.h"
 
 #include <GfxRenderer.h>
+#include <I18n.h>
 #include <Logging.h>
 #include <Memory.h>
 
@@ -8,6 +9,7 @@
 
 #include "MappedInputManager.h"
 #include "SettingsActivity.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "components/UiAppHelpers.h"
 
@@ -57,6 +59,19 @@ void SettingsListActivity::rebuildRows() {
 }
 
 void SettingsListActivity::buildScreen(UiScreen& screen) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    screen.setContentMarginFromScreen(fui::Insets{90, 0, 66, 0});
+    fui::ListProps props;
+    props.items = rowItems_.data();
+    props.count = static_cast<uint16_t>(rowItems_.size());
+    props.action = ACTION_ROW;
+    props.inputMask = fui::InputTouch;
+    syncListViewport(screen, props);
+    renderList(screen, props);
+    return;
+  }
+#endif
   const auto& metrics = UITheme::getInstance().getMetrics();
   // Content below the GUI.drawHeader band, above the button hints.
   screen.setContentMarginFromScreen(fui::Insets{static_cast<int16_t>(metrics.topPadding + metrics.headerHeight), 0,
@@ -103,6 +118,12 @@ void SettingsListActivity::openSection(const SettingsSection section) {
 void SettingsListActivity::onBackButton() { onGoHome(); }
 
 void SettingsListActivity::drawChrome() {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    AtelierChrome::drawHeader(renderer, tr(STR_SETTINGS_TITLE), nullptr, true, "04.1", listCount());
+    return;
+  }
+#endif
   const auto& metrics = UITheme::getInstance().getMetrics();
   // Version rides in the header's trailing label slot: the footer position
   // conflicts with button hints on non-touch devices.

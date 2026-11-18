@@ -26,6 +26,13 @@ constexpr GrayPlanePixel grayPlanePixel(uint8_t level, bool msb, bool absolute) 
   return {msb ? (level == 1 || level == 2) : level == 1, false};
 }
 
+// Map 2-bit shade (0=white..3=black) to a 1-bit framebuffer pixel for BW / LSB / MSB plane.
+constexpr bool grayPlaneBitState(const uint8_t shade, const bool isBw, const bool isLsb,
+                                 const bool bwThreshold2 = false) {
+  if (isBw) return bwThreshold2 ? (shade >= 2) : (shade != 0);
+  return isLsb ? (shade != 2) : !(shade == 1 || shade == 2);
+}
+
 enum class BmpRowOrder { BottomUp, TopDown };
 
 // Populates a 1-bit BMP header in the provided memory.

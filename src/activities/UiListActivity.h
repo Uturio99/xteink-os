@@ -5,6 +5,7 @@
 #include <atomic>
 
 #include "activities/Activity.h"
+#include "components/AtelierChrome.h"
 #include "components/UiAppHost.h"
 #include "util/ButtonNavigator.h"
 
@@ -75,6 +76,17 @@ class UiListActivity : public Activity, protected UiAppHost {
   virtual void drawChrome();
   // Button hints, drawn after the app renders. Default: Back/Select/Up/Down.
   virtual void drawFooter();
+  virtual void drawOverlay() {}
+  virtual int atelierBottomNavTab() const { return -1; }
+  virtual const char* atelierEyebrowCode() const { return nullptr; }
+  virtual int atelierFullRefreshKey() const { return 0; }
+  virtual int atelierSelectionOffset() const { return 0; }
+  void markX4ProFocusMovePending() {
+#if FREEINK_DEVICE_X4PRO
+    x4ProFocus.pendingFocusOnly = true;
+#endif
+  }
+  void renderList(UiScreen& screen, freeink::ui::ListProps& props);
 
   // --- helpers ---------------------------------------------------------------
   // Measure visibleRows for the screen band, apply follow-on-build, clamp the
@@ -103,6 +115,13 @@ class UiListActivity : public Activity, protected UiAppHost {
   bool handleSwipeDeleteInput();
   std::atomic<int16_t> revealedIndex{-1};
   freeink::ui::ListRevealAction swipeReveal{};
+#endif
+
+#if FREEINK_DEVICE_X4PRO
+  AtelierChrome::AtelierFocusRefreshTracker x4ProFocus;
+  int x4ProLastRenderedTop = -1;
+  int x4ProLastRenderedRows = 0;
+  int x4ProLastRenderedCount = -1;
 #endif
 
   const bool wantsTouchLongPress;

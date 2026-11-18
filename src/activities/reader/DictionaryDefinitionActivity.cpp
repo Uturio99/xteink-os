@@ -17,6 +17,7 @@
 #include "CrossPointSettings.h"
 #include "HapticFeedback.h"
 #include "ReaderUtils.h"
+#include "components/AtelierChrome.h"
 #include "components/HeaderBackTapTarget.h"
 #include "components/UITheme.h"
 #include "util/DictHtmlPages.h"
@@ -682,6 +683,43 @@ void DictionaryDefinitionActivity::drawBody(const int fontId, const int x, const
 void DictionaryDefinitionActivity::render(RenderLock&&) {
   const int currentPage = std::atomic_ref(content.currentPage).load();
   const int totalPages = content.totalPages;
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    if (messageVisible) {
+      GUI.drawPopup(renderer, I18N.get(message));
+      return;
+    }
+    struct Ctx {
+      DictionaryDefinitionActivity* self;
+      int currentPage;
+      int totalPages;
+    } ctx{this, currentPage, totalPages};
+    AtelierChrome::renderGrayscalePass(
+        renderer, HalDisplay::FAST_REFRESH,
+        [](void* raw) {
+          auto* c = static_cast<Ctx*>(raw);
+          auto* self = c->self;
+          self->renderer.clearScreen();
+          char counter[24] = {};
+          if (c->totalPages > 1) {
+            snprintf(counter, sizeof(counter), "%d/%d", c->currentPage + 1, c->totalPages);
+          }
+          AtelierChrome::drawHeader(self->renderer, self->content.headword.c_str(), counter[0] ? counter : nullptr,
+                                    true, "02.7");
+          if (self->renderer.getRenderMode() == GfxRenderer::BW) {
+            const int fontId = SETTINGS.getReaderFontId();
+            const BodyArea body = self->bodyArea();
+            auto* fcm = self->renderer.getFontCacheManager();
+            auto scope = fcm->createPrewarmScope();
+            self->drawBody(fontId, body.x, body.y, c->currentPage);
+            scope.endScanAndPrewarm();
+            self->drawBody(fontId, body.x, body.y, c->currentPage);
+          }
+        },
+        &ctx);
+    return;
+  }
+#endif
   renderer.clearScreen();
 
   const auto& metrics = UITheme::getInstance().getMetrics();

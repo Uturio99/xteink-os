@@ -10,6 +10,7 @@
 #include "MappedInputManager.h"
 #include "SilentRestart.h"
 #include "activities/network/WifiSelectionActivity.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
 #include "network/WifiPowerSaveGuard.h"
@@ -78,6 +79,26 @@ void KOReaderAuthActivity::onExit() {
 }
 
 void KOReaderAuthActivity::render(RenderLock&&) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    AtelierChrome::AtelierStatusScreenSpec spec;
+    spec.eyebrowCode = "04.14";
+    spec.title = mode == Mode::SIGN_UP ? tr(STR_SIGN_UP) : tr(STR_KOREADER_AUTH);
+    if (state == AUTHENTICATING) {
+      spec.headline = statusMessage.c_str();
+    } else if (state == SUCCESS) {
+      spec.headline = mode == Mode::SIGN_UP ? tr(STR_ACCOUNT_CREATED) : tr(STR_AUTH_SUCCESS);
+      spec.body = tr(STR_SYNC_READY);
+      spec.footerHint = tr(STR_TAP_TO_CONTINUE);
+    } else if (state == FAILED) {
+      spec.headline = mode == Mode::SIGN_UP ? tr(STR_SIGNUP_FAILED) : tr(STR_AUTH_FAILED);
+      spec.body = errorMessage.c_str();
+      spec.footerHint = tr(STR_TAP_TO_CONTINUE);
+    }
+    AtelierChrome::drawStatusScreen(renderer, spec);
+    return;
+  }
+#endif
   renderer.clearScreen();
 
   const auto& metrics = UITheme::getInstance().getMetrics();

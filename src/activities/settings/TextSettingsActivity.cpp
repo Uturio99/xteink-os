@@ -16,6 +16,7 @@
 #include "ReaderLineSpacing.h"
 #include "SdCardFontSystem.h"
 #include "TextSettingsPreview.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
 
@@ -73,11 +74,19 @@ void TextSettingsActivity::onEnter() {
   UiTabListActivity::onEnter();
 
   metrics_ = UITheme::getInstance().getMetrics();
-  const Rect safeArea = UITheme::getInstance().getScreenSafeArea(renderer, true, false);
-  const int safeBottom = safeArea.y + safeArea.height;
-  afterHeader = safeArea.y + metrics_.topPadding + metrics_.headerHeight + metrics_.verticalSpacing;
-  const int usableHeight = safeBottom - afterHeader - metrics_.verticalSpacing;
-  previewHeight = usableHeight * metrics_.previewHeightPercent / 100;
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    afterHeader = AtelierChrome::LIST_TOP_MIN_Y;
+    previewHeight = 168;
+  } else
+#endif
+  {
+    const Rect safeArea = UITheme::getInstance().getScreenSafeArea(renderer, true, false);
+    const int safeBottom = safeArea.y + safeArea.height;
+    afterHeader = safeArea.y + metrics_.topPadding + metrics_.headerHeight + metrics_.verticalSpacing;
+    const int usableHeight = safeBottom - afterHeader - metrics_.verticalSpacing;
+    previewHeight = usableHeight * metrics_.previewHeightPercent / 100;
+  }
 
   fonts_.clear();
   fonts_.reserve(CrossPointSettings::BUILTIN_FONT_COUNT + (registry_ ? registry_->getFamilyCount() : 0));
@@ -205,12 +214,23 @@ bool TextSettingsActivity::handleButtons() {
 }
 
 void TextSettingsActivity::buildScreen(UiScreen& screen) {
-  const Rect safeArea = UITheme::getInstance().getScreenSafeArea(renderer, true, false);
   const int tabTop = afterHeader + previewHeight;
-  const int rightInset = renderer.getScreenWidth() - (safeArea.x + safeArea.width);
-  const int bottomInset = renderer.getScreenHeight() - (safeArea.y + safeArea.height);
-  screen.setContentMarginFromScreen(fui::Insets{static_cast<int16_t>(tabTop), static_cast<int16_t>(rightInset),
-                                                static_cast<int16_t>(bottomInset), static_cast<int16_t>(safeArea.x)});
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    const int leftInset = AtelierChrome::MARGIN_X;
+    const int rightInset = renderer.getScreenWidth() - (AtelierChrome::MARGIN_X + AtelierChrome::CONTENT_W);
+    const int bottomInset = renderer.getScreenHeight() - AtelierChrome::LIST_BOTTOM_MAX_Y;
+    screen.setContentMarginFromScreen(fui::Insets{static_cast<int16_t>(tabTop), static_cast<int16_t>(rightInset),
+                                                  static_cast<int16_t>(bottomInset), static_cast<int16_t>(leftInset)});
+  } else
+#endif
+  {
+    const Rect safeArea = UITheme::getInstance().getScreenSafeArea(renderer, true, false);
+    const int rightInset = renderer.getScreenWidth() - (safeArea.x + safeArea.width);
+    const int bottomInset = renderer.getScreenHeight() - (safeArea.y + safeArea.height);
+    screen.setContentMarginFromScreen(fui::Insets{static_cast<int16_t>(tabTop), static_cast<int16_t>(rightInset),
+                                                  static_cast<int16_t>(bottomInset), static_cast<int16_t>(safeArea.x)});
+  }
 
   buildTabBar(screen);
 
@@ -253,7 +273,14 @@ void TextSettingsActivity::buildScreen(UiScreen& screen) {
   props.labelText = screen.theme().smallText;
   props.labelText.maxLines = 2;
   syncTabListViewport(screen, props);
-  screen.list(props);
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    renderList(screen, props);
+  } else
+#endif
+  {
+    screen.list(props);
+  }
 }
 
 const char* TextSettingsActivity::confirmLabelText() const {
@@ -272,7 +299,14 @@ const char* TextSettingsActivity::confirmLabelText() const {
 }
 
 void TextSettingsActivity::drawChrome() {
-  GUI.drawHeader(renderer, UITheme::getInstance().getHeaderRect(renderer, true, false), tr(STR_TEXT_SETTINGS));
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    AtelierChrome::drawHeader(renderer, tr(STR_TEXT_SETTINGS), nullptr, true, atelierEyebrowCode(), listCount());
+  } else
+#endif
+  {
+    GUI.drawHeader(renderer, UITheme::getInstance().getHeaderRect(renderer, true, false), tr(STR_TEXT_SETTINGS));
+  }
 
   const char* familyName = (currentFamilyIndex_ >= 0 && currentFamilyIndex_ < static_cast<int>(fonts_.size()))
                                ? fonts_[currentFamilyIndex_].name.c_str()
@@ -282,25 +316,59 @@ void TextSettingsActivity::drawChrome() {
                              : "";
   char labelBuf[128];
   snprintf(labelBuf, sizeof(labelBuf), "%s \"%s, %s\"", tr(STR_PREVIEW), familyName, sizeName);
-  const Rect safeArea = UITheme::getInstance().getScreenSafeArea(renderer, true, false);
-  const Rect previewBounds{safeArea.x, afterHeader, safeArea.width, previewHeight};
+  Rect previewBounds;
+  int previewPad = metrics_.previewPadding;
+  int labelGap = metrics_.verticalSpacing;
+#if FREEINK_DEVICE_X4PRO
+  const bool x4Pro = AtelierChrome::isPortrait480x800(renderer);
+  if (x4Pro) {
+    previewBounds = Rect{AtelierChrome::MARGIN_X, afterHeader, AtelierChrome::CONTENT_W, previewHeight};
+    previewPad = 12;
+    labelGap = 12;
+  } else
+#endif
+  {
+    const Rect safeArea = UITheme::getInstance().getScreenSafeArea(renderer, true, false);
+    previewBounds = Rect{safeArea.x, afterHeader, safeArea.width, previewHeight};
+  }
   const auto [savedX, savedY, savedWidth, savedHeight] = renderer.getClipRect();
   const int clipLeft = std::max(previewBounds.x, savedX);
   const int clipTop = std::max(previewBounds.y, savedY);
   const int clipRight = std::min(previewBounds.x + previewBounds.width, savedX + savedWidth);
   const int clipBottom = std::min(previewBounds.y + previewBounds.height, savedY + savedHeight);
   renderer.setClipRect(clipLeft, clipTop, std::max(0, clipRight - clipLeft), std::max(0, clipBottom - clipTop));
-  textsettings::renderPreview(renderer, previewLayout_, metrics_.previewPadding, metrics_.verticalSpacing,
-                              previewBounds, labelBuf);
+  textsettings::renderPreview(renderer, previewLayout_, previewPad, labelGap, previewBounds, labelBuf);
   renderer.setClipRect(savedX, savedY, savedWidth, savedHeight);
+#if FREEINK_DEVICE_X4PRO
+  if (x4Pro) {
+    AtelierChrome::fillRect(renderer, AtelierChrome::MARGIN_X, afterHeader + previewHeight - 1,
+                            AtelierChrome::CONTENT_W, 1, 1);
+  }
+#endif
 }
 
 void TextSettingsActivity::drawFooter() {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    AtelierChrome::drawFooterHint(renderer, confirmLabelText());
+    return;
+  }
+#endif
   const auto labels = mappedInput.mapLabels(tr(STR_BACK), confirmLabelText(), tr(STR_DIR_UP), tr(STR_DIR_DOWN));
   GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);
 }
 
+void TextSettingsActivity::drawOverlay() {
+  if (optionPopup_.isActive()) optionPopup_.render(renderer);
+}
+
 void TextSettingsActivity::render(RenderLock&& lock) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    UiListActivity::render(std::move(lock));
+    return;
+  }
+#endif
   if (optionPopup_.processRender(renderer, mappedInput)) return;  // picker draws over everything
   UiListActivity::render(std::move(lock));
 }

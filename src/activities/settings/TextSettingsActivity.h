@@ -52,6 +52,8 @@ class TextSettingsActivity final : public UiTabListActivity {
   void stepTab(int direction) override { switchTab(direction); }
   void drawChrome() override;
   void drawFooter() override;
+  void drawOverlay() override;
+  const char* atelierEyebrowCode() const override { return "04.5"; }
   bool handleButtons() override;
   bool handleCustomInput() override;
 

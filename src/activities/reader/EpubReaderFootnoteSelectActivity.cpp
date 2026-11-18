@@ -7,6 +7,7 @@
 
 #include "CrossPointSettings.h"
 #include "MappedInputManager.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 
 namespace {
@@ -46,6 +47,13 @@ void EpubReaderFootnoteSelectActivity::performJump() {
 }
 
 void EpubReaderFootnoteSelectActivity::drawHints() const {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    AtelierChrome::fillRect(renderer, 0, AtelierChrome::BOTTOM_NAV_Y, 480, 60, 0);
+    AtelierChrome::drawFooterHint(renderer, tr(STR_OPEN));
+    return;
+  }
+#endif
   const auto labels = mappedInput.mapDirectionalLabels(tr(STR_BACK), tr(STR_OPEN), tr(STR_DIR_LEFT), tr(STR_DIR_RIGHT),
                                                        tr(STR_DIR_UP), tr(STR_DIR_DOWN));
   GUI.drawButtonHints(renderer, labels.btn1, labels.btn2, labels.btn3, labels.btn4);

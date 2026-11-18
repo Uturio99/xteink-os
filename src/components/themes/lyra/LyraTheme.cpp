@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "RecentBooksStore.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "components/icons/blocks.h"
 #include "components/icons/book.h"
@@ -87,6 +88,12 @@ void LyraTheme::fillBatteryIcon(const GfxRenderer& renderer, Rect rect, uint16_t
 }
 
 void LyraTheme::drawSubHeader(const GfxRenderer& renderer, Rect rect, const char* label, const char* rightLabel) const {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    BaseTheme::drawSubHeader(renderer, rect, label, rightLabel);
+    return;
+  }
+#endif
   const int contentWidth = std::max(0, rect.width - LyraMetrics::values.contentSidePadding * 2);
 
   int labelWidth = contentWidth;
@@ -109,6 +116,12 @@ void LyraTheme::drawSubHeader(const GfxRenderer& renderer, Rect rect, const char
 
 void LyraTheme::drawButtonHints(GfxRenderer& renderer, const char* btn1, const char* btn2, const char* btn3,
                                 const char* btn4) const {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    BaseTheme::drawButtonHints(renderer, btn1, btn2, btn3, btn4);
+    return;
+  }
+#endif
   if (gpio.hasTouch()) {
     return;
   }

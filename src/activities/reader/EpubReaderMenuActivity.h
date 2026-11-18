@@ -71,6 +71,8 @@ class EpubReaderMenuActivity final : public UiListActivity {
   bool handleButtons() override;
   // Header via GUI.drawHeader inside the safe area for the battery indicator.
   void drawChrome() override;
+  void drawOverlay() override;
+  const char* atelierEyebrowCode() const override { return "02.2"; }
 
   void closeCancelled();
 

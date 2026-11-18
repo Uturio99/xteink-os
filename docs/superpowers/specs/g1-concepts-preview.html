@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CrossPoint G1 — Swiss Editorial × Apple HIG Minimalism (480×800 E-Ink)</title>
+  <style>
+    :root {
+      --desk: #e9e8e3;
+      --paper: #f7f5ee;
+      --stage: #ebe8df;
+      --stage-dark: #141413;
+      --ink: #121211;
+      --muted: #666560;
+      --rule: #d6d3cb;
+      --grid-line: rgba(18, 18, 17, 0.08);
+      --pill-soft: #ebe8df;
+      --sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", Arial, sans-serif;
+      --serif: "New York", "Newsreader", Georgia, "Times New Roman", serif;
+      --mono: "SF Mono", ui-monospace, Menlo, monospace;
+    }
+
+    body.mode-binary {
+      --paper: #ffffff;
+      --stage: #ffffff;
+      --stage-dark: #000000;
+      --ink: #000000;
+      --muted: #000000;
+      --rule: #000000;
+      --grid-line: rgba(0, 0, 0, 0.18);
+      --pill-soft: #ffffff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--desk);
+      color: #161615;
+      padding: 28px 24px 56px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Studio Bar */
+    .studio-bar {
+      max-width: 1580px;
+      margin: 0 auto 28px;
+      background: #ffffff;
+      border: 1px solid #d5d3cc;
+      padding: 18px 22px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .studio-title {
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+    .studio-sub {
+      font-size: 12px;
+      color: #5e5d58;
+      margin-top: 3px;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .tbtn {
+      height: 36px;
+      padding: 0 14px;
+      border-radius: 9999px;
+      border: 1px solid #c9c7c0;
+      background: #ffffff;
+      color: #161615;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+    }
+    .tbtn:hover { border-color: #161615; }
+    .tbtn.active {
+      background: #141413;
+      color: #ffffff;
+      border-color: #141413;
+    }
+    .tbtn.toggle-on {
+      background: #ebe8df;
+      border-color: #141413;
+    }
+    .v-sep { width: 1px; height: 22px; background: #d5d3cc; margin: 0 4px; }
+
+    /* Showcase Grid */
+    .showcase {
+      max-width: 1580px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(492px, 1fr));
+      gap: 32px;
+      justify-items: center;
+    }
+
+    .specimen {
+      width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .specimen-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 0 2px;
+    }
+    .specimen-num {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: #5e5d58;
+    }
+    .specimen-name {
+      font-size: 16px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      margin-top: 2px;
+    }
+    .specimen-ref {
+      font-size: 11px;
+      color: #5e5d58;
+      text-align: right;
+    }
+
+    /* Exact 480x800 Device Frame */
+    .screen {
+      width: 480px;
+      height: 800px;
+      background: var(--paper);
+      color: var(--ink);
+      position: relative;
+      overflow: hidden;
+      border: 1px solid #bfbdb5;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.08);
+      font-family: var(--sans);
+      user-select: none;
+    }
+    body.mode-binary .screen {
+      border-color: #000000;
+      box-shadow: none;
+    }
+
+    /* Architectural Swiss Grid + X4Pro Safe Area Overlays */
+    .grid-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 40;
+    }
+    body.show-grid .grid-overlay { display: block; }
+    .g-col {
+      position: absolute;
+      top: 0; bottom: 0;
+      border-left: 1px dashed rgba(30, 90, 210, 0.35);
+    }
+    .safe-box {
+      position: absolute;
+      left: 7px; top: 9px; width: 466px; height: 788px;
+      border: 1px dashed rgba(210, 45, 45, 0.55);
+    }
+    .exposed-grid-bg {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .exposed-vline {
+      position: absolute;
+      top: 0; bottom: 0;
+      width: 1px;
+      background: var(--grid-line);
+    }
+
+    /* Common Micro Status Bar (Ref 1 + Apple Minimal) */
+    .sys-bar {
+      position: absolute;
+      left: 32px; top: 20px; width: 416px; height: 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+    }
+    .sys-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .micro-caps {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .index-num {
+      font-size: 15px;
+      font-weight: 300;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .hairline {
+      height: 1px;
+      background: var(--rule);
+      width: 100%;
+    }
+
+    /* Apple HIG Buttons & Controls */
+    .apple-pill-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 44px;
+      padding: 0 20px;
+      border-radius: 9999px;
+      background: var(--ink);
+      color: var(--paper);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    }
+    .apple-pill-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 44px;
+      padding: 0 18px;
+      border-radius: 9999px;
+      background: transparent;
+      border: 1px solid var(--rule);
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 500;
+    }
+    body.mode-binary .apple-pill-secondary { border-color: #000000; }
+
+    .apple-circle-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 1px solid var(--rule);
+      background: transparent;
+      color: var(--ink);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    body.mode-binary .apple-circle-btn { border-color: #000000; }
+
+    .apple-circle-btn.filled {
+      background: var(--ink);
+      color: var(--paper);
+      border-color: var(--ink);
+    }
+
+    /* Apple Minimal Bottom Navigation */
+    .bottom-nav {
+      position: absolute;
+      left: 32px; top: 740px; width: 416px; height: 48px;
+      border-top: 1px solid var(--rule);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      align-items: center;
+    }
+    .nav-item {
+      height: 44px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--muted);
+    }
+    .nav-item.active {
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .nav-dot {
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: var(--ink);
+      opacity: 0;
+    }
+    .nav-item.active .nav-dot { opacity: 1; }
+
+    /* Minimal Editorial Book Cover (Clean, Zero Hard Offset Shadows) */
+    .editorial-cover {
+      background: var(--stage-dark);
+      color: #f7f5ee;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 12px 11px;
+      position: relative;
+      overflow: hidden;
+    }
+    .editorial-cover.light {
+      background: var(--stage);
+      color: var(--ink);
+      border: 1px solid var(--rule);
+    }
+    body.mode-binary .editorial-cover.light {
+      background: #ffffff;
+      border: 1px solid #000000;
+    }
+    .editorial-cover .c-top {
+      font-size: 8px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      opacity: 0.72;
+    }
+    .editorial-cover .c-title {
+      font-family: var(--serif);
+      font-weight: 400;
+      line-height: 1.12;
+      letter-spacing: -0.02em;
+    }
+    .editorial-cover .c-ring {
+      position: absolute;
+      width: 140px; height: 140px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      right: -46px; top: 38px;
+    }
+    .editorial-cover.light .c-ring {
+      border-color: rgba(0, 0, 0, 0.16);
+    }
+    body.mode-binary .editorial-cover .c-ring { display: none; }
+
+    /* Delicate 1px Timeline Scrubber (Ref 2) */
+    .scrubber-track {
+      position: relative;
+      width: 100%;
+      height: 1px;
+      background: var(--rule);
+    }
+    .scrubber-fill {
+      position: absolute;
+      left: 0; top: 0; height: 1px;
+      background: var(--ink);
+    }
+    .scrubber-tick {
+      position: absolute;
+      top: -5px;
+      width: 1.5px;
+      height: 11px;
+      background: var(--ink);
+    }
+
+    /* Apple Bottom Sheet (fui::sheet) */
+    .apple-sheet {
+      position: absolute;
+      left: 7px; top: 392px; width: 466px; height: 405px;
+      background: var(--paper);
+      border-top: 1px solid var(--ink);
+      border-radius: 20px 20px 0 0;
+      padding: 12px 25px 24px;
+      z-index: 30;
+    }
+    body.mode-binary .apple-sheet { border-top: 2px solid #000; }
+    .sheet-grabber {
+      width: 44px; height: 4px;
+      border-radius: 9999px;
+      background: var(--ink);
+      opacity: 0.35;
+      margin: 0 auto 18px;
+    }
+    body.mode-binary .sheet-grabber { opacity: 1; }
+
+    .hidden { display: none !important; }
+    .specimen-notes {
+      font-size: 12px;
+      color: #4f4e49;
+      line-height: 1.55;
+      background: #ffffff;
+      border: 1px solid #d5d3cc;
+      padding: 12px 14px;
+    }
+    .specimen-notes strong { color: #141413; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="studio-bar">
+    <div>
+      <div class="studio-title">CrossPoint × X4 Pro — Khám phá UI Thế hệ Mới (Swiss Editorial × Apple HIG)</div>
+      <div class="studio-sub">Tỉ lệ chuẩn 480×800px · Khoảng trắng cấu trúc · Hệ thống nút Capsule &amp; Circular 44×44px · Không shadow thô</div>
+    </div>
+    <div class="toolbar">
+      <button class="tbtn active" onclick="setView('home', this)">01 · Home (Đang đọc)</button>
+      <button class="tbtn" onclick="setView('subview', this)">02 · Library / Reader</button>
+      <button class="tbtn" onclick="setView('sheet', this)">03 · Focus &amp; Apple Sheet</button>
+      <button class="tbtn" onclick="setView('empty', this)">04 · Thư viện trống</button>
+      <div class="v-sep"></div>
+      <button class="tbtn" onclick="toggleBinary(this)">Chứng minh 1-Bit Đen/Trắng</button>
+      <button class="tbtn" onclick="toggleGrid(this)">Hiện Lưới Grid &amp; Safe-Area</button>
+    </div>
+  </div>
+
+  <div class="showcase">
+    <!-- ================================================================== -->
+    <!-- CONCEPT 1: ATELIER TYPOGRAPHIC (Ref 1 + Apple HIG)                 -->
+    <!-- ================================================================== -->
+    <article class="specimen">
+      <div class="specimen-head">
+        <div>
+          <div class="specimen-num">CONCEPT 01 · REF 1 + APPLE HIG</div>
+          <div class="specimen-name">Atelier Typographic</div>
+        </div>
+        <div class="specimen-ref">Khoảng trắng ~58% · Capsule CTA<br/>8 slots FreeInkApp · 0B RAM thêm</div>
+      </div>
+
+      <div class="screen" id="s1">
+        <div class="grid-overlay">
+          <div class="safe-box"></div>
+          <div class="g-col" style="left:32px"></div>
+          <div class="g-col" style="left:324px"></div>
+          <div class="g-col" style="left:448px"></div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="sys-bar">
+          <span>09:00</span>
+          <span class="sys-right">
+            <svg width="14" height="11" viewBox="0 0 14 11" fill="none" stroke="currentColor" stroke-width="1.3">
+              <path d="M1 3.5C4.5 0.5 9.5 0.5 13 3.5M3.2 6.2C5.4 4.3 8.6 4.3 10.8 6.2M5.7 8.8C6.4 8.2 7.6 8.2 8.3 8.8"/>
+            </svg>
+            <span>84%</span>
+            <span class="micro-caps" style="color:var(--ink);">MENU</span>
+          </span>
+        </div>
+
+        <!-- VIEW: HOME -->
+        <div class="view-home">
+          <div style="position:absolute; left:32px; top:60px; width:416px; height:24px; display:flex; justify-content:space-between; align-items:center;">
+            <span class="micro-caps">01.1 — ĐANG ĐỌC</span>
+            <span class="micro-caps">CHƯƠNG 07</span>
+          </div>
+
+          <!-- Hero Left Column -->
+          <div style="position:absolute; left:32px; top:108px; width:272px;">
+            <div style="font-size:27px; font-weight:300; line-height:1.12; letter-spacing:-0.03em;">
+              Nỗi Buồn<br/>Chiến Tranh<br/><span style="font-size:20px; color:var(--muted);">Bản Tiếng Việt NFC</span>
+            </div>
+            <div style="font-size:13px; color:var(--muted); margin-top:12px;">Bảo Ninh · Văn học</div>
+            <div style="margin-top:16px;">
+              <div class="scrubber-track">
+                <div class="scrubber-fill" style="width:62%;"></div>
+                <div class="scrubber-tick" style="left:62%;"></div>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-top:8px; font-variant-numeric:tabular-nums;">
+                <span>Trang 148 / 238</span>
+                <span>62%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hero Cover Right (Frameless clean edge) -->
+          <div class="editorial-cover" style="position:absolute; left:324px; top:108px; width:124px; height:186px;">
+            <div class="c-ring"></div>
+            <div class="c-top">BẢO NINH</div>
+            <div class="c-title" style="font-size:17px;">Nỗi Buồn<br/>Chiến Tranh</div>
+            <div class="c-top" style="border-top:1px solid rgba(255,255,255,0.28); padding-top:5px;">EPUB · 62%</div>
+          </div>
+
+          <!-- Apple HIG Action Row: Capsule Primary + 2 Circular 44x44 Icon Buttons -->
+          <div style="position:absolute; left:32px; top:314px; width:416px; height:44px; display:flex; align-items:center; justify-content:space-between;">
+            <div class="apple-pill-primary" style="width:176px; justify-content:space-between;">
+              <span>Tiếp tục đọc</span>
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <div class="apple-circle-btn" title="Mục lục">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4.5h10M3 8h10M3 11.5h6"/></svg>
+              </div>
+              <div class="apple-circle-btn" title="Bảng điều khiển">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5h10M6 3v4M3 11h10M10 9v4"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Generous Airy Gap -> 01.2 Editorial Index Rows -->
+          <div style="position:absolute; left:32px; top:416px; width:416px;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; padding-bottom:10px; border-bottom:1px solid var(--ink);">
+              <span class="micro-caps" style="color:var(--ink);">01.2 — ĐỌC GẦN ĐÂY</span>
+              <span class="micro-caps">03 CUỐN</span>
+            </div>
+
+            <div class="c1-row0" style="height:72px; border-bottom:1px solid var(--rule); display:flex; align-items:center; justify-content:space-between; gap:14px; padding:0 4px;">
+              <span class="index-num" style="width:26px;">02</span>
+              <div style="flex:1; min-width:0;">
+                <div style="font-size:16px; font-weight:500; letter-spacing:-0.015em;">Số Đỏ</div>
+                <div style="font-size:12px; color:var(--muted); margin-top:2px;">Vũ Trọng Phụng · 1936</div>
+              </div>
+              <span style="font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums;">41%</span>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 3.5L10.5 8 6 12.5"/></svg>
+            </div>
+
+            <div style="height:72px; border-bottom:1px solid var(--rule); display:flex; align-items:center; justify-content:space-between; gap:14px; padding:0 4px;">
+              <span class="index-num" style="width:26px;">03</span>
+              <div style="flex:1; min-width:0;">
+                <div style="font-size:16px; font-weight:500; letter-spacing:-0.015em;">Thiết Kế Hệ Thống Nhúng</div>
+                <div style="font-size:12px; color:var(--muted); margin-top:2px;">Tài liệu kỹ thuật · XTC</div>
+              </div>
+              <span style="font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums;">18%</span>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 3.5L10.5 8 6 12.5"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW: SUBVIEW (Reader HUD Quiet Editorial) -->
+        <div class="view-subview hidden" style="position:absolute; inset:60px 32px 64px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; height:44px;">
+            <div style="display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:500;">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3.5L5.5 8l4.5 4.5"/></svg>
+              <span>Thư viện</span>
+            </div>
+            <span class="micro-caps">CHƯƠNG 07</span>
+            <div class="apple-circle-btn" style="width:36px; height:36px;">Aa</div>
+          </div>
+          <div style="margin-top:44px;">
+            <div style="font-family:var(--serif); font-size:28px; font-weight:400; letter-spacing:-0.02em; margin-bottom:28px;">Đêm bên dòng sông Đắk Bla</div>
+            <p style="font-family:var(--serif); font-size:18px; line-height:1.68; margin-bottom:18px;">
+              Những cơn mưa đầu mùa thường đến rất khẽ, chạm lên mái tôn rồi tan vào khoảng lặng của thung lũng trước khi người ta kịp nhận ra.
+            </p>
+            <p style="font-family:var(--serif); font-size:18px; line-height:1.68; color:var(--ink);">
+              Kiên mở cuốn sổ tay đã sờn mép, nơi từng dòng chữ ghi vội vẫn giữ nguyên nhịp thở của một thời không thể quay lại.
+            </p>
+          </div>
+          <div style="position:absolute; bottom:8px; left:0; right:0; display:flex; justify-content:space-between; font-size:11px; color:var(--muted); border-top:1px solid var(--rule); padding-top:12px;">
+            <span>Nỗi Buồn Chiến Tranh</span>
+            <span>148 / 238 · 62%</span>
+          </div>
+        </div>
+
+        <!-- VIEW: EMPTY -->
+        <div class="view-empty hidden" style="position:absolute; left:32px; top:160px; width:416px;">
+          <div class="micro-caps" style="margin-bottom:20px;">01.1 — THƯ VIỆN TRỐNG</div>
+          <div style="font-size:34px; font-weight:300; line-height:1.1; letter-spacing:-0.03em; margin-bottom:18px;">
+            Bắt đầu kệ sách<br/>của riêng bạn.
+          </div>
+          <div style="font-size:14px; color:var(--muted); line-height:1.5; max-width:300px; margin-bottom:32px;">
+            Nhận sách EPUB, TXT hoặc XTC qua mạng nội bộ Wi-Fi hoặc kết nối cáp USB-C.
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div class="apple-pill-primary">Truyền qua Wi-Fi</div>
+            <div class="apple-pill-secondary">Duyệt thẻ nhớ</div>
+          </div>
+        </div>
+
+        <!-- Bottom Nav -->
+        <div class="bottom-nav">
+          <div class="nav-item active"><span>Trang chủ</span><span class="nav-dot"></span></div>
+          <div class="nav-item"><span>Thư viện</span><span class="nav-dot"></span></div>
+          <div class="nav-item"><span>Thẻ nhớ</span><span class="nav-dot"></span></div>
+          <div class="nav-item"><span>Cài đặt</span><span class="nav-dot"></span></div>
+        </div>
+      </div>
+
+      <div class="specimen-notes">
+        <strong>Đánh đổi Kỹ thuật:</strong> Gần với cấu trúc chữ tối giản của Ref 1 nhất. Dùng hoàn toàn `fui::button` + `fui::list` + `fui::tabBar` (`selectedDotSize = 4`), không cấp phát PSRAM nặng. Rất phù hợp nếu chọn làm ngôn ngữ mặc định xuyên suốt Home $\rightarrow$ Library $\rightarrow$ Reader.
+      </div>
+    </article>
+
+    <!-- ================================================================== -->
+    <!-- CONCEPT 2: FOCUS EXHIBITION STAGE (Ref 2 + Apple Sheet)            -->
+    <!-- ================================================================== -->
+    <article class="specimen">
+      <div class="specimen-head">
+        <div>
+          <div class="specimen-num">CONCEPT 02 · REF 2 + APPLE SHEET</div>
+          <div class="specimen-name">Focus Exhibition Stage</div>
+        </div>
+        <div class="specimen-ref">Sân khấu bìa + Lệch cột phải<br/>Scrubber 1px + fui::sheet</div>
+      </div>
+
+      <div class="screen" id="s2">
+        <div class="grid-overlay">
+          <div class="safe-box"></div>
+          <div class="g-col" style="left:32px"></div>
+          <div class="g-col" style="left:136px"></div>
+          <div class="g-col" style="left:448px"></div>
+        </div>
+
+        <div class="sys-bar">
+          <span class="micro-caps" style="color:var(--ink); font-size:11px;">FOCUS</span>
+          <span class="sys-right">
+            <span>09:00 · 84%</span>
+            <span class="micro-caps" style="color:var(--ink);">M —</span>
+          </span>
+        </div>
+
+        <!-- VIEW: HOME -->
+        <div class="view-home">
+          <!-- Stage Frame (y=60..506, h=446) -->
+          <div style="position:absolute; left:32px; top:60px; width:416px; height:446px; background:var(--stage); border:1px solid var(--rule); display:flex; align-items:center; justify-content:center;">
+            <div class="editorial-cover" style="width:184px; height:276px;">
+              <div class="c-ring" style="width:200px; height:200px; right:-60px; top:48px;"></div>
+              <div class="c-top">CROSSPOINT · CHƯƠNG 07</div>
+              <div class="c-title" style="font-size:24px;">Nỗi Buồn<br/>Chiến Tranh</div>
+              <div class="c-top" style="border-top:1px solid rgba(255,255,255,0.28); padding-top:6px;">BẢO NINH</div>
+            </div>
+            <!-- Minimalist prev/next micro indicators -->
+            <div style="position:absolute; left:14px; bottom:14px; font-size:11px; color:var(--muted);">01 / 07</div>
+            <div style="position:absolute; right:14px; bottom:14px; font-size:11px; color:var(--muted);">← Vuốt đổi sách →</div>
+          </div>
+
+          <!-- Title Full Width (y=530) -->
+          <div style="position:absolute; left:32px; top:528px; width:416px; font-size:18px; font-weight:600; letter-spacing:-0.015em; line-height:1.25; text-transform:uppercase;">
+            NỖI BUỒN CHIẾN TRANH · BẢN TIẾNG VIỆT ĐẦY ĐỦ
+          </div>
+
+          <!-- Indented Right Column (x=136..448, leaving x=32..136 pure negative space like Ref 2!) -->
+          <div style="position:absolute; left:136px; top:590px; width:312px; font-size:13px; line-height:1.48; color:var(--muted);">
+            Tác giả Bảo Ninh. Đang dừng tại trang 148 phần hồi ức ga Hàng Cỏ. Chạm nút phát bên dưới để đọc tiếp ngay lập tức.
+          </div>
+
+          <!-- Ref 2 Delicate 1px Scrubber + Apple Circular Play Button (y=676) -->
+          <div style="position:absolute; left:32px; top:676px; width:416px; height:44px; display:flex; align-items:center; gap:16px;">
+            <div class="apple-circle-btn filled" title="Đọc tiếp">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.2l8 4.8-8 4.8V3.2z"/></svg>
+            </div>
+            <div style="flex:1; display:flex; flex-direction:column; gap:8px; padding-top:8px;">
+              <div class="scrubber-track">
+                <div class="scrubber-fill" style="width:62%;"></div>
+                <div class="scrubber-tick" style="left:62%;"></div>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums;">
+                <span>Chương 07 / 12</span>
+                <span>148 / 238 · 62%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW: SUBVIEW (Library List in Swiss Editorial style) -->
+        <div class="view-subview hidden" style="position:absolute; inset:60px 32px 64px;">
+          <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:18px;">
+            <div style="font-size:32px; font-weight:300; letter-spacing:-0.03em;">Thư viện</div>
+            <span class="index-num">142</span>
+          </div>
+          <div style="display:flex; gap:20px; border-bottom:1px solid var(--rule); padding-bottom:10px; margin-bottom:16px; font-size:13px;">
+            <span style="font-weight:600; border-bottom:2px solid var(--ink); padding-bottom:10px; margin-bottom:-11px;">Gần đây ↓</span>
+            <span style="color:var(--muted);">Tên sách</span>
+            <span style="color:var(--muted);">Tác giả</span>
+          </div>
+          <div style="display:flex; flex-direction:column;">
+            <div style="padding:16px 0; border-bottom:1px solid var(--rule); display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <div style="font-size:16px; font-weight:500;">Nỗi Buồn Chiến Tranh</div>
+                <div style="font-size:12px; color:var(--muted); margin-top:3px;">Bảo Ninh · EPUB</div>
+              </div>
+              <span style="font-size:12px; font-variant-numeric:tabular-nums;">62%</span>
+            </div>
+            <div style="padding:16px 0; border-bottom:1px solid var(--rule); display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <div style="font-size:16px; font-weight:500;">Số Đỏ</div>
+                <div style="font-size:12px; color:var(--muted); margin-top:3px;">Vũ Trọng Phụng · EPUB</div>
+              </div>
+              <span style="font-size:12px; font-variant-numeric:tabular-nums;">41%</span>
+            </div>
+            <div style="padding:16px 0; border-bottom:1px solid var(--rule); display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <div style="font-size:16px; font-weight:500;">Thiết Kế Hệ Thống Nhúng</div>
+                <div style="font-size:12px; color:var(--muted); margin-top:3px;">Kỹ thuật · XTC</div>
+              </div>
+              <span style="font-size:12px; font-variant-numeric:tabular-nums;">18%</span>
+            </div>
+            <div style="padding:16px 0; border-bottom:1px solid var(--rule); display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <div style="font-size:16px; font-weight:500;">Dế Mèn Phiêu Lưu Ký</div>
+                <div style="font-size:12px; color:var(--muted); margin-top:3px;">Tô Hoài · EPUB</div>
+              </div>
+              <span style="font-size:12px; color:var(--muted);">Chưa đọc</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW: EMPTY -->
+        <div class="view-empty hidden" style="position:absolute; left:32px; top:60px; width:416px; height:640px; background:var(--stage); border:1px solid var(--rule); display:flex; flex-direction:column; justify-content:space-between; padding:32px;">
+          <div class="micro-caps">STAGE EMPTY</div>
+          <div>
+            <div style="font-size:28px; font-weight:300; letter-spacing:-0.02em; margin-bottom:10px;">Không gian đang chờ cuốn sách đầu tiên.</div>
+            <div style="font-size:13px; color:var(--muted); margin-bottom:24px;">Mở Quick Sheet bên dưới để nhận sách qua Wi-Fi hoặc USB.</div>
+            <div class="apple-pill-primary">Mở truyền tải</div>
+          </div>
+        </div>
+
+        <!-- Apple Quick Sheet Overlay (fui::sheet + storeBwBuffer) -->
+        <div class="apple-sheet hidden" id="c2-sheet">
+          <div class="sheet-grabber"></div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <div>
+              <div class="micro-caps">BẢNG ĐIỀU KHIỂN NHANH</div>
+              <div style="font-size:20px; font-weight:400; letter-spacing:-0.02em; margin-top:2px;">Tiện ích hệ thống</div>
+            </div>
+            <div class="apple-circle-btn" style="width:36px; height:36px; font-size:16px;">×</div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px;">
+            <div class="apple-pill-primary" style="width:100%; justify-content:space-between;"><span>Wi-Fi Transfer</span><span>↗</span></div>
+            <div class="apple-pill-secondary" style="width:100%; justify-content:space-between;"><span>USB Drive</span><span>↗</span></div>
+            <div class="apple-pill-secondary" style="width:100%; justify-content:space-between;"><span>OPDS / Plugins</span><span>↗</span></div>
+            <div class="apple-pill-secondary" style="width:100%; justify-content:space-between;"><span>Cài đặt đầy đủ</span><span>›</span></div>
+          </div>
+          <div style="border:1px solid var(--rule); border-radius:9999px; height:48px; padding:0 18px; display:flex; align-items:center; justify-content:space-between; font-size:13px;">
+            <span style="font-size:18px;">−</span>
+            <span>Đèn nền · 45% Ấm</span>
+            <span style="font-size:18px;">+</span>
+          </div>
+        </div>
+
+        <!-- Bottom Nav -->
+        <div class="bottom-nav">
+          <div class="nav-item active"><span>Focus</span><span class="nav-dot"></span></div>
+          <div class="nav-item"><span>Thư viện</span><span class="nav-dot"></span></div>
+          <div class="nav-item"><span>Quick Sheet</span><span class="nav-dot"></span></div>
+          <div class="nav-item"><span>Cài đặt</span><span class="nav-dot"></span></div>
+        </div>
+      </div>
+
+      <div class="specimen-notes">
+        <strong>Đánh đổi Kỹ thuật:</strong> Tái sử dụng `fui::coverCarousel` + `fui::sheet` (`SheetEdge::Bottom`, backed bởi `storeBwBuffer()`/`restoreBwBuffer()`). Thẩm mỹ gallery ấn tượng, nhưng cần chú ý chất lượng dither 1-bit khi hiển thị ảnh bìa kích thước lớn `184×276`.
+      </div>
+    </article>
+
+    <!-- ================================================================== -->
+    <!-- CONCEPT 3: SWISS ARCHITECTURAL GRID 01.1 / 01.2 (Ref 3 + Apple)    -->
+    <!-- ================================================================== -->
+    <article class="specimen">
+      <div class="specimen-head">
+        <div>
+          <div class="specimen-num">CONCEPT 03 · REF 3 + APPLE HIG</div>
+          <div class="specimen-name">Swiss Architectural Grid 01.1</div>
+        </div>
+        <div class="specimen-ref">Lưới dọc lộ thiên · Số liệu lớn<br/>Circular Pager ‹ › · 2-card ảnh trần</div>
+      </div>
+
+      <div class="screen" id="s3">
+        <!-- Exposed Swiss Hairline Vertical Columns (Exact Ref 3 signature!) -->
+        <div class="exposed-grid-bg">
+          <div class="exposed-vline" style="left:32px;"></div>
+          <div class="exposed-vline" style="left:248px;"></div>
+          <div class="exposed-vline" style="left:448px;"></div>
+        </div>
+        <div class="grid-overlay">
+          <div class="safe-box"></div>
+          <div class="g-col" style="left:32px"></div>
+          <div class="g-col" style="left:248px"></div>
+          <div class="g-col" style="left:448px"></div>
+        </div>
+
+        <div class="sys-bar" style="padding:0 8px;">
+          <span class="micro-caps" style="color:var(--ink);">HOW YOU READ</span>
+          <span class="sys-right">09:00 · 84%</span>
+        </div>
+
+        <!-- VIEW: HOME -->
+        <div class="view-home">
+          <!-- 01.1 Index + Light Headline + Cover (y=64..264) -->
+          <div style="position:absolute; left:40px; top:56px; width:256px;">
+            <div class="index-num" style="margin-bottom:10px;">01.1</div>
+            <div style="font-size:29px; font-weight:300; line-height:1.1; letter-spacing:-0.035em;">
+              Nỗi Buồn<br/>Chiến Tranh
+            </div>
+            <div style="font-size:12px; color:var(--muted); margin-top:8px;">Bảo Ninh · Chương 07 trên 12</div>
+            <div class="apple-pill-primary" style="margin-top:18px; height:44px; padding:0 18px;">
+              <span>Đọc tiếp</span>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+            </div>
+          </div>
+
+          <div class="editorial-cover" style="position:absolute; left:312px; top:64px; width:128px; height:192px;">
+            <div class="c-ring"></div>
+            <div class="c-top">HIỆN ĐANG MỞ</div>
+            <div class="c-title" style="font-size:18px;">Nỗi Buồn<br/>Chiến Tranh</div>
+            <div class="c-top" style="border-top:1px solid rgba(255,255,255,0.28); padding-top:5px;">62%</div>
+          </div>
+
+          <!-- Ref 3 Signature Oversized Light-Weight Metrics (y=288..364) -->
+          <div style="position:absolute; left:40px; top:282px; width:200px;">
+            <div style="font-size:44px; font-weight:300; letter-spacing:-0.04em; line-height:1; font-variant-numeric:tabular-nums;">
+              62<span style="font-size:20px; vertical-align:top; margin-left:2px;">%</span>
+            </div>
+            <div style="font-size:11px; color:var(--muted); margin-top:8px; line-height:1.35;">
+              <strong style="color:var(--ink); font-weight:600;">Tiến độ:</strong><br/>Trang 148 / 238
+            </div>
+          </div>
+
+          <div style="position:absolute; left:256px; top:282px; width:184px;">
+            <div style="font-size:44px; font-weight:300; letter-spacing:-0.04em; line-height:1; font-variant-numeric:tabular-nums;">
+              142<span style="font-size:20px; vertical-align:top; margin-left:2px;">+</span>
+            </div>
+            <div style="font-size:11px; color:var(--muted); margin-top:8px; line-height:1.35;">
+              <strong style="color:var(--ink); font-weight:600;">Thư viện:</strong><br/>EPUB &amp; XTC sẵn có
+            </div>
+          </div>
+
+          <!-- 1px Horizontal Structural Rule + 01.2 Circular Pager (Ref 3) -->
+          <div style="position:absolute; left:32px; top:372px; width:416px;" class="hairline"></div>
+
+          <div style="position:absolute; left:40px; top:388px; width:400px; height:44px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div class="micro-caps">01.2 — KỆ SÁCH GẦN ĐÂY</div>
+              <div style="font-size:13px; color:var(--muted); margin-top:2px;">Chọn nhanh từ danh sách mới mở</div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <div class="apple-circle-btn" title="Trước">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M10 3.5L5.5 8l4.5 4.5"/></svg>
+              </div>
+              <div class="apple-circle-btn" style="border-color:var(--ink);" title="Sau">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 3.5L10.5 8 6 12.5"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Two Borderless Asymmetric Editorial Book Cards (Exact Ref 3 bottom look!) -->
+          <div class="c3-card1" style="position:absolute; left:40px; top:452px; width:196px;">
+            <div class="editorial-cover light" style="width:196px; height:164px; padding:14px;">
+              <div class="c-ring"></div>
+              <div class="c-top" style="color:var(--muted);">VŨ TRỌNG PHỤNG</div>
+              <div class="c-title" style="font-size:21px;">Số Đỏ</div>
+              <div class="c-top" style="color:var(--muted);">41% · ĐANG ĐỌC</div>
+            </div>
+            <div style="margin-top:12px; font-size:14px; font-weight:500; line-height:1.3;">Số Đỏ (Phiên bản đối chiếu 1936)</div>
+            <div style="margin-top:4px; font-size:12px; color:var(--muted);">Chạm để mở ngay</div>
+          </div>
+
+          <div style="position:absolute; left:256px; top:452px; width:184px;">
+            <div class="editorial-cover" style="width:184px; height:164px; padding:14px;">
+              <div class="c-ring"></div>
+              <div class="c-top">HỆ THỐNG NHÚNG</div>
+              <div class="c-title" style="font-size:19px;">Kiến trúc<br/>ESP32</div>
+              <div class="c-top" style="border-top:1px solid rgba(255,255,255,0.25); padding-top:4px;">18% · XTC</div>
+            </div>
+            <div style="margin-top:12px; font-size:14px; font-weight:500; line-height:1.3;">Thiết Kế Hệ Thống Nhúng</div>
+            <div style="margin-top:4px; font-size:12px; color:var(--muted);">Trang 42 / 230</div>
+          </div>
+        </div>
+
+        <!-- VIEW: SUBVIEW (Settings Grouped Swiss Grid) -->
+        <div class="view-subview hidden" style="position:absolute; inset:60px 40px 64px;">
+          <div class="index-num" style="margin-bottom:6px;">01.3</div>
+          <div style="font-size:30px; font-weight:300; letter-spacing:-0.03em; margin-bottom:26px;">Cài đặt hệ thống</div>
+          <div style="border-top:1px solid var(--ink); padding-top:12px; margin-bottom:20px;">
+            <div class="micro-caps" style="margin-bottom:10px;">HIỂN THỊ &amp; ĐỌC</div>
+            <div style="height:56px; border-bottom:1px solid var(--rule); display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:15px;">Phông chữ &amp; Cỡ dòng</span>
+              <span style="font-size:12px; color:var(--muted);">Noto Serif 20px ›</span>
+            </div>
+            <div style="height:56px; border-bottom:1px solid var(--rule); display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:15px;">Làm mới màn hình E-Ink</span>
+              <span style="font-size:12px; color:var(--muted);">Mỗi 10 trang ›</span>
+            </div>
+          </div>
+          <div style="border-top:1px solid var(--ink); padding-top:12px;">
+            <div class="micro-caps" style="margin-bottom:10px;">TRUYỀN SÁCH &amp; KẾT NỐI</div>
+            <div style="height:56px; border-bottom:1px solid var(--rule); display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:15px;">Wi-Fi &amp; WebDAV Upload</span>
+              <span style="font-size:12px; color:var(--muted);">Sẵn sàng ›</span>
+            </div>
+            <div style="height:56px; border-bottom:1px solid var(--rule); display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:15px;">Chế độ USB Drive (MSC)</span>
+              <span style="font-size:12px; color:var(--muted);">Chờ kết nối ›</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW: EMPTY -->
+        <div class="view-empty hidden" style="position:absolute; left:40px; top:140px; width:400px;">
+          <div class="index-num" style="margin-bottom:10px;">00.0</div>
+          <div style="font-size:32px; font-weight:300; letter-spacing:-0.03em; margin-bottom:20px;">0 đầu sách trên thẻ nhớ.</div>
+          <div class="hairline" style="margin-bottom:20px;"></div>
+          <div style="font-size:13px; color:var(--muted); margin-bottom:28px;">Chọn phương thức nạp sách đầu tiên vào thiết bị:</div>
+          <div style="display:flex; gap:10px;">
+            <div class="apple-pill-primary">Mở Wi-Fi Upload</div>
+            <div class="apple-pill-secondary">USB MSC</div>
+          </div>
+        </div>
+
+        <!-- Bottom Nav -->
+        <div class="bottom-nav">
+          <div class="nav-item active"><span>Trang chủ</span><span class="nav-dot"></span></div>
+          <div class="nav-item"><span>Thư viện</span><span class="nav-dot"></span></div>
+          <div class="nav-item"><span>Truyền tải</span><span class="nav-dot"></span></div>
+          <div class="nav-item"><span>Cài đặt</span><span class="nav-dot"></span></div>
+        </div>
+      </div>
+
+      <div class="specimen-notes">
+        <strong>Đánh đổi Kỹ thuật:</strong> Đậm chất Ref 3 nhất với đường kẻ lưới dọc `1px`, chỉ mục `01.1 / 01.2`, số liệu `62%` / `142+` cỡ lớn nét mảnh và cặp nút tròn Apple `‹` `›` (`44×44`). Yêu cầu kiểm chứng độ mảnh của chữ Light/Regular trên tấm nền SSD1677 1-bit tại G4.
+      </div>
+    </article>
+  </div>
+
+  <script>
+    function setView(mode, btn) {
+      document.querySelectorAll('.toolbar .tbtn').forEach((b, i) => {
+        if (i < 4) b.classList.remove('active');
+      });
+      btn.classList.add('active');
+
+      const homes = document.querySelectorAll('.view-home');
+      const subs = document.querySelectorAll('.view-subview');
+      const empties = document.querySelectorAll('.view-empty');
+      const sheet = document.getElementById('c2-sheet');
+      const c1Row0 = document.querySelector('.c1-row0');
+
+      homes.forEach(el => el.classList.add('hidden'));
+      subs.forEach(el => el.classList.add('hidden'));
+      empties.forEach(el => el.classList.add('hidden'));
+      sheet.classList.add('hidden');
+      if (c1Row0) {
+        c1Row0.style.background = 'transparent';
+        c1Row0.style.color = 'var(--ink)';
+      }
+
+      if (mode === 'home') {
+        homes.forEach(el => el.classList.remove('hidden'));
+      } else if (mode === 'subview') {
+        subs.forEach(el => el.classList.remove('hidden'));
+      } else if (mode === 'empty') {
+        empties.forEach(el => el.classList.remove('hidden'));
+      } else if (mode === 'sheet') {
+        homes.forEach(el => el.classList.remove('hidden'));
+        sheet.classList.remove('hidden');
+        if (c1Row0) {
+          c1Row0.style.background = 'var(--ink)';
+          c1Row0.style.color = 'var(--paper)';
+        }
+      }
+    }
+
+    function toggleBinary(btn) {
+      document.body.classList.toggle('mode-binary');
+      btn.classList.toggle('toggle-on');
+    }
+
+    function toggleGrid(btn) {
+      document.body.classList.toggle('show-grid');
+      btn.classList.toggle('toggle-on');
+    }
+  </script>
+</body>
+</html>

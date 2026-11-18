@@ -19,6 +19,7 @@
 #include "SilentRestart.h"
 #include "activities/network/WifiSelectionActivity.h"
 #include "activities/util/ConfirmationActivity.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
 #include "network/HttpDownloader.h"
@@ -758,11 +759,18 @@ void FontDownloadActivity::activateSelected() {
 }
 
 void FontDownloadActivity::buildScreen(UiScreen& screen) {
-  const auto& metrics = UITheme::getInstance().getMetrics();
-  // Content below the GUI.drawHeader band, above the button hints.
-  screen.setContentMarginFromScreen(fui::Insets{static_cast<int16_t>(metrics.topPadding + metrics.headerHeight), 0,
-                                                static_cast<int16_t>(metrics.buttonHintsHeight), 0});
-  screen.spacer(static_cast<int16_t>(metrics.verticalSpacing));
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    screen.setContentMarginFromScreen(fui::Insets{AtelierChrome::LIST_TOP_MIN_Y, 0, 16, 0});
+  } else
+#endif
+  {
+    const auto& metrics = UITheme::getInstance().getMetrics();
+    // Content below the GUI.drawHeader band, above the button hints.
+    screen.setContentMarginFromScreen(fui::Insets{static_cast<int16_t>(metrics.topPadding + metrics.headerHeight), 0,
+                                                  static_cast<int16_t>(metrics.buttonHintsHeight), 0});
+    screen.spacer(static_cast<int16_t>(metrics.verticalSpacing));
+  }
 
   if (state_ == FAMILY_LIST && filteredIndices_.empty()) {
     screen.centeredText(tr(STR_NO_FONTS_AVAILABLE), screen.theme().bodyText);
@@ -781,7 +789,7 @@ void FontDownloadActivity::buildScreen(UiScreen& screen) {
   props.inputMask = fui::InputTouch;  // physical buttons stay in loop()
   props.valueInset = 8;               // air between the status and the row edge
   syncListViewport(screen, props);
-  screen.list(props);
+  renderList(screen, props);
 }
 
 void FontDownloadActivity::rebuildRowItems() {
@@ -925,7 +933,47 @@ std::string FontDownloadActivity::formatSize(size_t bytes) {
   return buf;
 }
 
-void FontDownloadActivity::render(RenderLock&&) {
+void FontDownloadActivity::render(RenderLock&& lock) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    if (state_ == GROUP_LIST || (state_ == FAMILY_LIST && !filteredIndices_.empty())) {
+      UiListActivity::render(std::move(lock));
+      return;
+    }
+    AtelierChrome::AtelierStatusScreenSpec spec;
+    spec.eyebrowCode = "04.15";
+    spec.title = tr(STR_FONT_BROWSER);
+    std::string statusText;
+    char pctBuf[16]{};
+    if (state_ == LOADING_MANIFEST) {
+      spec.headline = tr(STR_LOADING_FONT_LIST);
+    } else if (state_ == FAMILY_LIST) {
+      spec.headline = tr(STR_NO_FONTS_AVAILABLE);
+      spec.footerHint = tr(STR_TAP_BACK_TO_RETURN);
+    } else if (state_ == DOWNLOADING) {
+      const auto& family = families_[downloadingFamilyIndex_];
+      statusText = std::string(tr(STR_DOWNLOADING)) + " " + str(family.name) + " (" +
+                   std::to_string(currentFileIndex_ + 1) + "/" + std::to_string(currentFileTotal_) + ")";
+      const int pct = fileTotal_ > 0 ? static_cast<int>(static_cast<uint64_t>(fileProgress_) * 100 / fileTotal_) : 0;
+      snprintf(pctBuf, sizeof(pctBuf), "%d%%", pct);
+      spec.headline = statusText.c_str();
+      spec.progressPct = pct;
+      spec.progressLabel = pctBuf;
+      spec.footerHint = tr(STR_PRESS_BACK_TO_CANCEL);
+      AtelierChrome::drawStatusScreen(renderer, spec, HalDisplay::FAST_REFRESH, true);
+      return;
+    } else if (state_ == COMPLETE) {
+      spec.headline = tr(STR_FONT_INSTALLED);
+      spec.footerHint = tr(STR_TAP_BACK_TO_RETURN);
+    } else if (state_ == ERROR) {
+      spec.headline = tr(STR_FONT_INSTALL_FAILED);
+      spec.body = errorMessage_.empty() ? nullptr : errorMessage_.c_str();
+      spec.footerHint = tr(STR_TAP_BACK_TO_RETURN);
+    }
+    AtelierChrome::drawStatusScreen(renderer, spec);
+    return;
+  }
+#endif
   const auto& metrics = UITheme::getInstance().getMetrics();
   const auto pageWidth = renderer.getScreenWidth();
   const auto pageHeight = renderer.getScreenHeight();

@@ -21,6 +21,7 @@ class LanguageSelectActivity final : public UiListActivity {
   void buildScreen(UiScreen& screen) override;
   void activateIndex(int index) override;
   const char* headerTitle() const override;
+  const char* atelierEyebrowCode() const override { return "04.21"; }
 
   // Only the languages compiled into this build (custom_i18n_builtin_langs), not the whole enum.
   constexpr static uint8_t totalItems = sizeof(SORTED_LANGUAGE_INDICES) / sizeof(SORTED_LANGUAGE_INDICES[0]);

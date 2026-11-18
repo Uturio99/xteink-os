@@ -81,8 +81,15 @@ class ReaderToolbarUi : public UiAppHost {
   static void onAction(const freeink::ui::ActionEvent& event, void* user);
   void buildToolbar(UiScreen& screen);
   void buildPanel(UiScreen& screen);
+  void populateWindowItems(int windowCount);
   void buildToolRow(UiScreen& screen, freeink::ui::LayoutAnchor anchor, int16_t sideInset);
+#if FREEINK_DEVICE_X4PRO
+  void drawAtelierToolRow(UiScreen& screen, int topY);
+  void buildAtelierToolbar(UiScreen& screen);
+  void buildAtelierPanel(UiScreen& screen);
+#endif
 
+  GfxRenderer& renderer_;
   Model model_;
   Routed pending_;
   freeink::ui::ListNav nav_;

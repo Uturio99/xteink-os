@@ -13,6 +13,7 @@
 #include "ReaderActivity.h"
 #include "ReaderUtils.h"
 #include "XtcReaderChapterSelectionActivity.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
 
@@ -138,6 +139,15 @@ void XtcReaderActivity::renderStatusBarOverlay(GfxRenderer& renderer, const Stat
   const int displayPage = static_cast<int>(currentPage) + 1;
   const float progress = pageCount > 0 ? (static_cast<float>(displayPage) * 100.0f) / pageCount : 0.0f;
   const auto pageInfo = getStatusBarInfo();
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    const int pct = static_cast<int>(std::clamp(progress, 0.0f, 100.0f) + 0.5f);
+    AtelierChrome::drawReaderChrome(renderer, pageInfo.title.c_str(), pageInfo.currentPage, pageInfo.pageCount, pct,
+                                    false, false, sb.showsTitle() || sb.showBookProgressPercent,
+                                    sb.showChapterPageCount, true, sb.showBattery, sb.showsClock());
+    return;
+  }
+#endif
   GUI.drawStatusBar(renderer, progress, pageInfo.currentPage, pageInfo.pageCount, pageInfo.title, paddingBottom);
 }
 
@@ -156,6 +166,17 @@ void XtcReaderActivity::renderPage() {
   uint8_t* pageBuffer = static_cast<uint8_t*>(malloc(pageBufferSize));
   if (!pageBuffer) {
     LOG_ERR("XTR", "Failed to allocate page buffer (%lu bytes)", pageBufferSize);
+#if FREEINK_DEVICE_X4PRO
+    if (AtelierChrome::isPortrait480x800(renderer)) {
+      AtelierChrome::AtelierStatusScreenSpec spec;
+      spec.eyebrowCode = "02.2";
+      spec.title = xtc ? xtc->getTitle().c_str() : tr(STR_LIBRARY);
+      spec.headline = tr(STR_MEMORY_ERROR);
+      spec.footerHint = tr(STR_TAP_BACK_TO_RETURN);
+      AtelierChrome::drawStatusScreen(renderer, spec);
+      return;
+    }
+#endif
     renderer.clearScreen();
     renderer.drawCenteredText(UI_12_FONT_ID, 300, tr(STR_MEMORY_ERROR), true, EpdFontFamily::BOLD);
     renderer.displayBuffer();
@@ -167,6 +188,17 @@ void XtcReaderActivity::renderPage() {
     LOG_ERR("XTR", "Failed to load page %lu: bufferSize=%lu bitDepth=%u error=%s", currentPage, pageBufferSize,
             bitDepth, xtc::errorToString(xtc->getLastError()));
     free(pageBuffer);
+#if FREEINK_DEVICE_X4PRO
+    if (AtelierChrome::isPortrait480x800(renderer)) {
+      AtelierChrome::AtelierStatusScreenSpec spec;
+      spec.eyebrowCode = "02.2";
+      spec.title = xtc ? xtc->getTitle().c_str() : tr(STR_LIBRARY);
+      spec.headline = tr(STR_PAGE_LOAD_ERROR);
+      spec.footerHint = tr(STR_TAP_BACK_TO_RETURN);
+      AtelierChrome::drawStatusScreen(renderer, spec);
+      return;
+    }
+#endif
     renderer.clearScreen();
     renderer.drawCenteredText(UI_12_FONT_ID, 300, tr(STR_PAGE_LOAD_ERROR), true, EpdFontFamily::BOLD);
     renderer.displayBuffer();

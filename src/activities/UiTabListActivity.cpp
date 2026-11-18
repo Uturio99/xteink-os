@@ -6,6 +6,7 @@
 #include <cassert>
 
 #include "MappedInputManager.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 
 namespace fui = freeink::ui;
@@ -60,6 +61,7 @@ void UiTabListActivity::moveRingTo(const int ringIndex) {
   closeSwipeDelete();
 #endif
   activeNav().requestSelection(ringIndex);
+  markX4ProFocusMovePending();
   requestUpdate();
 }
 
@@ -111,6 +113,12 @@ void UiTabListActivity::buildTabBar(UiScreen& screen) {
     tabs[i].selected = activeTab() == i;
     tabs[i].indicator = tabIndicator(i);
   }
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    AtelierChrome::drawTabBar(screen, renderer, tabs, static_cast<uint16_t>(count), ACTION_TAB);
+    return;
+  }
+#endif
   fui::TabBarProps tabProps;
   tabProps.tabs = tabs;
   tabProps.count = static_cast<uint16_t>(count);

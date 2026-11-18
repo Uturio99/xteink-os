@@ -13,6 +13,9 @@
 #include <I18n.h>
 #include <Memory.h>
 #include <PNGdec.h>
+#ifdef local
+#undef local
+#endif
 #include <Xtc.h>
 
 #include <algorithm>
@@ -26,10 +29,11 @@
 #include "CrossPointSettings.h"
 #include "CrossPointState.h"
 #include "activities/reader/ReaderUtils.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
-#include "images/Logo120.h"
 #include "images/MoonIcon.h"
+#include "images/NoveOsLogo.h"
 
 namespace {
 // Metalio: B/W sleep images use the full 0xF7 waveform instead of HALF (two
@@ -650,8 +654,15 @@ bool drawSleepPopupPreservingFrame(GfxRenderer& renderer) {
   const int frameThickness = metrics.popupFrameThickness;
   const int popupY = static_cast<int>(renderer.getScreenHeight() * metrics.popupTopOffsetRatio);
   const int popupHeight = renderer.getLineHeight(UI_12_FONT_ID) + metrics.popupMarginY * 2;
-  const int bandTop = std::max(0, popupY - frameThickness);
-  const int bandBottom = std::min(renderer.getScreenHeight(), popupY + popupHeight + frameThickness);
+  int bandTop = std::max(0, popupY - frameThickness);
+  int bandBottom = std::min(renderer.getScreenHeight(), popupY + popupHeight + frameThickness);
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    // Matches BaseTheme::drawPopup's X4 Pro 480x800 geometry (y = 132, h = 52).
+    bandTop = 132;
+    bandBottom = 184;
+  }
+#endif
   const int bandHeight = bandBottom - bandTop;
   const size_t bandBytes = renderer.getRegionByteSize(0, bandTop, renderer.getScreenWidth(), bandHeight);
 
@@ -820,12 +831,31 @@ void SleepActivity::renderCustomSleepScreen() const {
 // sequence, used once for the sleep image. It never runs the multi-flash GC
 // waveform (0xF7) that FULL_REFRESH selects (#2471's blinking complaint).
 void SleepActivity::renderDefaultSleepScreen() const {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    struct Ctx {
+      const SleepActivity* self;
+    } ctx{this};
+    AtelierChrome::renderGrayscalePass(
+        renderer, kSleepClean,
+        [](void* raw) {
+          auto* self = static_cast<Ctx*>(raw)->self;
+          self->renderer.clearScreen();
+          AtelierChrome::drawNoveOsSplashScreen(self->renderer, "00.2 — NOVEOS STANDBY", tr(STR_SLEEPING),
+                                                tr(STR_POWER_ON_HINT), NoveOsBranding::OS_NAME, CROSSPOINT_VERSION);
+        },
+        &ctx);
+    return;
+  }
+#endif
   const auto pageWidth = renderer.getScreenWidth();
   const auto pageHeight = renderer.getScreenHeight();
 
   renderer.clearScreen();
-  renderer.drawImage(Logo120, (pageWidth - 120) / 2, (pageHeight - 120) / 2, 120, 120);
-  renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2 + 70, tr(STR_CROSSPOINT), true, EpdFontFamily::BOLD);
+  renderer.drawImage(NoveOsBranding::NOVEOS_LOGO_1BPP, (pageWidth - NoveOsBranding::LOGO_WIDTH) / 2,
+                     (pageHeight - NoveOsBranding::LOGO_HEIGHT) / 2, NoveOsBranding::LOGO_WIDTH,
+                     NoveOsBranding::LOGO_HEIGHT);
+  renderer.drawCenteredText(UI_10_FONT_ID, pageHeight / 2 + 70, NoveOsBranding::OS_NAME, true, EpdFontFamily::BOLD);
   renderer.drawCenteredText(SMALL_FONT_ID, pageHeight / 2 + 95, tr(STR_SLEEPING));
 
   // Make sleep screen dark unless light is selected in settings

@@ -25,6 +25,7 @@ class BleSettingsActivity final : public UiListActivity {
   void buildScreen(UiScreen& screen) override;
   void activateIndex(int index) override;
   const char* headerTitle() const override;
+  const char* atelierEyebrowCode() const override { return "04.18"; }
 
   enum class View { Menu, Scan, Paired, Mapping };
   View view = View::Menu;

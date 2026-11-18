@@ -4,6 +4,7 @@
 #include <HalSystem.h>
 #include <I18n.h>
 
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
 
@@ -27,6 +28,20 @@ void CrashActivity::loop() {
 }
 
 void CrashActivity::render(RenderLock&&) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    AtelierChrome::AtelierStatusScreenSpec spec;
+    spec.eyebrowCode = "00.4";
+    spec.title = tr(STR_CRASH_TITLE);
+    spec.backButton = false;
+    spec.headline = tr(STR_CRASH_DESCRIPTION);
+    spec.body = tr(STR_CRASH_REASON);
+    spec.detail = panicMessage.c_str();
+    spec.footerHint = tr(STR_TAP_TO_CONTINUE);
+    AtelierChrome::drawStatusScreen(renderer, spec);
+    return;
+  }
+#endif
   renderer.clearScreen();
 
   const auto& metrics = UITheme::getInstance().getMetrics();

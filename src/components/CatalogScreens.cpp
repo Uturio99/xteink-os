@@ -6,8 +6,10 @@
 #include <I18n.h>
 
 #include <algorithm>
+#include <cstdio>
 #include <numeric>
 
+#include "AtelierChrome.h"
 #include "HeaderBackTapTarget.h"
 #include "UITheme.h"
 #include "icons/headerIcons.h"
@@ -16,6 +18,21 @@ namespace fui = freeink::ui;
 
 void catalogScreenHeader(UiAppHost::UiScreen& screen, const GfxRenderer& renderer, const char* title,
                          const fui::BitmapRef& trailingIcon, const fui::ActionId trailingAction) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    const bool hasTrailingIcon = trailingIcon && trailingAction != fui::NO_ACTION;
+    // Reserve space on the right so long titles do not overlap the 16x16 search icon.
+    AtelierChrome::drawHeader(renderer, title, hasTrailingIcon ? "        " : nullptr, true, "05.1");
+    if (hasTrailingIcon) {
+      AtelierChrome::drawSearchIcon(renderer, AtelierChrome::MARGIN_X + AtelierChrome::CONTENT_W - 22, 57);
+      screen.frame().hit(fui::Rect{static_cast<int16_t>(AtelierChrome::MARGIN_X + AtelierChrome::CONTENT_W - 44), 46,
+                                   44, 40},
+                         trailingAction, 0, fui::InputTouch);
+    }
+    screen.setContentMarginFromScreen(fui::Insets{AtelierChrome::LIST_TOP_MIN_Y, 0, 16, 0});
+    return;
+  }
+#endif
   const auto& metrics = UITheme::getInstance().getMetrics();
   const auto& theme = screen.theme();
   fui::HeaderProps header;
@@ -64,9 +81,34 @@ void catalogScreenHeader(UiAppHost::UiScreen& screen, const GfxRenderer& rendere
                   static_cast<int16_t>(metrics.buttonHintsHeight), 0});
 }
 
-void catalogCenteredBlock(UiAppHost::UiScreen& screen, const std::initializer_list<CatalogLine> lines) {
+void catalogCenteredBlock(UiAppHost::UiScreen& screen, const GfxRenderer& renderer,
+                          const std::initializer_list<CatalogLine> lines) {
   const int count = static_cast<int>(lines.size());
   if (count == 0) return;
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    AtelierChrome::fillRect(renderer, AtelierChrome::MARGIN_X, 240, 48, 1, 3);
+    int y = 260;
+    int idx = 0;
+    for (const CatalogLine& line : lines) {
+      const char* txt = line.text ? line.text : "";
+      if (txt[0] == '\0') continue;
+      const AtelierFont& font = (idx == 0) ? AtelierChrome::font20Light() : AtelierChrome::font13Reg();
+      const AtelierTone tone = (idx == 0) ? AtelierTone::Ink : AtelierTone::Muted;
+      const WrappedAtelierLines wrapped = AtelierChrome::wrapText(font, txt, AtelierChrome::CONTENT_W, 4);
+      const int step = AtelierChrome::fontLineHeight(font) + 4;
+      for (int li = 0; li < wrapped.count; ++li) {
+        AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, y, font, wrapped.lines[li], tone, 0,
+                                AtelierChrome::CONTENT_W, 0, li + 1 == wrapped.count);
+        y += step;
+      }
+      y += 10;
+      ++idx;
+    }
+    return;
+  }
+#endif
+  (void)renderer;
   // Long lines (sign-in hints, server errors) wrap instead of clipping.
   fui::TextStyle centered = screen.theme().bodyText;
   centered.align = fui::TextAlign::Center;
@@ -94,8 +136,50 @@ void catalogCenteredBlock(UiAppHost::UiScreen& screen, const std::initializer_li
   }
 }
 
-void catalogDownloadScreen(UiAppHost::UiScreen& screen, const char* status, const size_t progress, const size_t total,
-                           const fui::ActionId cancelAction) {
+void catalogDownloadScreen(UiAppHost::UiScreen& screen, const GfxRenderer& renderer, const char* status,
+                           const size_t progress, const size_t total, const fui::ActionId cancelAction) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, 180, AtelierChrome::font10Bold(),
+                            tr(STR_DOWNLOADING), AtelierTone::Muted, 1, AtelierChrome::CONTENT_W, 0, true);
+    const WrappedAtelierLines titleLines =
+        AtelierChrome::wrapText(AtelierChrome::font20Light(), status ? status : "", AtelierChrome::CONTENT_W, 2);
+    int titleY = 206;
+    const int titleStep = AtelierChrome::fontLineHeight(AtelierChrome::font20Light()) + 4;
+    for (int i = 0; i < titleLines.count; ++i) {
+      AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, titleY, AtelierChrome::font20Light(),
+                              titleLines.lines[i], AtelierTone::Ink, 0, AtelierChrome::CONTENT_W, 0,
+                              i + 1 == titleLines.count);
+      titleY += titleStep;
+    }
+    if (total > 0) {
+      const int permille = static_cast<int>((static_cast<uint64_t>(progress) * 1000) / total);
+      AtelierChrome::drawScrubberTrack(renderer, AtelierChrome::MARGIN_X, 286, AtelierChrome::CONTENT_W, 24,
+                                       permille, false, false);
+      char pctBuf[24]{};
+      snprintf(pctBuf, sizeof(pctBuf), "%d%%", std::clamp(permille / 10, 0, 100));
+      AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, 314, AtelierChrome::font12Bold(), pctBuf,
+                              AtelierTone::Muted, 1, AtelierChrome::CONTENT_W, 0, false);
+    } else {
+      char bytes[24]{};
+      if (progress >= 1024 * 1024) {
+        snprintf(bytes, sizeof(bytes), "%u.%u MB", static_cast<unsigned>(progress >> 20),
+                 static_cast<unsigned>((progress >> 10) % 1024 * 10 / 1024));
+      } else {
+        snprintf(bytes, sizeof(bytes), "%u KB", static_cast<unsigned>(progress >> 10));
+      }
+      AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, 286, AtelierChrome::font13Bold(), bytes,
+                              AtelierTone::Ink, 0, AtelierChrome::CONTENT_W, 0, false);
+    }
+    if (cancelAction != fui::NO_ACTION) {
+      AtelierChrome::drawCapsuleButton(renderer, AtelierChrome::MARGIN_X, 344, 164, 44, tr(STR_CANCEL),
+                                       AtelierChrome::font12Bold(), false, true);
+      screen.frame().hit(fui::Rect{AtelierChrome::MARGIN_X, 344, 164, 44}, cancelAction, 0, fui::InputTouch);
+    }
+    return;
+  }
+#endif
+  (void)renderer;
   // Centered block: status line, item title, progress, optional cancel.
   const auto& theme = screen.theme();
   fui::TextStyle centered = theme.bodyText;

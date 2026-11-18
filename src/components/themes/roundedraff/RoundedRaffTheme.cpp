@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "RecentBooksStore.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "components/icons/cover.h"
 #include "fontIds.h"
@@ -48,6 +49,12 @@ int coverWidth = 0;
 
 void RoundedRaffTheme::drawHeader(const GfxRenderer& renderer, Rect rect, const char* title, const char* subtitle,
                                   const bool backButton) const {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    BaseTheme::drawHeader(renderer, rect, title, subtitle, backButton);
+    return;
+  }
+#endif
   // Home screen header is custom-rendered in drawRecentBookCover.
   if (title == nullptr) {
     return;
@@ -200,6 +207,12 @@ void RoundedRaffTheme::drawTextField(const GfxRenderer& renderer, Rect rect, con
 
 void RoundedRaffTheme::drawButtonHints(GfxRenderer& renderer, const char* btn1, const char* btn2, const char* btn3,
                                        const char* btn4) const {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    BaseTheme::drawButtonHints(renderer, btn1, btn2, btn3, btn4);
+    return;
+  }
+#endif
   if (gpio.hasTouch()) {
     return;
   }

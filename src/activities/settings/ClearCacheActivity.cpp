@@ -6,6 +6,7 @@
 #include <Logging.h>
 
 #include "MappedInputManager.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
 #include "util/BookCacheUtils.h"
@@ -26,6 +27,46 @@ void ClearCacheActivity::onEnter() {
 void ClearCacheActivity::onExit() { Activity::onExit(); }
 
 void ClearCacheActivity::render(RenderLock&&) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    if (state == WARNING) {
+      struct Ctx {
+        ClearCacheActivity* self;
+      } ctx{this};
+      AtelierChrome::renderGrayscalePass(
+          renderer, HalDisplay::FAST_REFRESH,
+          [](void* raw) {
+            auto* self = static_cast<Ctx*>(raw)->self;
+            self->renderer.clearScreen();
+            AtelierChrome::drawHeader(self->renderer, tr(STR_CLEAR_READING_CACHE), nullptr, true, "04.12");
+            self->confirmPopup.render(self->renderer);
+          },
+          &ctx);
+      return;
+    }
+    AtelierChrome::AtelierStatusScreenSpec spec;
+    spec.eyebrowCode = "04.12";
+    spec.title = tr(STR_CLEAR_READING_CACHE);
+    std::string resultText;
+    if (state == CLEARING) {
+      spec.headline = tr(STR_CLEARING_CACHE);
+    } else if (state == SUCCESS) {
+      resultText = std::to_string(clearedCount) + " " + std::string(tr(STR_ITEMS_REMOVED));
+      if (failedCount > 0) {
+        resultText += ", " + std::to_string(failedCount) + " " + std::string(tr(STR_FAILED_LOWER));
+      }
+      spec.headline = tr(STR_CACHE_CLEARED);
+      spec.body = resultText.c_str();
+      spec.footerHint = tr(STR_TAP_BACK_TO_RETURN);
+    } else if (state == FAILED) {
+      spec.headline = tr(STR_CLEAR_CACHE_FAILED);
+      spec.body = tr(STR_CHECK_SERIAL_OUTPUT);
+      spec.footerHint = tr(STR_TAP_BACK_TO_RETURN);
+    }
+    AtelierChrome::drawStatusScreen(renderer, spec);
+    return;
+  }
+#endif
   const auto& metrics = UITheme::getInstance().getMetrics();
   const auto pageWidth = renderer.getScreenWidth();
   const auto pageHeight = renderer.getScreenHeight();

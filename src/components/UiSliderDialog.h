@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "MappedInputManager.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "components/UiAppHelpers.h"
 #include "components/UiAppHost.h"
@@ -19,6 +20,7 @@
 // dialogs, which differ only in how they format the readout, endpoints, and
 // hints and what the actions do.
 struct UiSliderDialogSpec {
+  const GfxRenderer* renderer = nullptr;
   const char* title = nullptr;    // dialog caption
   const char* readout = nullptr;  // preformatted current-value text
   int value = 0;                  // slider position (0-based within max)
@@ -40,6 +42,64 @@ struct UiSliderDialogSpec {
 inline void buildSliderDialogScreen(UiAppHost::UiScreen& screen, freeink::ui::GfxRendererTarget& uiTarget,
                                     const MappedInputManager& mappedInput, const UiSliderDialogSpec& spec) {
   namespace fui = freeink::ui;
+#if FREEINK_DEVICE_X4PRO
+  if (spec.renderer && AtelierChrome::isPortrait480x800(*spec.renderer)) {
+    const GfxRenderer& r = *spec.renderer;
+    constexpr int16_t sheetH = 316;
+    constexpr int16_t sheetY = 800 - sheetH;
+    AtelierChrome::fillRect(r, 0, sheetY, 480, sheetH, 0);
+    AtelierChrome::fillRect(r, AtelierChrome::MARGIN_X, sheetY, AtelierChrome::CONTENT_W, 1, 3);
+    screen.frame().hit(fui::Rect{0, sheetY, 480, sheetH}, spec.chromeAction, 0, fui::InputTouch);
+
+    if (spec.title) {
+      char upper[96]{};
+      AtelierChrome::formatUpperVi(spec.title, upper, sizeof(upper));
+      AtelierChrome::drawText(r, AtelierChrome::MARGIN_X, sheetY + 22, AtelierChrome::font10Bold(), upper,
+                              AtelierTone::Muted, 1, AtelierChrome::CONTENT_W, 0, true);
+    }
+    if (spec.readout) {
+      AtelierChrome::drawText(r, AtelierChrome::MARGIN_X, sheetY + 50, AtelierChrome::font34Light(), spec.readout,
+                              AtelierTone::Ink, 0, AtelierChrome::CONTENT_W, 0, true);
+    }
+
+    const int trackY = sheetY + 126;
+    const int permille = spec.max > 0 ? std::clamp(spec.value * 1000 / spec.max, 0, 1000) : 0;
+    AtelierChrome::drawScrubberTrack(r, AtelierChrome::MARGIN_X, trackY, AtelierChrome::CONTENT_W, 12, permille, true);
+    screen.frame().hit(
+        fui::Rect{AtelierChrome::MARGIN_X, static_cast<int16_t>(trackY - 16), AtelierChrome::CONTENT_W, 44},
+        spec.sliderAction, 0, fui::InputTouch | fui::InputDrag);
+
+    if (spec.minLabel) {
+      AtelierChrome::drawText(r, AtelierChrome::MARGIN_X, trackY + 20, AtelierChrome::font11Reg(), spec.minLabel,
+                              AtelierTone::Muted, 0, 160, 0, true);
+    }
+    if (spec.maxLabel) {
+      AtelierChrome::drawText(r, AtelierChrome::MARGIN_X + 240, trackY + 20, AtelierChrome::font11Reg(), spec.maxLabel,
+                              AtelierTone::Muted, 0, AtelierChrome::CONTENT_W - 240, 2, true);
+    }
+
+    const int btnY = 800 - 34 - 44;
+    AtelierChrome::drawCapsuleButton(r, AtelierChrome::MARGIN_X, btnY, 44, 44, "-", AtelierChrome::font16Med(), false,
+                                     true, false, false);
+    screen.frame().hit(fui::Rect{AtelierChrome::MARGIN_X, static_cast<int16_t>(btnY), 44, 44}, spec.stepAction, -1,
+                       fui::InputTouch);
+
+    constexpr int plusX = AtelierChrome::MARGIN_X + 54;
+    AtelierChrome::drawCapsuleButton(r, plusX, btnY, 44, 44, "+", AtelierChrome::font16Med(), false, true, false,
+                                     false);
+    screen.frame().hit(fui::Rect{static_cast<int16_t>(plusX), static_cast<int16_t>(btnY), 44, 44}, spec.stepAction, +1,
+                       fui::InputTouch);
+
+    const char* okStr = tr(STR_CONFIRM);
+    const int ctaW = std::clamp(AtelierChrome::measureText(AtelierChrome::font13Bold(), okStr, 0) + 48, 152, 224);
+    const int ctaX = AtelierChrome::MARGIN_X + AtelierChrome::CONTENT_W - ctaW;
+    AtelierChrome::drawCapsuleButton(r, ctaX, btnY, ctaW, 44, okStr, AtelierChrome::font13Bold(), true);
+    screen.frame().hit(
+        fui::Rect{static_cast<int16_t>(ctaX), static_cast<int16_t>(btnY), static_cast<int16_t>(ctaW), 44},
+        spec.okAction, 0, fui::InputTouch);
+    return;
+  }
+#endif
   const auto& metrics = UITheme::getInstance().getMetrics();
   const auto& theme = screen.theme();
 

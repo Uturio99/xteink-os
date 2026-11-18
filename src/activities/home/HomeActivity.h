@@ -1,10 +1,13 @@
 #pragma once
+#include <BoardConfig.h>
+
 #include <functional>
 #include <vector>
 
 #include "./FileBrowserActivity.h"
 #include "RecentBooksStore.h"
 #include "activities/Activity.h"
+#include "components/AtelierChrome.h"
 #include "components/CoverGridHomeUi.h"
 #include "util/ButtonNavigator.h"
 
@@ -37,6 +40,9 @@ class HomeActivity final : public Activity {
   std::vector<RecentBook> recentBooks;
   const HomeMenuItem initialMenuItem;
   const bool cleanInitialRefresh;
+#if FREEINK_DEVICE_X4PRO
+  AtelierChrome::AtelierFocusRefreshTracker x4ProFocus;
+#endif
 
   // Convert HomeMenuItem to menu index (used in onEnter)
   static int menuItemToIndex(HomeMenuItem item, bool hasOpdsUrl) {

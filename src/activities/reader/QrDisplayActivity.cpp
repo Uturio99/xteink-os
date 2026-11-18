@@ -4,6 +4,7 @@
 #include <I18n.h>
 
 #include "MappedInputManager.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
 #include "util/QrUtils.h"
@@ -26,6 +27,27 @@ void QrDisplayActivity::loop() {
 }
 
 void QrDisplayActivity::render(RenderLock&&) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    struct Ctx {
+      QrDisplayActivity* self;
+    } ctx{this};
+    AtelierChrome::renderGrayscalePass(
+        renderer, HalDisplay::FAST_REFRESH,
+        [](void* raw) {
+          auto* self = static_cast<Ctx*>(raw)->self;
+          self->renderer.clearScreen();
+          AtelierChrome::drawHeader(self->renderer, tr(STR_DISPLAY_QR), nullptr, true, "02.8");
+          if (self->renderer.getRenderMode() == GfxRenderer::BW) {
+            constexpr int qrSize = 360;
+            QrUtils::drawQrCode(self->renderer, Rect((480 - qrSize) / 2, 180, qrSize, qrSize), self->textPayload);
+          }
+          AtelierChrome::drawFooterHint(self->renderer, tr(STR_TAP_BACK_TO_RETURN));
+        },
+        &ctx);
+    return;
+  }
+#endif
   renderer.clearScreen();
   auto metrics = UITheme::getInstance().getMetrics();
   const auto pageWidth = renderer.getScreenWidth();

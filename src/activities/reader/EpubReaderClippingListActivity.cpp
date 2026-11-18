@@ -11,6 +11,7 @@
 #include "DictionaryDefinitionActivity.h"
 #include "MappedInputManager.h"
 #include "clippings/ClippingPreview.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "components/UiAppHelpers.h"
 #include "fontIds.h"
@@ -174,23 +175,35 @@ bool EpubReaderClippingListActivity::handleButtons() {
 }
 
 void EpubReaderClippingListActivity::buildScreen(UiScreen& screen) {
-  const auto& metrics = UITheme::getInstance().getMetrics();
-  const Rect safe = UITheme::getInstance().getScreenSafeArea(renderer, true, false);
-  screen.setContentMarginFromScreen(fui::Insets{
-      static_cast<int16_t>(safe.y + metrics.topPadding + metrics.headerHeight),
-      static_cast<int16_t>(renderer.getScreenWidth() - (safe.x + safe.width)),
-      static_cast<int16_t>(renderer.getScreenHeight() - (safe.y + safe.height)), static_cast<int16_t>(safe.x)});
-  screen.spacer(static_cast<int16_t>(metrics.verticalSpacing));
-  if (listCount() == 0) {
-    screen.centeredText(tr(STR_NO_CLIPPINGS), screen.theme().bodyText);
-    return;
-  }
-
-  if (!mappedInput.hasTouch()) {
-    const int helpHeight = renderer.getLineHeight(UI_10_FONT_ID);
-    const fui::Rect band = screen.takeBottom(static_cast<int16_t>(helpHeight + metrics.verticalSpacing));
-    GUI.drawHelpText(renderer, Rect{band.x, band.y + metrics.verticalSpacing, band.width, helpHeight},
-                     tr(STR_HOLD_SELECT_TO_DELETE));
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    screen.setContentMarginFromScreen(fui::Insets{90, 0, 16, 0});
+    if (listCount() == 0) {
+      const fui::Rect b = screen.body();
+      AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, b.y + b.height / 2 - 12, AtelierChrome::font14Reg(),
+                              tr(STR_NO_CLIPPINGS), AtelierTone::Muted, 0, AtelierChrome::CONTENT_W, 1, true);
+      return;
+    }
+  } else
+#endif
+  {
+    const auto& metrics = UITheme::getInstance().getMetrics();
+    const Rect safe = UITheme::getInstance().getScreenSafeArea(renderer, true, false);
+    screen.setContentMarginFromScreen(fui::Insets{
+        static_cast<int16_t>(safe.y + metrics.topPadding + metrics.headerHeight),
+        static_cast<int16_t>(renderer.getScreenWidth() - (safe.x + safe.width)),
+        static_cast<int16_t>(renderer.getScreenHeight() - (safe.y + safe.height)), static_cast<int16_t>(safe.x)});
+    screen.spacer(static_cast<int16_t>(metrics.verticalSpacing));
+    if (listCount() == 0) {
+      screen.centeredText(tr(STR_NO_CLIPPINGS), screen.theme().bodyText);
+      return;
+    }
+    if (!mappedInput.hasTouch()) {
+      const int helpHeight = renderer.getLineHeight(UI_10_FONT_ID);
+      const fui::Rect band = screen.takeBottom(static_cast<int16_t>(helpHeight + metrics.verticalSpacing));
+      GUI.drawHelpText(renderer, Rect{band.x, band.y + metrics.verticalSpacing, band.width, helpHeight},
+                       tr(STR_HOLD_SELECT_TO_DELETE));
+    }
   }
 
   fui::ListProps props;
@@ -202,10 +215,21 @@ void EpubReaderClippingListActivity::buildScreen(UiScreen& screen) {
   props.items = rowItems.data();
   props.itemsWindowFirst = static_cast<uint16_t>(windowStart);
   props.itemsWindowCount = static_cast<uint16_t>(windowCount);
-  screen.list(props);
+  renderList(screen, props);
+}
+
+void EpubReaderClippingListActivity::drawOverlay() {
+  if (confirmPopup.isActive()) confirmPopup.render(renderer);
 }
 
 void EpubReaderClippingListActivity::render(RenderLock&& lock) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    initialListRender = false;
+    UiListActivity::render(std::move(lock));
+    return;
+  }
+#endif
   if (confirmPopup.processRender(renderer, mappedInput)) return;
   if (initialListRender && listCount() > 0) {
     renderer.clearScreen();

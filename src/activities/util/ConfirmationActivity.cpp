@@ -3,6 +3,7 @@
 #include <I18n.h>
 
 #include "HalDisplay.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 
 ConfirmationActivity::ConfirmationActivity(GfxRenderer& renderer, MappedInputManager& mappedInput,
@@ -35,6 +36,23 @@ void ConfirmationActivity::onEnter() {
 }
 
 void ConfirmationActivity::render(RenderLock&& lock) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer) && confirmPopup.isActive()) {
+    struct Ctx {
+      ConfirmationActivity* self;
+    } ctx{this};
+    AtelierChrome::renderGrayscalePass(
+        renderer, HalDisplay::RefreshMode::FAST_REFRESH,
+        [](void* raw) {
+          auto* self = static_cast<Ctx*>(raw)->self;
+          self->renderer.clearScreen();
+          AtelierChrome::drawHeader(self->renderer, tr(STR_CONFIRM), nullptr, true, "00.0");
+          self->confirmPopup.render(self->renderer);
+        },
+        &ctx);
+    return;
+  }
+#endif
   renderer.clearScreen();
 
   if (confirmPopup.processRender(renderer, mappedInput)) return;

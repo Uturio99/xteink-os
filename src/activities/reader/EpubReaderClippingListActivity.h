@@ -23,6 +23,8 @@ class EpubReaderClippingListActivity final : public UiListActivity {
 
   int listCount() const override;
   void buildScreen(UiScreen& screen) override;
+  void drawOverlay() override;
+  const char* atelierEyebrowCode() const override { return "02.5"; }
   void activateIndex(int index) override;
   void onRowLongPress(int index) override;
   bool handleCustomInput() override;

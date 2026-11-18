@@ -12,6 +12,7 @@
 #include "MappedInputManager.h"
 #include "SilentRestart.h"
 #include "activities/network/WifiSelectionActivity.h"
+#include "components/AtelierChrome.h"
 #include "components/UITheme.h"
 #include "fontIds.h"
 
@@ -101,6 +102,34 @@ void ClockSyncActivity::loop() {
 }
 
 void ClockSyncActivity::render(RenderLock&&) {
+#if FREEINK_DEVICE_X4PRO
+  if (AtelierChrome::isPortrait480x800(renderer)) {
+    AtelierChrome::AtelierStatusScreenSpec spec;
+    spec.eyebrowCode = "04.13";
+    spec.title = tr(STR_CLOCK_SYNC);
+    char line[64]{};
+    if (state == SYNCING) {
+      spec.headline = tr(STR_CLOCK_SYNCING);
+    } else if (state == SUCCESS) {
+      spec.headline = tr(STR_CLOCK_SYNC_OK);
+      if (syncedTime[0] != '\0') {
+        snprintf(line, sizeof(line), "%s %s", tr(STR_CURRENT_TIME), syncedTime);
+        spec.body = line;
+      }
+      spec.footerHint = tr(STR_TAP_BACK_TO_RETURN);
+    } else if (state == NO_WIFI) {
+      spec.headline = tr(STR_CLOCK_SYNC_NO_WIFI);
+      spec.body = tr(STR_CLOCK_SYNC_NO_WIFI_HINT);
+      spec.footerHint = tr(STR_TAP_BACK_TO_RETURN);
+    } else if (state == FAILED) {
+      spec.headline = tr(STR_CLOCK_SYNC_FAIL);
+      spec.body = tr(STR_CHECK_SERIAL_OUTPUT);
+      spec.footerHint = tr(STR_TAP_BACK_TO_RETURN);
+    }
+    AtelierChrome::drawStatusScreen(renderer, spec);
+    return;
+  }
+#endif
   const auto& metrics = UITheme::getInstance().getMetrics();
   const auto pageWidth = renderer.getScreenWidth();
   const auto pageHeight = renderer.getScreenHeight();
