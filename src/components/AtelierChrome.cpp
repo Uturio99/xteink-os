@@ -887,7 +887,9 @@ void drawHeader(const GfxRenderer& renderer, const char* title, const char* righ
 void drawTabBar(UiAppHost::UiScreen& screen, const GfxRenderer& renderer, const fui::TabItem* tabs,
                 const uint16_t count, const fui::ActionId action) {
   if (!tabs || count == 0) return;
-  const fui::Rect taken = screen.takeTop(38);
+  // Region is 44 px for touch; the band is drawn in its top 38 px.
+  constexpr int16_t kTabHitH = 44;
+  const fui::Rect taken = screen.takeTop(kTabHitH);
   const int16_t barY = std::max<int16_t>(taken.y, HEADER_RULE_Y + 2);
   const int16_t barH = 38;
   fillRect(renderer, MARGIN_X, barY + barH - 1, CONTENT_W, 1, 1);
@@ -928,7 +930,7 @@ void drawTabBar(UiAppHost::UiScreen& screen, const GfxRenderer& renderer, const 
       fillRect(renderer, ux, barY + barH - 2, uw, 2, 3);
     }
 
-    screen.frame().hit(fui::Rect{static_cast<int16_t>(tabX), barY, static_cast<int16_t>(slotW), barH}, action,
+    screen.frame().hit(fui::Rect{static_cast<int16_t>(tabX), barY, static_cast<int16_t>(slotW), kTabHitH}, action,
                        tabs[i].value, fui::InputTouch, fui::StateNormal);
   }
 }

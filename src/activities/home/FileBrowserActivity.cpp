@@ -567,36 +567,35 @@ bool FileBrowserActivity::handleButtons() {
   }
 
   if (mappedInput.wasReleased(MappedInputManager::Button::Back)) {
-    // Short press: go up one directory, or go home if at root
-    if (mappedInput.getHeldTime() < GO_HOME_MS) {
-      if (basepath != "/") {
-        const std::string oldPath = basepath;
+    // Go up one directory, or leave at root (Books jumps to root on long Back
+    // in handleCustomInput above, so a release reaching here is unclaimed).
+    if (basepath != "/") {
+      const std::string oldPath = basepath;
 
-        {
-          // buildScreen() runs on the render task and reads basepath plus `files`
-          // through the row provider; mutate only under the render lock.
-          RenderLock lock(*this);
-          basepath.replace(basepath.find_last_of('/'), std::string::npos, "");
-          if (basepath.empty()) basepath = "/";
-          loadFiles();
+      {
+        // buildScreen() runs on the render task and reads basepath plus `files`
+        // through the row provider; mutate only under the render lock.
+        RenderLock lock(*this);
+        basepath.replace(basepath.find_last_of('/'), std::string::npos, "");
+        if (basepath.empty()) basepath = "/";
+        loadFiles();
 
-          const auto pos = oldPath.find_last_of('/');
-          const std::string dirName = oldPath.substr(pos + 1) + "/";
-          nav.selected = static_cast<int>(findEntry(dirName));
-          nav.top = 0;
-          nav.follow(listCount());
-        }
-
-        requestUpdate();
-      } else if (mode == Mode::PickFirmware) {
-        // Firmware picker at root: cancel back to caller instead of going home.
-        ActivityResult res;
-        res.isCancelled = true;
-        setResult(std::move(res));
-        finish();
-      } else {
-        onGoHome();
+        const auto pos = oldPath.find_last_of('/');
+        const std::string dirName = oldPath.substr(pos + 1) + "/";
+        nav.selected = static_cast<int>(findEntry(dirName));
+        nav.top = 0;
+        nav.follow(listCount());
       }
+
+      requestUpdate();
+    } else if (mode == Mode::PickFirmware) {
+      // Firmware picker at root: cancel back to caller instead of going home.
+      ActivityResult res;
+      res.isCancelled = true;
+      setResult(std::move(res));
+      finish();
+    } else {
+      onGoHome();
     }
     return true;
   }
