@@ -368,7 +368,7 @@ void ReaderToolbarUi::buildAtelierToolbar(UiScreen& screen) {
 
   // Meta row: chapter title left, page / book % right
   if (model_.pageInfo) {
-    const int infoW = AtelierChrome::measureText(AtelierChrome::font11Reg(), model_.pageInfo, 0);
+    const int infoW = AtelierChrome::measureText(renderer_, AtelierChrome::font11Reg(), model_.pageInfo, 0);
     AtelierChrome::drawText(renderer_, AtelierChrome::MARGIN_X + AtelierChrome::CONTENT_W - infoW, sheetY + 30,
                             AtelierChrome::font11Reg(), model_.pageInfo, AtelierTone::Muted, 0, infoW + 4, 2, false);
     if (model_.chapterTitle) {
@@ -419,7 +419,7 @@ void ReaderToolbarUi::buildAtelierPanel(UiScreen& screen) {
   // Header inside sheet (16px top/bottom rhythm matching OptionPopup sheets)
   char countStr[24]{};
   snprintf(countStr, sizeof(countStr), tr(STR_ATELIER_COUNT_ITEMS_FMT), count);
-  const int countW = AtelierChrome::measureText(AtelierChrome::font10Bold(), countStr, 1);
+  const int countW = AtelierChrome::measureText(renderer_, AtelierChrome::font10Bold(), countStr, 1);
   AtelierChrome::drawText(renderer_, AtelierChrome::MARGIN_X + AtelierChrome::CONTENT_W - countW, sheetY + 21,
                           AtelierChrome::font10Bold(), countStr, AtelierTone::Muted, 1, countW + 4, 2, false);
   AtelierChrome::drawText(renderer_, AtelierChrome::MARGIN_X, sheetY + 16, AtelierChrome::font20Light(),
