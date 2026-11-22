@@ -40,6 +40,24 @@ REC-01 adds one current-revision disposition table to the recovered STEP 03 file
 
 ## Execution target and REC-02 evidence
 
+**2026-11-22 baseline update.** The PO adopted commit `d779c0bd` (branch `experiment/antigravity-crosspoint-ui`) as the new working baseline. The current candidate is `63c9baea50f7183dc045affe8727551e90d2e425` (`chore/update-local-ignore`, one ignore-rule commit on top of d779c0bd). This decision adopts a baseline; it is not behavior, visual or maintenance acceptance and it does not close G1–G5. REC-02b evidence (2026-11-22, fresh WSL Linux-native clone `~/noveos-rec02b` @63c9baea, SDK 946e6ac3/lucide c81680e0): py unittest 8/8 PASS; CTest 906/906 PASS; `pio run -e simulator`, `-e simulator_x4_pro` and `-e x4pro` all exited 0 on fresh builds; x4pro RAM 111,780/327,680, Flash 5,935,698/6,553,600 (90.6%), IRAM 16,384/16,384 (0 B free), DIRAM 202,038/341,760; simulator_x4_pro smoke walked Home→SettingsList via TAP 420,768 with screenshots. Logs: `\\wsl$\Ubuntu\home\uturio\noveos-rec02b\_rec02b-logs\`. Evidence layer: BUILD_VERIFIED plus SIMULATOR_BEHAVIOR_VERIFIED for that path only; hardware NOT TESTED. `feat/noveos-native` and REC-01 anchor `17773ef2` remain the historical comparison refs.
+
+### Atelier change map (d779c0bd)
+
+| Area touched by d779c0bd | Example paths | Affected gate/checkpoint |
+|---|---|---|
+| Atelier chrome and shared drawing | `src/components/AtelierChrome.*`, `AtelierSelection.h`, `OptionPopup.h`, `UiSliderDialog.h`, `CatalogScreens.*` | REC-04/G4 |
+| Baked fonts | `src/components/AtelierFontData.h` (14 baked 2-bit fonts) | G4 — open item: PO selection plus glyph/fallback/flash evidence (flash 90.6%, IRAM full) |
+| Home layout and themes | `src/components/CoverGridHomeUi.cpp`, `X4ProHomeLayout.h`, `src/components/themes/*` | REC-04/H |
+| Home and files | `src/activities/home/HomeActivity.cpp`, `FileBrowserActivity.cpp`, `CrashActivity.cpp` | REC-04/H |
+| Library and shared list hosts | `src/activities/library/LibraryListActivity.cpp`, `src/activities/UiListActivity.*` (bottom nav, swipe-to-delete), `UiTabListActivity.*` | REC-03/REC-04 |
+| Reader surface | `src/activities/reader/*` incl. `EpubReaderActivity.cpp`, `ReaderToolbarUi.cpp` | REC-03/REC-04/R |
+| Settings, network, plugins, browser, util activities | `src/activities/settings/*`, `network/*`, `plugins/*`, `browser/*`, `util/*` | REC-05 |
+| Boot, sleep and branding | `src/activities/boot_sleep/*`, `src/activities/settings/AboutActivity.cpp`, `src/images/NoveOsLogo.h`, `scripts/convert_noveos_logo.py` | BRAND-001 — resolved 2026-11-22 (NoveOS splash/sleep/About accepted) |
+| Renderer, i18n and tests | `lib/GfxRenderer/*`, `lib/I18n/translations/*.yaml`, `test/*` | i18n workflow; host evidence |
+
+The F-ID impact of d779c0bd is NOT reconciled; it remains a source-level G1 follow-up.
+
 The published REC-01 anchor is **17773ef2100e4e0f51ebbff66d86ce58ddb1ec98** in the existing Uturio99/xteink-os repository. Use **feat/noveos-native** in the existing external REC-01 worktree. The same-SHA switch and bounded REC-02 tooling scope are authorized by the PO's instruction to execute the revised plan. The REC-01 checkpoint remains the immutable comparison ref. Historical Home/font/parser worktrees and the Phase 03-P0 recovery vault remain candidate evidence.
 
 The SDK gitlink and its own checkout match **946e6ac3d7a9d590ba3224428e6183d55ac7917c**, with nested Lucide at **c81680e066f45b640743ca78ae36cdedda3f0318**. Keep simulator **6730fe5fe576c9d924e44096a9e267d8538d184c** and JPEGDEC **86282979224c8a32fd51e091ed5a35b0c699a52b** pinned. X4 Pro uses ESP32-S3, native 800×480 mapped to portrait, GT911, SDMMC and a distinct Home input. Confirm panel and USB/VBUS behavior on the actual unit.
@@ -72,7 +90,7 @@ Report **SOURCE_VERIFIED**, **BUILD_VERIFIED**, **SIMULATOR_RENDER_VERIFIED**, *
 | REC-05 | Settings and Import | File Browser, OPDS, Plugins, dialogs and feedback where approved | Service-specific views without an approved template. |
 | REC-06 | Review affected templates across the four journeys | Review shared states in those journeys | Startup splash, boot identifiers, crash and recovery under BRAND-001 and existing safety contracts. |
 
-Use the STEP 03 ledger for capability outcomes and this table for visual disposition. Keep CrossPoint attribution. The app-controlled startup splash still shows CrossPoint under [BRAND-001](../step07b/STEP-07B.1R-DECISIONS.md). Any later splash change needs separate approval and belongs to BootActivity and its assets. Bootloader, partitions, crash and recovery have separate owners.
+Use the STEP 03 ledger for capability outcomes and this table for visual disposition. Keep CrossPoint attribution. The app-controlled startup splash still shows CrossPoint under [BRAND-001](../step07b/STEP-07B.1R-DECISIONS.md). Any later splash change needs separate approval and belongs to BootActivity and its assets. Bootloader, partitions, crash and recovery have separate owners. The adopted Atelier baseline (d779c0bd) shows a NoveOS splash. The PO resolved this on 2026-11-22 by amending BRAND-001: startup splash, sleep and About use NoveOS branding. CrossPoint attribution in About remains an open follow-up.
 
 ### Device entry, measurements and recovery
 
@@ -121,7 +139,7 @@ These statuses are the recovery snapshot, not invented Beads issue IDs. Changes 
 | Field | Contract |
 |---|---|
 | Objective | Produce reproducible x4pro and simulator_x4_pro artifacts, then establish the baseline evidence needed for G1 and REC-03/B. |
-| Status | IN PROGRESS — diagnostic build and simulator GUI smoke evidence recorded; build bottleneck confirmed at dependency scanning. Package exit gate is not met: fresh reproducible artifacts and baseline/G1/device evidence remain open. |
+| Status | IN PROGRESS — REC-02b (2026-11-22) recorded fresh x4pro, simulator and simulator_x4_pro artifacts and a visible Home→SettingsList smoke on baseline 63c9baea, so the build checkpoint exit is met. Baseline/G1/device verification stays open. Earlier 2026-11-11 evidence: incremental diagnostic build and GUI smoke recorded; bottleneck confirmed at `/mnt/c` dependency scanning. |
 | Build scope | Preserve the three simulator compatibility calls and normalized SimLog/0001 bytes. Normalize 0002 and 0003 to LF. Set text eol=lf for the simulator patch and JPEGDEC patch series. Keep all hunk bodies and dependency pins. |
 | Build verification | Patch fixture checks and before-image preservation passed per the 2026-11-11 REC-02 evidence bundle. x4pro and simulator commands exited 0; simulator incremental run took 875.10 s, spent 809.74 s scanning, and did not relink. Historical simulator executable SHA-256 `fd95fe3853571451530c7e3fd916c2f8bd6c483c61c3a3556f1b71f5bf07cd4c` has isolated-SD GUI smoke evidence, but fresh-link hash equality is NOT TESTED. Build-time content-signature check reported it up to date at HEAD. Preserve caches and pins. No performance correction has been validated. |
 | Baseline verification | Reuse valid evidence. Exercise STEP 03/05 cases needed for G1. Record source-verified Back and sync/loan mismatches separately from measured baseline outcomes. Capture the same-binary Library-origin/root-open memory and SD comparison after device entry approval. |
@@ -148,7 +166,7 @@ These statuses are the recovery snapshot, not invented Beads issue IDs. Changes 
 | Field | Contract |
 |---|---|
 | Objective | Open/resume/read/return using approved native V2 composition and legible Vietnamese. |
-| Status | BLOCKED for H on reproducible builds, G1 disposition and named Home scope. R depends on REC-03. G4 applies to final REC-04 acceptance. |
+| Status | BLOCKED for H on reproducible builds, G1 disposition and named Home scope. R depends on REC-03. G4 applies to final REC-04 acceptance. The Atelier candidate (d779c0bd) implements an X4 Pro Home/Library/Reader presentation in source (`src/components/CoverGridHomeUi.cpp`, `src/activities/library/LibraryListActivity.cpp`, `src/activities/reader/ReaderToolbarUi.cpp`, `src/components/AtelierChrome.*`); its acceptance against REC-04 is UNKNOWN and G1/G4 remain open. |
 | Dependencies | H uses existing font IDs and routes. R uses the accepted NAV slice and requires glyph/fallback/flash evidence and PO selection before adopting new fonts. |
 | Authority | V2, Hybrid demo, reconciled STEP 06; existing UI ownership and font rules. |
 | Scope | Existing Home/CoverGridHomeUi/X4ProHomeLayout, Library/Reader drawing, UITheme/ThemeMetrics/token bridge and font assets only as approved. |
@@ -198,4 +216,4 @@ CI already has formatting, cppcheck, eight board builds (including x4pro/default
 
 ## Current handoff
 
-REC-02 diagnosis is complete for this bounded checkpoint; package remains IN PROGRESS pending reproducible fresh-link provenance, efficient iteration and its baseline/G1/device evidence. Next: propose a measured, correctness-preserving way to avoid repeated `/mnt/c` dependency scans (retain direct launch for unchanged-source GUI iteration); obtain PO approval before changing LDF semantics or build placement. G1 adoption/disposition gates native integration; G2 gates REC-03/A; G3 device evidence gates REC-03/B. Hardware actions and any broader change require their applicable authorization.
+REC-02 diagnosis is complete for this bounded checkpoint; package remains IN PROGRESS pending its baseline/G1/device evidence. REC-02b recorded fresh reproducible artifacts on baseline 63c9baea. The `/mnt/c` scan-latency note stays as historical: REC-02b avoided repeated scans by building on a Linux-native clone (no LDF/pin change). Next: (a) G4 font disposition for the Atelier baseline (BRAND-001 resolved 2026-11-22); (b) G1 adoption; (c) FIX-01 Atelier glyph fallback (plan `../../superpowers/plans/2026-11-18-atelier-glyph-fallback.md`) after PO go; (d) UX-01 read-only interaction audit; (e) HW-01 human device checks, which need flash authorization. G1 adoption/disposition gates native integration; G2 gates REC-03/A; G3 device evidence gates REC-03/B. Hardware actions and any broader change require their applicable authorization.
