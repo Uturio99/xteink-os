@@ -1093,7 +1093,7 @@ void LibraryListActivity::buildHeader(UiScreen& screen) {
       }
     }
 
-    const int countW = AtelierChrome::measureText(AtelierChrome::font10Bold(), countStr, 1);
+    const int countW = AtelierChrome::measureText(renderer, AtelierChrome::font10Bold(), countStr, 1);
     const int countX = rightEdge - countW - 2;
     AtelierChrome::drawText(renderer, countX, 60, AtelierChrome::font10Bold(), countStr, AtelierTone::Muted, 1,
                             countW + 4, 2, false);

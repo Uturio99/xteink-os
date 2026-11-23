@@ -92,13 +92,13 @@ void drawAtelierEditorialCover(const GfxRenderer& renderer, const HomeLayoutRect
   AtelierChrome::normalizeUtf8Stack(book.title.c_str(), mainTitle, sizeof(mainTitle));
   if (char* dashPos = std::strstr(mainTitle, " — ")) *dashPos = '\0';
 
-  const WrappedAtelierLines coverLines = AtelierChrome::wrapText(AtelierChrome::font17Serif(), mainTitle, innerW, 3);
+  const WrappedAtelierLines coverLines = AtelierChrome::wrapText(renderer, AtelierChrome::font17Serif(), mainTitle, innerW, 3);
   const int lineStep = 20;
   const int blockH = std::max(1, coverLines.count) * lineStep;
   const int blockY = r.y + (r.height - blockH) / 2 - 2;
   for (int i = 0; i < coverLines.count; ++i) {
     AtelierChrome::drawText(renderer, r.x + PAD_X, blockY + i * lineStep, AtelierChrome::font17Serif(),
-                            coverLines.lines[i], AtelierTone::PaperOnInk, 0, innerW, 0, i + 1 == coverLines.count);
+                            coverLines.lines[i], AtelierTone::PaperOnInk, 0, innerW, 0, i + 1 == coverLines.count, coverLines.useFallback);
   }
 
   const int ruleY = r.bottom() - 28;
@@ -280,11 +280,11 @@ void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
                             false);
 
     const WrappedAtelierLines headlineLines =
-        AtelierChrome::wrapText(AtelierChrome::font34Light(), tr(STR_HOME_EMPTY_HEADLINE), 416, 2);
+        AtelierChrome::wrapText(renderer, AtelierChrome::font34Light(), tr(STR_HOME_EMPTY_HEADLINE), 416, 2);
     int headlineY = 194;
     for (int i = 0; i < headlineLines.count; ++i) {
       AtelierChrome::drawText(renderer, 32, headlineY, AtelierChrome::font34Light(), headlineLines.lines[i],
-                              AtelierTone::Ink, 0, 416, 0, i + 1 == headlineLines.count);
+                              AtelierTone::Ink, 0, 416, 0, i + 1 == headlineLines.count, headlineLines.useFallback);
       headlineY += 38;
     }
     AtelierChrome::drawText(renderer, 32, 286, AtelierChrome::font14Reg(), tr(STR_NO_OPEN_BOOK), AtelierTone::Muted, 0,
@@ -294,7 +294,7 @@ void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
     constexpr int ctaY = 344;
     const char* openLibLabel = tr(STR_HOME_OPEN_LIBRARY);
     const int ctaW =
-        std::clamp(AtelierChrome::measureText(AtelierChrome::font13Bold(), openLibLabel, 0) + 60, 176, 224);
+        std::clamp(AtelierChrome::measureText(renderer, AtelierChrome::font13Bold(), openLibLabel, 0) + 60, 176, 224);
     constexpr int ctaH = 44;
     AtelierChrome::fillCapsule(renderer, ctaX, ctaY, ctaW, ctaH);
     AtelierChrome::drawText(renderer, ctaX + 20,
@@ -307,7 +307,7 @@ void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
     const int transferX = ctaX + ctaW + 12;
     const char* transferLabel = tr(STR_FILE_TRANSFER);
     const int transferW =
-        std::clamp(AtelierChrome::measureText(AtelierChrome::font13Reg(), transferLabel, 0) + 36, 148, 448 - transferX);
+        std::clamp(AtelierChrome::measureText(renderer, AtelierChrome::font13Reg(), transferLabel, 0) + 36, 148, 448 - transferX);
     AtelierChrome::drawCapsuleButton(renderer, transferX, 344, transferW, 44, transferLabel,
                                      AtelierChrome::font13Reg(), false, true, false, true);
     screen.frame().hit(
@@ -316,7 +316,7 @@ void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
 
     const char* browseLabel = tr(STR_BROWSE_FILES);
     const int browseW =
-        std::clamp(AtelierChrome::measureText(AtelierChrome::font13Reg(), browseLabel, 0) + 36, 148, 280);
+        std::clamp(AtelierChrome::measureText(renderer, AtelierChrome::font13Reg(), browseLabel, 0) + 36, 148, 280);
     AtelierChrome::drawCapsuleButton(renderer, 32, 400, browseW, 44, browseLabel, AtelierChrome::font13Reg(), false,
                                      true, false, true);
     screen.frame().hit(fui::Rect{32, 400, static_cast<int16_t>(browseW), 44}, SELECT,
@@ -355,11 +355,11 @@ void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
     heroSub = emDash + 5;
   }
   const WrappedAtelierLines titleLines =
-      AtelierChrome::wrapText(AtelierChrome::font27Light(), heroMain, layout.heroTitle.width, 2);
+      AtelierChrome::wrapText(renderer, AtelierChrome::font27Light(), heroMain, layout.heroTitle.width, 2);
   int titleY = layout.heroTitle.y;
   for (int i = 0; i < titleLines.count; ++i) {
     AtelierChrome::drawText(renderer, layout.heroTitle.x, titleY, AtelierChrome::font27Light(), titleLines.lines[i],
-                            AtelierTone::Ink, 0, layout.heroTitle.width, 0, i + 1 == titleLines.count && !heroSub);
+                            AtelierTone::Ink, 0, layout.heroTitle.width, 0, i + 1 == titleLines.count && !heroSub, titleLines.useFallback);
     titleY += 30;
   }
   if (heroSub && heroSub[0] != '\0') {
@@ -401,7 +401,7 @@ void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
   // Action row: Apple capsule CTA + two 44x44 outlined circular buttons
   const int16_t ctaAction = static_cast<int16_t>(x4ProHeroCtaAction(hasContinueReading, bookCount));
   const char* ctaText = hasContinueReading ? tr(STR_CONTINUE_READING) : tr(STR_LIBRARY);
-  const int heroCtaW = std::clamp(AtelierChrome::measureText(AtelierChrome::font13Bold(), ctaText, 0) + 60,
+  const int heroCtaW = std::clamp(AtelierChrome::measureText(renderer, AtelierChrome::font13Bold(), ctaText, 0) + 60,
                                   static_cast<int>(layout.cta.width),
                                   static_cast<int>(layout.btnSecondaryLeft.x - 16 - layout.cta.x));
   AtelierChrome::fillCapsule(renderer, layout.cta.x, layout.cta.y, heroCtaW, layout.cta.height);
@@ -468,7 +468,7 @@ void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
     } else {
       snprintf(rightMetric, sizeof(rightMetric), "%s", FsHelpers::hasXtcExtension(book.path) ? "XTC" : "EPUB");
     }
-    const int metricW = AtelierChrome::measureText(AtelierChrome::font12Reg(), rightMetric, 0);
+    const int metricW = AtelierChrome::measureText(renderer, AtelierChrome::font12Reg(), rightMetric, 0);
     const int chevronX = row.right() - 16;
     const auto sel = makeAtelierRowSelectionLayout(row.x, row.y, row.width, row.height, isSel, 34 + metricW);
     if (sel.selected) {

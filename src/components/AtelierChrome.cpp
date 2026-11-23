@@ -2,6 +2,7 @@
 
 #if FREEINK_DEVICE_X4PRO
 
+#include <BidiUtils.h>
 #include <BitmapHelpers.h>
 #include <CrossPointSettings.h>
 #include <HalClock.h>
@@ -28,6 +29,17 @@ namespace {
 bool sGrayscalePassActive = false;
 int sPendingBottomNavTab = -1;
 
+// Suspends the Atelier text hook for a scoped renderer call so fallback
+// measure/draw see the real EpdFont metrics and never re-enter the hook.
+struct ScopedTextHookSuspend {
+  const GfxRenderer& r;
+  const GfxRenderer::UiTextOverrideHook saved;
+  explicit ScopedTextHookSuspend(const GfxRenderer& r) : r(r), saved(r.uiTextOverrideHook()) {
+    r.setUiTextOverrideHook(GfxRenderer::UiTextOverrideHook{});
+  }
+  ~ScopedTextHookSuspend() { r.setUiTextOverrideHook(saved); }
+};
+
 const AtelierGlyph* findAtelierGlyphRaw(const AtelierFont& font, const uint32_t cp) {
   const uint16_t key = cp <= 0xFFFFu ? static_cast<uint16_t>(cp) : static_cast<uint16_t>('?');
   const AtelierGlyph* begin = font.glyphs;
@@ -45,16 +57,20 @@ const AtelierGlyph* findAtelierGlyph(const AtelierFont& font, const uint32_t cp)
   return nullptr;
 }
 
-bool fontCoversText(const AtelierFont& font, const char* text) {
-  if (!text) return true;
-  char norm[256];
-  normalizeUtf8Stack(text, norm, sizeof(norm));
-  const auto* p = reinterpret_cast<const unsigned char*>(norm);
+bool fontCoversNormalized(const AtelierFont& font, const char* nfcText) {
+  const auto* p = reinterpret_cast<const unsigned char*>(nfcText);
   while (const uint32_t cp = utf8NextCodepoint(&p)) {
     if (cp <= 0x0020u || cp == 0x2013u || cp == 0x2014u) continue;
     if (!findAtelierGlyphRaw(font, cp)) return false;
   }
   return true;
+}
+
+bool fontCoversText(const AtelierFont& font, const char* text) {
+  if (!text) return true;
+  char norm[256];
+  normalizeUtf8Stack(text, norm, sizeof(norm));
+  return fontCoversNormalized(font, norm);
 }
 
 int measureNormalized(const AtelierFont& font, const char* nfcText, const int8_t trackingPx) {
@@ -69,6 +85,119 @@ int measureNormalized(const AtelierFont& font, const char* nfcText, const int8_t
     ++count;
   }
   return static_cast<int>((penFp4 + 8) >> 4);
+}
+
+// Built-in UI font that stands in for an Atelier font when a string has
+// uncovered codepoints. Sized by ascender (the built-ins run much taller per
+// nominal size at 150 DPI: ascender 16/20/24 for 8/10/12pt), nearest real
+// ascender with ties going smaller so fallback never grows a row.
+// BOLD only for the bold faces (16Med maps to REGULAR — medium is not bold).
+struct FallbackFont {
+  int fontId;
+  EpdFontFamily::Style style;
+};
+
+FallbackFont fallbackFontFor(const AtelierFont& font) {
+  const bool bold = &font == &kAtelierFont8Bold || &font == &kAtelierFont10Bold ||
+                    &font == &kAtelierFont11Bold || &font == &kAtelierFont12Bold ||
+                    &font == &kAtelierFont13Bold;
+  const int fontId = font.ascender <= 18 ? SMALL_FONT_ID : font.ascender <= 22 ? UI_10_FONT_ID : UI_12_FONT_ID;
+  return {fontId, bold ? EpdFontFamily::BOLD : EpdFontFamily::REGULAR};
+}
+
+// Point size (at 150 DPI) of the built-in UI font id, matching the size the
+// SD-font system registers UI fallbacks under (kUiFontSizes in
+// SdCardFontSystem.cpp).
+int fallbackPointSize(const int fontId) {
+  return fontId == SMALL_FONT_ID ? 8 : fontId == UI_10_FONT_ID ? 10 : 12;
+}
+
+// Whether the resolved (primary or SD-fallback) font can draw `cp`.
+// resolveTextFontId is private, so this mirrors its outcome: the built-in
+// primary family, plus same-point-size SD fallback candidates in the font map
+// (the paired fallback is always among them; over-approximates only when two
+// different SD fallback families share a UI point size).
+bool fallbackChainDraws(const GfxRenderer& renderer, const int fontId, const EpdFontFamily::Style style,
+                        const uint32_t cp) {
+  const auto& fontMap = renderer.getFontMap();
+  const auto primIt = fontMap.find(fontId);
+  if (primIt == fontMap.end()) return false;
+  if (primIt->second.hasCodepoint(cp, style)) return true;
+  const float px = fallbackPointSize(fontId) * FONT_RASTER_DPI / 72.0f;
+  for (const auto& kv : renderer.getSdCardFonts()) {
+    const auto it = fontMap.find(kv.first);
+    if (it == fontMap.end()) continue;
+    if (std::abs(it->second.getSizeInPixels() - px) > 1.0f) continue;
+    if (it->second.hasCodepoint(cp, style)) return true;
+  }
+  return false;
+}
+
+// True when the renderer's fallback chain can draw at least one codepoint the
+// Atelier font lacks; otherwise the caller keeps the old `?` rendering —
+// mirrors the renderer's own whole-string policy in resolveTextFontId.
+// RTL text is checked on its shaped (presentation-form) stream, the same
+// codepoints drawText actually looks up after resolveVisualText.
+bool fallbackChainCovers(const GfxRenderer& renderer, const FallbackFont& fb, const AtelierFont& font,
+                         const char* nfcText) {
+  const auto anyDrawable = [&](const char* s) {
+    const auto* p = reinterpret_cast<const unsigned char*>(s);
+    while (const uint32_t cp = utf8NextCodepoint(&p)) {
+      if (cp >= 0x80u && !findAtelierGlyphRaw(font, cp) && fallbackChainDraws(renderer, fb.fontId, fb.style, cp)) {
+        return true;
+      }
+    }
+    return false;
+  };
+  if (anyDrawable(nfcText)) return true;
+  bool hasRtl = false;
+  for (const auto* s = reinterpret_cast<const unsigned char*>(nfcText); *s; ++s) {
+    if (*s >= 0xD6 && *s <= 0xDB) {
+      hasRtl = true;
+      break;
+    }
+  }
+  if (!hasRtl) return false;
+  std::string visual;
+  if (!BidiUtils::applyBidiVisual(nfcText, visual)) return false;
+  return anyDrawable(visual.c_str());
+}
+
+// One font choice per string: covered text keeps the Atelier font; uncovered
+// text falls through to the renderer so resolveTextFontId/SD fallbacks decide
+// the same font GfxRenderer::drawText would use — but only when the chain can
+// actually draw an uncovered codepoint. trackingPx is ignored on the fallback
+// path so measure and draw stay consistent.
+struct TextMeasure {
+  const AtelierFont* font;
+  const GfxRenderer* renderer;
+  FallbackFont fallback;
+  bool useFallback;
+};
+
+TextMeasure pickTextMeasure(const GfxRenderer& renderer, const AtelierFont& font, const char* nfcText) {
+  TextMeasure m{&font, &renderer, fallbackFontFor(font), false};
+  if (!fontCoversNormalized(font, nfcText) && fallbackChainCovers(renderer, m.fallback, font, nfcText)) {
+    m.useFallback = true;
+  }
+  return m;
+}
+
+// Wrap/truncate probes: Layout-mode advance measure avoids the glyph-resident
+// prewarm in getTextWidth for SD fonts with an advance table.
+int measureProbeWith(const TextMeasure& m, const char* text, const int8_t trackingPx) {
+  if (!m.useFallback) return measureNormalized(*m.font, text, trackingPx);
+  const ScopedTextHookSuspend suspend(*m.renderer);
+  return m.renderer->getTextAdvanceX(m.fallback.fontId, text, m.fallback.style, 0,
+                                     BidiUtils::BidiBaseDir::AUTO, GfxRenderer::TextMeasureMode::Layout);
+}
+
+// Final width for alignment: the same code path GfxRenderer::getTextWidth
+// would use inside the draw.
+int measureFinalWith(const TextMeasure& m, const char* text, const int8_t trackingPx) {
+  if (!m.useFallback) return measureNormalized(*m.font, text, trackingPx);
+  const ScopedTextHookSuspend suspend(*m.renderer);
+  return m.renderer->getTextWidth(m.fallback.fontId, text, m.fallback.style);
 }
 
 inline uint8_t shadeForTone(const AtelierTone tone, const uint8_t q) {
@@ -112,7 +241,10 @@ int hookAscender(const int fontId) {
 int hookMeasureWidth(const int fontId, const char* text, const EpdFontFamily::Style style) {
   const AtelierFont* f = resolveOverrideFont(fontId, style);
   if (!f || !fontCoversText(*f, text)) return -1;
-  return measureText(*f, text, 0);
+  // Text is covered, so only the Atelier path is needed (no fallback measure).
+  char norm[256];
+  normalizeUtf8Stack(text, norm, sizeof(norm));
+  return measureNormalized(*f, norm, 0);
 }
 
 bool hookDrawText(const GfxRenderer& renderer, const int fontId, const int x, const int y, const char* text,
@@ -131,17 +263,17 @@ bool hookDrawText(const GfxRenderer& renderer, const int fontId, const int x, co
 
 static constexpr char kEllipsis[] = "…";
 
-void truncateTailWithEllipsis(const AtelierFont& font, char* buf, const size_t cap, const int8_t trackingPx,
+void truncateTailWithEllipsis(const TextMeasure& m, char* buf, const size_t cap, const int8_t trackingPx,
                               const int maxWidth) {
-  if (measureNormalized(font, buf, trackingPx) <= maxWidth) return;
+  if (measureProbeWith(m, buf, trackingPx) <= maxWidth) return;
   constexpr size_t kEllLen = sizeof(kEllipsis) - 1;
-  const int ellW = measureNormalized(font, kEllipsis, trackingPx);
+  const int ellW = measureProbeWith(m, kEllipsis, trackingPx);
   const int budget = std::max(0, maxWidth - ellW);
   int len = static_cast<int>(std::strlen(buf));
   while (len > 0) {
     len = utf8SafeTruncateBuffer(buf, len - 1);
     buf[len] = '\0';
-    if (measureNormalized(font, buf, trackingPx) <= budget) break;
+    if (measureProbeWith(m, buf, trackingPx) <= budget) break;
   }
   const size_t avail = cap > kEllLen ? cap - 1 - kEllLen : 0;
   const size_t copyLen = std::min(static_cast<size_t>(len), avail);
@@ -150,8 +282,8 @@ void truncateTailWithEllipsis(const AtelierFont& font, char* buf, const size_t c
   buf[copyLen + ellCopy] = '\0';
 }
 
-void truncateLeadingPathEllipsis(char* pathBuf, const size_t cap, const int maxWidth) {
-  if (pathBuf[0] != '/' || measureText(kAtelierFont10Bold, pathBuf, 1) <= maxWidth) return;
+void truncateLeadingPathEllipsis(const GfxRenderer& renderer, char* pathBuf, const size_t cap, const int maxWidth) {
+  if (pathBuf[0] != '/' || measureText(renderer, kAtelierFont10Bold, pathBuf, 1) <= maxWidth) return;
   char candidate[64]{};
   constexpr size_t kEllLen = sizeof(kEllipsis) - 1;
   const auto setCandidate = [&](const char* suffix) {
@@ -165,7 +297,7 @@ void truncateLeadingPathEllipsis(char* pathBuf, const size_t cap, const int maxW
   bool fitted = false;
   while (const char* slash = std::strchr(p + 1, '/')) {
     setCandidate(slash);
-    if (measureText(kAtelierFont10Bold, candidate, 1) <= maxWidth) {
+    if (measureText(renderer, kAtelierFont10Bold, candidate, 1) <= maxWidth) {
       fitted = true;
       break;
     }
@@ -175,7 +307,7 @@ void truncateLeadingPathEllipsis(char* pathBuf, const size_t cap, const int maxW
     const char* tail = p;
     while (*tail != '\0') {
       setCandidate(tail);
-      if (measureText(kAtelierFont10Bold, candidate, 1) <= maxWidth) break;
+      if (measureText(renderer, kAtelierFont10Bold, candidate, 1) <= maxWidth) break;
       ++tail;
       while ((*tail & 0xC0u) == 0x80u) ++tail;
     }
@@ -251,27 +383,38 @@ void formatUpperAuthor(const std::string& rawAuthor, char* dst, const size_t cap
   formatUpperVi(trimmed.c_str(), dst, cap);
 }
 
-int measureText(const AtelierFont& font, const char* text, const int8_t trackingPx) {
+int measureText(const GfxRenderer& renderer, const AtelierFont& font, const char* text, const int8_t trackingPx) {
   char buf[256];
   normalizeUtf8Stack(text, buf, sizeof(buf));
-  return measureNormalized(font, buf, trackingPx);
+  return measureFinalWith(pickTextMeasure(renderer, font, buf), buf, trackingPx);
 }
 
 void drawText(const GfxRenderer& renderer, const int x, const int yTop, const AtelierFont& font, const char* text,
               const AtelierTone tone, const int8_t trackingPx, const int maxWidth, const int align,
-              const bool ellipsisIfOverflow) {
+              const bool ellipsisIfOverflow, const bool forceFallback) {
   if (!text || text[0] == '\0' || maxWidth <= 0) return;
   char buf[256];
   normalizeUtf8Stack(text, buf, sizeof(buf));
 
-  if (ellipsisIfOverflow) truncateTailWithEllipsis(font, buf, sizeof(buf), trackingPx, maxWidth);
+  TextMeasure m = pickTextMeasure(renderer, font, buf);
+  if (forceFallback) m.useFallback = true;
+  if (ellipsisIfOverflow) truncateTailWithEllipsis(m, buf, sizeof(buf), trackingPx, maxWidth);
 
-  const int totalW = measureNormalized(font, buf, trackingPx);
+  const int totalW = measureFinalWith(m, buf, trackingPx);
   int startX = x;
   if (align == 1) {
     startX = x + (maxWidth - totalW) / 2;
   } else if (align == 2) {
     startX = x + maxWidth - totalW;
+  }
+
+  if (m.useFallback) {
+    const ScopedTextHookSuspend suspend(renderer);
+    // Center the real EpdFont line box inside the Atelier line box; hook-free
+    // metrics keep the renderer's own SD-redirect centering correct too.
+    const int fbY = yTop + (font.lineHeight - renderer.getLineHeight(m.fallback.fontId)) / 2;
+    renderer.drawText(m.fallback.fontId, startX, fbY, buf, tone != AtelierTone::PaperOnInk, m.fallback.style);
+    return;
   }
 
   const int baselineY = yTop + font.ascender;
@@ -298,11 +441,14 @@ void drawText(const GfxRenderer& renderer, const int x, const int yTop, const At
   }
 }
 
-WrappedAtelierLines wrapText(const AtelierFont& font, const char* text, const int maxWidth, const int maxLines) {
+WrappedAtelierLines wrapText(const GfxRenderer& renderer, const AtelierFont& font, const char* text,
+                             const int maxWidth, const int maxLines) {
   WrappedAtelierLines res{};
   if (!text || text[0] == '\0' || maxLines <= 0) return res;
   char norm[256];
   normalizeUtf8Stack(text, norm, sizeof(norm));
+  const TextMeasure m = pickTextMeasure(renderer, font, norm);
+  res.useFallback = m.useFallback;
   const char* p = norm;
   while (*p && res.count < maxLines && res.count < 4) {
     while (*p == ' ') ++p;
@@ -318,7 +464,7 @@ WrappedAtelierLines wrapText(const AtelierFont& font, const char* text, const in
       if (candLen >= sizeof(probe)) break;
       memcpy(probe, lineStart, candLen);
       probe[candLen] = '\0';
-      if (measureNormalized(font, probe, 0) <= maxWidth) {
+      if (measureProbeWith(m, probe, 0) <= maxWidth) {
         lastFit = nextSpace;
         if (*nextSpace == ' ') {
           scan = nextSpace + 1;
@@ -341,7 +487,7 @@ WrappedAtelierLines wrapText(const AtelierFont& font, const char* text, const in
         if (n >= sizeof(probe)) break;
         memcpy(probe, lineStart, n);
         probe[n] = '\0';
-        if (measureNormalized(font, probe, 0) > maxWidth && best > lineStart) break;
+        if (measureProbeWith(m, probe, 0) > maxWidth && best > lineStart) break;
         best = next;
         cur = next;
       }
@@ -663,7 +809,7 @@ void drawStatusBar(const GfxRenderer& renderer, const int x, const int y, const 
 
   char rightLabel[32]{};
   formatUpperVi(backButton ? tr(STR_ATELIER_BACK) : tr(STR_ATELIER_MENU), rightLabel, sizeof(rightLabel));
-  const int rightW = measureText(kAtelierFont10Bold, rightLabel, 1);
+  const int rightW = measureText(renderer, kAtelierFont10Bold, rightLabel, 1);
   const int rightX = x + w - rightW;
   drawText(renderer, rightX, y + (h - kAtelierFont10Bold.lineHeight) / 2, kAtelierFont10Bold, rightLabel,
            AtelierTone::Ink, 1, rightW + 4, 0, false);
@@ -684,7 +830,7 @@ void drawStatusBar(const GfxRenderer& renderer, const int x, const int y, const 
   const uint16_t pct = std::min<uint16_t>(100, powerManager.getBatteryPercentage());
   char pctText[12]{};
   snprintf(pctText, sizeof(pctText), "%u%%", static_cast<unsigned>(pct));
-  const int pctW = measureText(kAtelierFont11Reg, pctText, 0);
+  const int pctW = measureText(renderer, kAtelierFont11Reg, pctText, 0);
   const int pctX = rightBlockLeft - 12 - pctW;
   drawText(renderer, pctX, y + (h - kAtelierFont11Reg.lineHeight) / 2, kAtelierFont11Reg, pctText, AtelierTone::Muted, 0,
            pctW + 4, 0, false);
@@ -724,8 +870,8 @@ void drawHeader(const GfxRenderer& renderer, const char* title, const char* righ
 
   static constexpr int kMaxRightW = 180;
   static constexpr int kMinHeaderGap = 16;
-  truncateLeadingPathEllipsis(rightBuf, sizeof(rightBuf), kMaxRightW);
-  const int rawRightW = rightBuf[0] != '\0' ? measureText(kAtelierFont10Bold, rightBuf, 1) : 0;
+  truncateLeadingPathEllipsis(renderer, rightBuf, sizeof(rightBuf), kMaxRightW);
+  const int rawRightW = rightBuf[0] != '\0' ? measureText(renderer, kAtelierFont10Bold, rightBuf, 1) : 0;
   const int rightW = std::min(kMaxRightW, rawRightW);
   if (rightW > 0) {
     drawText(renderer, MARGIN_X + CONTENT_W - rightW, 60, kAtelierFont10Bold, rightBuf, AtelierTone::Muted, 1, rightW,
@@ -741,7 +887,9 @@ void drawHeader(const GfxRenderer& renderer, const char* title, const char* righ
 void drawTabBar(UiAppHost::UiScreen& screen, const GfxRenderer& renderer, const fui::TabItem* tabs,
                 const uint16_t count, const fui::ActionId action) {
   if (!tabs || count == 0) return;
-  const fui::Rect taken = screen.takeTop(38);
+  // Region is 44 px for touch; the band is drawn in its top 38 px.
+  constexpr int16_t kTabHitH = 44;
+  const fui::Rect taken = screen.takeTop(kTabHitH);
   const int16_t barY = std::max<int16_t>(taken.y, HEADER_RULE_Y + 2);
   const int16_t barH = 38;
   fillRect(renderer, MARGIN_X, barY + barH - 1, CONTENT_W, 1, 1);
@@ -753,7 +901,7 @@ void drawTabBar(UiAppHost::UiScreen& screen, const GfxRenderer& renderer, const 
     const AtelierFont& font = tabs[i].selected ? kAtelierFont12Bold : kAtelierFont12Reg;
     const AtelierTone tone = tabs[i].selected ? AtelierTone::Ink : AtelierTone::Muted;
     const bool hasArrow = tabs[i].indicator == fui::TabIndicator::Down || tabs[i].indicator == fui::TabIndicator::Up;
-    const int labelW = measureText(font, raw, 0);
+    const int labelW = measureText(renderer, font, raw, 0);
     const int arrowReserve = hasArrow ? 12 : 0;
     const int totalW = std::min(slotW - 12, labelW + arrowReserve);
     const int drawLabelW = std::min(labelW, std::max(10, slotW - 12 - arrowReserve));
@@ -782,7 +930,7 @@ void drawTabBar(UiAppHost::UiScreen& screen, const GfxRenderer& renderer, const 
       fillRect(renderer, ux, barY + barH - 2, uw, 2, 3);
     }
 
-    screen.frame().hit(fui::Rect{static_cast<int16_t>(tabX), barY, static_cast<int16_t>(slotW), barH}, action,
+    screen.frame().hit(fui::Rect{static_cast<int16_t>(tabX), barY, static_cast<int16_t>(slotW), kTabHitH}, action,
                        tabs[i].value, fui::InputTouch, fui::StateNormal);
   }
 }
@@ -824,12 +972,12 @@ void drawEditorialList(UiAppHost::UiScreen& screen, const GfxRenderer& renderer,
     int rightReserved = 24;
     if (hasReveal) {
       formatUpperVi(tr(STR_DELETE), upperDel, sizeof(upperDel));
-      delW = std::clamp(measureText(kAtelierFont11Bold, upperDel, 0) + 22, 58, 96);
+      delW = std::clamp(measureText(renderer, kAtelierFont11Bold, upperDel, 0) + 22, 58, 96);
       rightReserved = delW + 12;
     } else if (item.toggle) {
       rightReserved = 48;
     } else if (item.value && item.value[0] != '\0') {
-      const int valW = std::min(132, measureText(kAtelierFont12Reg, item.value, 0));
+      const int valW = std::min(132, measureText(renderer, kAtelierFont12Reg, item.value, 0));
       rightReserved = valW + 30;
     }
 
@@ -837,13 +985,13 @@ void drawEditorialList(UiAppHost::UiScreen& screen, const GfxRenderer& renderer,
     const auto wrapLayout = makeAtelierRowSelectionLayout(MARGIN_X, 0, CONTENT_W, 0, isSel, rightReserved);
     const int maxLabelLines = std::clamp<int>(props.labelText.maxLines > 0 ? props.labelText.maxLines : 1, 1, 2);
     const WrappedAtelierLines labelLines =
-        wrapText(kAtelierFont16Med, item.label ? item.label : "", wrapLayout.textWidth, maxLabelLines);
+        wrapText(renderer, kAtelierFont16Med, item.label ? item.label : "", wrapLayout.textWidth, maxLabelLines);
 
     const bool hasSub = item.subtitle && item.subtitle[0] != '\0';
     WrappedAtelierLines subLines{};
     if (hasSub) {
       const int maxSubLines = std::clamp<int>(props.subtitleText.maxLines > 0 ? props.subtitleText.maxLines : 1, 1, 2);
-      subLines = wrapText(kAtelierFont12Reg, item.subtitle, wrapLayout.textWidth, maxSubLines);
+      subLines = wrapText(renderer, kAtelierFont12Reg, item.subtitle, wrapLayout.textWidth, maxSubLines);
     }
 
     const int labelCount = std::max(1, labelLines.count);
@@ -890,7 +1038,7 @@ void drawEditorialList(UiAppHost::UiScreen& screen, const GfxRenderer& renderer,
       drawChevronRight(renderer, chevX, ry + (bodyH - 14) / 2);
       if (item.value && item.value[0] != '\0') {
         const int maxValW = 132;
-        const int drawValW = std::min(maxValW, measureText(kAtelierFont12Reg, item.value, 0));
+        const int drawValW = std::min(maxValW, measureText(renderer, kAtelierFont12Reg, item.value, 0));
         drawText(renderer, chevX - 10 - drawValW, ry + (bodyH - kAtelierFont12Reg.lineHeight) / 2, kAtelierFont12Reg,
                  item.value, AtelierTone::Muted, 0, drawValW + 2, 2, true);
       }
@@ -899,14 +1047,14 @@ void drawEditorialList(UiAppHost::UiScreen& screen, const GfxRenderer& renderer,
     int textY = ry + (bodyH - 1 - textBlockH) / 2;
     for (int li = 0; li < labelLines.count; ++li) {
       drawText(renderer, sel.textX, textY, kAtelierFont16Med, labelLines.lines[li], AtelierTone::Ink, 0, sel.textWidth,
-               0, li + 1 == labelLines.count);
+               0, li + 1 == labelLines.count, labelLines.useFallback);
       textY += 20;
     }
     if (hasSub) {
       textY += 3;
       for (int si = 0; si < subLines.count; ++si) {
         drawText(renderer, sel.textX, textY, kAtelierFont12Reg, subLines.lines[si], AtelierTone::Muted, 0,
-                 sel.textWidth, 0, si + 1 == subLines.count);
+                 sel.textWidth, 0, si + 1 == subLines.count, subLines.useFallback);
         textY += 16;
       }
     }
@@ -948,7 +1096,7 @@ void drawBottomNav(const GfxRenderer& renderer, const int activeTab, UiAppHost::
   const char* const tabLabels[4] = {tr(STR_NAV_HOME), tr(STR_LIBRARY), tr(STR_NAV_FILES), tr(STR_SETTINGS_TITLE)};
   constexpr int colW = CONTENT_W / 4;
   constexpr int hitColW = 480 / 4;
-  constexpr int16_t hitY = 736;
+  constexpr int16_t hitY = BOTTOM_NAV_HIT_Y;
   constexpr int16_t hitH = 800 - hitY;
   for (int i = 0; i < 4; ++i) {
     const int tabX = MARGIN_X + i * colW;
@@ -967,7 +1115,7 @@ void drawBottomNav(const GfxRenderer& renderer, const int activeTab, UiAppHost::
 }
 
 bool handleBottomNavTap(const int tx, const int ty, const int currentTab, void (*goHomeFn)(), void (*goBackFn)()) {
-  if (ty < 736 || ty >= 800 || tx < 0 || tx >= 480) {
+  if (ty < BOTTOM_NAV_HIT_Y || ty >= 800 || tx < 0 || tx >= 480) {
     return false;
   }
   const int tab = tx / (480 / 4);
@@ -1034,7 +1182,7 @@ void drawReaderChrome(const GfxRenderer& renderer, const char* chapterTitle, con
     } else {
       snprintf(pctBuf, sizeof(pctBuf), "%d%%", pct);
     }
-    const int pctW = measureText(kAtelierFont10Bold, pctBuf, 1);
+    const int pctW = measureText(renderer, kAtelierFont10Bold, pctBuf, 1);
     drawText(renderer, readerX + readerW - pctW - 4, 18, kAtelierFont10Bold, pctBuf, AtelierTone::Muted, 1, pctW + 4,
              2, false);
 
@@ -1097,25 +1245,25 @@ void drawEditorialMessageScreen(const GfxRenderer& renderer, const char* eyebrow
   fillRect(renderer, MARGIN_X, 292, 48, 1, 3);
   int y = 312;
   if (headline && headline[0] != '\0') {
-    const WrappedAtelierLines largeLines = wrapText(kAtelierFont34Light, headline, CONTENT_W, 3);
-    const bool useLarge = largeLines.count <= 2 && measureText(kAtelierFont34Light, largeLines.lines[0], 0) <= CONTENT_W;
+    const WrappedAtelierLines largeLines = wrapText(renderer, kAtelierFont34Light, headline, CONTENT_W, 3);
+    const bool useLarge = largeLines.count <= 2 && measureText(renderer, kAtelierFont34Light, largeLines.lines[0], 0) <= CONTENT_W;
     const AtelierFont& headFont = useLarge ? kAtelierFont34Light : kAtelierFont27Light;
-    const WrappedAtelierLines lines = useLarge ? largeLines : wrapText(kAtelierFont27Light, headline, CONTENT_W, 4);
+    const WrappedAtelierLines lines = useLarge ? largeLines : wrapText(renderer, kAtelierFont27Light, headline, CONTENT_W, 4);
     const int step = headFont.lineHeight + 2;
     for (int i = 0; i < lines.count; ++i) {
       drawText(renderer, MARGIN_X, y, headFont, lines.lines[i], AtelierTone::Ink, 0, CONTENT_W, 0,
-               i + 1 == lines.count);
+               i + 1 == lines.count, lines.useFallback);
       y += step;
     }
   }
 
   if (subline && subline[0] != '\0') {
     y += 14;
-    const WrappedAtelierLines subLines = wrapText(kAtelierFont15Light, subline, CONTENT_W, 3);
+    const WrappedAtelierLines subLines = wrapText(renderer, kAtelierFont15Light, subline, CONTENT_W, 3);
     const int subStep = kAtelierFont15Light.lineHeight + 3;
     for (int i = 0; i < subLines.count; ++i) {
       drawText(renderer, MARGIN_X, y, kAtelierFont15Light, subLines.lines[i], AtelierTone::Muted, 0, CONTENT_W, 0,
-               i + 1 == subLines.count);
+               i + 1 == subLines.count, subLines.useFallback);
       y += subStep;
     }
   }
@@ -1135,7 +1283,7 @@ void drawNoveOsSplashScreen(const GfxRenderer& renderer, const char* eyebrowCode
   if (!isPortrait480x800(renderer)) return;
 
   static constexpr char kDeviceLabel[] = "XTEINK X4 PRO";
-  const int deviceLabelW = measureText(kAtelierFont10Bold, kDeviceLabel, 1);
+  const int deviceLabelW = measureText(renderer, kAtelierFont10Bold, kDeviceLabel, 1);
   if (eyebrowCode && eyebrowCode[0] != '\0') {
     const int maxLeftW = std::max(0, CONTENT_W - deviceLabelW - 12);
     drawText(renderer, MARGIN_X, 36, kAtelierFont10Bold, eyebrowCode, AtelierTone::Muted, 1, maxLeftW, 0, true);
@@ -1164,7 +1312,7 @@ void drawNoveOsSplashScreen(const GfxRenderer& renderer, const char* eyebrowCode
   }
 
   fillRect(renderer, MARGIN_X, 736, CONTENT_W, 1, 3);
-  const int footerRightW = (footerRight && footerRight[0] != '\0') ? measureText(kAtelierFont10Bold, footerRight, 1) : 0;
+  const int footerRightW = (footerRight && footerRight[0] != '\0') ? measureText(renderer, kAtelierFont10Bold, footerRight, 1) : 0;
   if (footerLeft && footerLeft[0] != '\0') {
     const int maxLeftW = footerRightW > 0 ? std::max(0, CONTENT_W - footerRightW - 12) : CONTENT_W;
     drawText(renderer, MARGIN_X, 750, kAtelierFont10Bold, footerLeft, AtelierTone::Muted, 1, maxLeftW, 0, true);
@@ -1189,19 +1337,26 @@ void renderOptionSheet(const GfxRenderer& renderer, const AtelierOptionSheetSpec
       addHit(hitCtx,
              fui::Rect{0, static_cast<int16_t>(sheetY), static_cast<int16_t>(screenW), static_cast<int16_t>(sheetH)},
              actionChrome, 0);
+      // Nav strip under the sheet: value 1 marks it as dismiss-on-release.
+      // Registered before option/button hits so those still win the
+      // newest-first scan inside the band.
+      addHit(hitCtx,
+             fui::Rect{0, BOTTOM_NAV_HIT_Y, static_cast<int16_t>(screenW),
+                       static_cast<int16_t>(screenH - BOTTOM_NAV_HIT_Y)},
+             actionChrome, 1);
     }
     return sheetY;
   };
 
   if (spec.optionCount == 2) {
     const WrappedAtelierLines titleLines =
-        (spec.title && spec.title[0] != '\0') ? wrapText(kAtelierFont27Light, spec.title, CONTENT_W, 2)
+        (spec.title && spec.title[0] != '\0') ? wrapText(renderer, kAtelierFont27Light, spec.title, CONTENT_W, 2)
                                               : WrappedAtelierLines{};
     const WrappedAtelierLines headLines =
-        (spec.headline && spec.headline[0] != '\0') ? wrapText(kAtelierFont16Med, spec.headline, CONTENT_W, 2)
+        (spec.headline && spec.headline[0] != '\0') ? wrapText(renderer, kAtelierFont16Med, spec.headline, CONTENT_W, 2)
                                                     : WrappedAtelierLines{};
     const WrappedAtelierLines msgLines =
-        (spec.message && spec.message[0] != '\0') ? wrapText(kAtelierFont14Reg, spec.message, CONTENT_W, 4)
+        (spec.message && spec.message[0] != '\0') ? wrapText(renderer, kAtelierFont14Reg, spec.message, CONTENT_W, 4)
                                                   : WrappedAtelierLines{};
 
     int contentH = 24 + 18 + 44 + 34;
@@ -1214,7 +1369,8 @@ void renderOptionSheet(const GfxRenderer& renderer, const AtelierOptionSheetSpec
     const auto drawLinesBlock = [&](const WrappedAtelierLines& lines, const AtelierFont& font, const AtelierTone tone,
                                     const int gapAfter) {
       for (int i = 0; i < lines.count; ++i) {
-        drawText(renderer, MARGIN_X, y, font, lines.lines[i], tone, 0, CONTENT_W, 0, i + 1 == lines.count);
+        drawText(renderer, MARGIN_X, y, font, lines.lines[i], tone, 0, CONTENT_W, 0, i + 1 == lines.count,
+                 lines.useFallback);
         y += font.lineHeight + 2;
       }
       if (lines.count > 0) y += gapAfter;
@@ -1229,7 +1385,7 @@ void renderOptionSheet(const GfxRenderer& renderer, const AtelierOptionSheetSpec
     const char* secLabel = spec.options[secondary] ? spec.options[secondary] : "";
     const char* priLabel = spec.options[primary] ? spec.options[primary] : "";
 
-    const int secW = std::clamp(measureText(kAtelierFont13Reg, secLabel, 0) + 36, 112, 184);
+    const int secW = std::clamp(measureText(renderer, kAtelierFont13Reg, secLabel, 0) + 36, 112, 184);
     const int secX = MARGIN_X;
     const bool secSel = spec.selectedIndex == secondary;
     drawCapsuleButton(renderer, secX, btnY, secW, 44, secLabel, kAtelierFont13Reg, false, secSel, secSel);
@@ -1238,7 +1394,7 @@ void renderOptionSheet(const GfxRenderer& renderer, const AtelierOptionSheetSpec
              actionOption, static_cast<int16_t>(secondary));
     }
 
-    const int ctaW = std::clamp(measureText(kAtelierFont13Bold, priLabel, 0) + 48, 152, 224);
+    const int ctaW = std::clamp(measureText(renderer, kAtelierFont13Bold, priLabel, 0) + 48, 152, 224);
     const int ctaX = MARGIN_X + CONTENT_W - ctaW;
     drawCapsuleButton(renderer, ctaX, btnY, ctaW, 44, priLabel, kAtelierFont13Bold, true, false,
                       spec.selectedIndex == primary);
@@ -1265,7 +1421,7 @@ void renderOptionSheet(const GfxRenderer& renderer, const AtelierOptionSheetSpec
   int y = sheetY + 18;
   char countBuf[24]{};
   snprintf(countBuf, sizeof(countBuf), tr(STR_ATELIER_COUNT_ITEMS_FMT), spec.optionCount);
-  const int countW = measureText(kAtelierFont10Bold, countBuf, 1);
+  const int countW = measureText(renderer, kAtelierFont10Bold, countBuf, 1);
   if (hasTitle) {
     drawText(renderer, MARGIN_X + CONTENT_W - countW, y + 5, kAtelierFont10Bold, countBuf, AtelierTone::Muted, 1,
              countW + 4, 2, false);
@@ -1313,7 +1469,7 @@ void renderOptionSheet(const GfxRenderer& renderer, const AtelierOptionSheetSpec
 
 void drawSubHeader(const GfxRenderer& renderer, const char* leftText, const char* rightText) {
   constexpr int y = HEADER_RULE_Y + 8;
-  const int rightW = (rightText && rightText[0] != '\0') ? std::min(200, measureText(kAtelierFont11Reg, rightText, 0))
+  const int rightW = (rightText && rightText[0] != '\0') ? std::min(200, measureText(renderer, kAtelierFont11Reg, rightText, 0))
                                                          : 0;
   if (rightW > 0) {
     drawText(renderer, MARGIN_X + CONTENT_W - rightW, y, kAtelierFont11Reg, rightText, AtelierTone::Muted, 0,
@@ -1343,13 +1499,13 @@ void paintStatusScreenContent(const GfxRenderer& renderer, const AtelierStatusSc
   const int bottomY = (spec.footerHint && spec.footerHint[0] != '\0') ? BOTTOM_NAV_Y : 784;
 
   const WrappedAtelierLines headLines =
-      (spec.headline && spec.headline[0] != '\0') ? wrapText(kAtelierFont20Light, spec.headline, CONTENT_W, 3)
+      (spec.headline && spec.headline[0] != '\0') ? wrapText(renderer, kAtelierFont20Light, spec.headline, CONTENT_W, 3)
                                                   : WrappedAtelierLines{};
   const WrappedAtelierLines bodyLines =
-      (spec.body && spec.body[0] != '\0') ? wrapText(kAtelierFont14Reg, spec.body, CONTENT_W, 4)
+      (spec.body && spec.body[0] != '\0') ? wrapText(renderer, kAtelierFont14Reg, spec.body, CONTENT_W, 4)
                                           : WrappedAtelierLines{};
   const WrappedAtelierLines detailLines =
-      (spec.detail && spec.detail[0] != '\0') ? wrapText(kAtelierFont13Reg, spec.detail, CONTENT_W, 3)
+      (spec.detail && spec.detail[0] != '\0') ? wrapText(renderer, kAtelierFont13Reg, spec.detail, CONTENT_W, 3)
                                               : WrappedAtelierLines{};
   const bool hasProg = spec.progressPct >= 0;
   const bool hasProgLbl = hasProg && spec.progressLabel && spec.progressLabel[0] != '\0';
@@ -1364,7 +1520,8 @@ void paintStatusScreenContent(const GfxRenderer& renderer, const AtelierStatusSc
   auto paintLines = [&](const WrappedAtelierLines& lines, const AtelierFont& font, const AtelierTone tone,
                         const int gapStep) {
     for (int i = 0; i < lines.count; ++i) {
-      drawText(renderer, MARGIN_X, y, font, lines.lines[i], tone, 0, CONTENT_W, 1, i + 1 == lines.count);
+      drawText(renderer, MARGIN_X, y, font, lines.lines[i], tone, 0, CONTENT_W, 1, i + 1 == lines.count,
+               lines.useFallback);
       y += font.lineHeight + gapStep;
     }
   };

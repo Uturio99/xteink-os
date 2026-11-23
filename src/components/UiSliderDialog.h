@@ -91,7 +91,7 @@ inline void buildSliderDialogScreen(UiAppHost::UiScreen& screen, freeink::ui::Gf
                        fui::InputTouch);
 
     const char* okStr = tr(STR_CONFIRM);
-    const int ctaW = std::clamp(AtelierChrome::measureText(AtelierChrome::font13Bold(), okStr, 0) + 48, 152, 224);
+    const int ctaW = std::clamp(AtelierChrome::measureText(r, AtelierChrome::font13Bold(), okStr, 0) + 48, 152, 224);
     const int ctaX = AtelierChrome::MARGIN_X + AtelierChrome::CONTENT_W - ctaW;
     AtelierChrome::drawCapsuleButton(r, ctaX, btnY, ctaW, 44, okStr, AtelierChrome::font13Bold(), true);
     screen.frame().hit(

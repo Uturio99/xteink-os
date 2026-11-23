@@ -105,7 +105,10 @@ as the Latin text around them. A `.cpfont` family must contain files at sizes
 **missing these is the most common reason non-Latin UI text still shows
 replacement boxes even though the book itself renders fine.** Any missing UI
 size keeps showing boxes for that script at that size. Direct TTF/OTF/TTC
-families use the same file at all three UI sizes.
+families use the same file at all three UI sizes. On XTEInk X4 Pro, the NoveOS
+interface uses its own built-in fonts, which cover Latin and Vietnamese only.
+Text in other scripts there uses the same size-matched 8/10/12 pt fallback,
+so a family with the UI sizes also fixes non-Latin text in that interface. Text that no available font covers shows `?` there instead of boxes.
 
 These UI sizes only take effect if the reader-size font also matches one of
 CrossPoint's built-in fallback-detection codepoints — see `kFallbackProbes` in

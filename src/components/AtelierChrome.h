@@ -22,6 +22,9 @@ enum class AtelierTone : uint8_t { Ink, Muted, PaperOnInk, MutedOnInk };
 struct WrappedAtelierLines {
   char lines[4][128]{};
   int count = 0;
+  // True when the whole wrapped string uses the built-in fallback font
+  // (per-string decision); every line must be drawn with the same choice.
+  bool useFallback = false;
 };
 
 namespace AtelierChrome {
@@ -33,6 +36,8 @@ constexpr int16_t LIST_TOP_MIN_Y = 90;
 constexpr int16_t LIST_BOTTOM_MAX_Y = 734;
 constexpr int16_t BOTTOM_NAV_Y = 740;
 constexpr int16_t BOTTOM_NAV_H = 48;
+// Top of the bottom-nav touch strip (extends to the screen bottom).
+constexpr int16_t BOTTOM_NAV_HIT_Y = 736;
 
 inline bool isPortrait480x800(const GfxRenderer& renderer) {
   return renderer.getScreenWidth() == 480 && renderer.getScreenHeight() == 800;
@@ -60,10 +65,12 @@ void normalizeUtf8Stack(const char* src, char* dst, size_t cap);
 uint32_t toUpperViCodepoint(uint32_t cp);
 void formatUpperVi(const char* src, char* dst, size_t cap);
 void formatUpperAuthor(const std::string& rawAuthor, char* dst, size_t cap);
-int measureText(const AtelierFont& font, const char* text, int8_t trackingPx = 0);
+int measureText(const GfxRenderer& renderer, const AtelierFont& font, const char* text, int8_t trackingPx = 0);
 void drawText(const GfxRenderer& renderer, int x, int yTop, const AtelierFont& font, const char* text, AtelierTone tone,
-              int8_t trackingPx = 0, int maxWidth = 480, int align = 0, bool ellipsisIfOverflow = true);
-WrappedAtelierLines wrapText(const AtelierFont& font, const char* text, int maxWidth, int maxLines);
+              int8_t trackingPx = 0, int maxWidth = 480, int align = 0, bool ellipsisIfOverflow = true,
+              bool forceFallback = false);
+WrappedAtelierLines wrapText(const GfxRenderer& renderer, const AtelierFont& font, const char* text, int maxWidth,
+                             int maxLines);
 
 // 4-level grayscale AA drawing primitives
 void paintPixel(const GfxRenderer& renderer, int x, int y, uint8_t shade);

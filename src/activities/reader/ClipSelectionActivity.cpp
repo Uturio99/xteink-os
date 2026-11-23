@@ -695,9 +695,9 @@ Rect ClipSelectionActivity::actionRect() const {
   int height = 0;
 #if FREEINK_DEVICE_X4PRO
   if (AtelierChrome::isPortrait480x800(renderer)) {
-    const int labelWidth = std::max({AtelierChrome::measureText(AtelierChrome::font12Reg(), tr(STR_LOOKUP)),
-                                     AtelierChrome::measureText(AtelierChrome::font12Reg(), tr(STR_CLIP)),
-                                     AtelierChrome::measureText(AtelierChrome::font12Reg(), tr(STR_BOOKMARK_OPTION))});
+    const int labelWidth = std::max({AtelierChrome::measureText(renderer, AtelierChrome::font12Reg(), tr(STR_LOOKUP)),
+                                     AtelierChrome::measureText(renderer, AtelierChrome::font12Reg(), tr(STR_CLIP)),
+                                     AtelierChrome::measureText(renderer, AtelierChrome::font12Reg(), tr(STR_BOOKMARK_OPTION))});
     width = std::min(safe.width, count * (labelWidth + 32) + padding * (count + 1));
     height = 34 + padding * 2;
   } else

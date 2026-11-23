@@ -92,6 +92,13 @@ class OptionPopup {
           return true;
         }
         if (event && event.action == ACTION_CHROME) {
+          // Chrome value 1 marks the nav-strip hit under the Atelier sheet:
+          // release there dismisses like an outside tap (UX-F06).
+          if (event.value == 1) {
+            active = false;
+            haptic_feedback::touchAction();
+            requestUpdate();
+          }
           // Taps on the dialog chrome (title, padding) keep the popup open.
           return true;
         }
@@ -303,7 +310,7 @@ class OptionPopup {
  private:
   // The dialog has no scrolling, so options past MAX_OPTIONS would render off
   // screen anyway; a fixed cap keeps the DialogOption array on the stack and
-  // the interaction table small. +1 slot for the chrome guard rect.
+  // the interaction table small. +1 slot for chrome rects (sheet guard, nav strip).
   static constexpr int MAX_OPTIONS = 16;
   static constexpr size_t INTERACTION_CAPACITY = MAX_OPTIONS + 1;
   static constexpr freeink::ui::ActionId ACTION_OPTION = 1;

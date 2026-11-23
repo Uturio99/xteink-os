@@ -25,8 +25,8 @@ void catalogScreenHeader(UiAppHost::UiScreen& screen, const GfxRenderer& rendere
     AtelierChrome::drawHeader(renderer, title, hasTrailingIcon ? "        " : nullptr, true, "05.1");
     if (hasTrailingIcon) {
       AtelierChrome::drawSearchIcon(renderer, AtelierChrome::MARGIN_X + AtelierChrome::CONTENT_W - 22, 57);
-      screen.frame().hit(fui::Rect{static_cast<int16_t>(AtelierChrome::MARGIN_X + AtelierChrome::CONTENT_W - 44), 46,
-                                   44, 40},
+      screen.frame().hit(fui::Rect{static_cast<int16_t>(AtelierChrome::MARGIN_X + AtelierChrome::CONTENT_W - 44), 44,
+                                   44, 44},
                          trailingAction, 0, fui::InputTouch);
     }
     screen.setContentMarginFromScreen(fui::Insets{AtelierChrome::LIST_TOP_MIN_Y, 0, 16, 0});
@@ -95,11 +95,11 @@ void catalogCenteredBlock(UiAppHost::UiScreen& screen, const GfxRenderer& render
       if (txt[0] == '\0') continue;
       const AtelierFont& font = (idx == 0) ? AtelierChrome::font20Light() : AtelierChrome::font13Reg();
       const AtelierTone tone = (idx == 0) ? AtelierTone::Ink : AtelierTone::Muted;
-      const WrappedAtelierLines wrapped = AtelierChrome::wrapText(font, txt, AtelierChrome::CONTENT_W, 4);
+      const WrappedAtelierLines wrapped = AtelierChrome::wrapText(renderer, font, txt, AtelierChrome::CONTENT_W, 4);
       const int step = AtelierChrome::fontLineHeight(font) + 4;
       for (int li = 0; li < wrapped.count; ++li) {
         AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, y, font, wrapped.lines[li], tone, 0,
-                                AtelierChrome::CONTENT_W, 0, li + 1 == wrapped.count);
+                                AtelierChrome::CONTENT_W, 0, li + 1 == wrapped.count, wrapped.useFallback);
         y += step;
       }
       y += 10;
@@ -143,13 +143,13 @@ void catalogDownloadScreen(UiAppHost::UiScreen& screen, const GfxRenderer& rende
     AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, 180, AtelierChrome::font10Bold(),
                             tr(STR_DOWNLOADING), AtelierTone::Muted, 1, AtelierChrome::CONTENT_W, 0, true);
     const WrappedAtelierLines titleLines =
-        AtelierChrome::wrapText(AtelierChrome::font20Light(), status ? status : "", AtelierChrome::CONTENT_W, 2);
+        AtelierChrome::wrapText(renderer, AtelierChrome::font20Light(), status ? status : "", AtelierChrome::CONTENT_W, 2);
     int titleY = 206;
     const int titleStep = AtelierChrome::fontLineHeight(AtelierChrome::font20Light()) + 4;
     for (int i = 0; i < titleLines.count; ++i) {
       AtelierChrome::drawText(renderer, AtelierChrome::MARGIN_X, titleY, AtelierChrome::font20Light(),
                               titleLines.lines[i], AtelierTone::Ink, 0, AtelierChrome::CONTENT_W, 0,
-                              i + 1 == titleLines.count);
+                              i + 1 == titleLines.count, titleLines.useFallback);
       titleY += titleStep;
     }
     if (total > 0) {
