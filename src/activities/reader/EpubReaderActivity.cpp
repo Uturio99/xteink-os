@@ -241,10 +241,9 @@ EpubReaderActivity::~EpubReaderActivity() {
 }
 
 void EpubReaderActivity::onExit() {
-  {
-    RenderLock lock;
-    invalidateNextPageCache();
-  }
+  // ActivityManager calls onExit() with its RenderLock already held;
+  // taking another here self-deadlocks (renderingMutex is non-recursive).
+  invalidateNextPageCache();
   ReaderActivity::onExit();
 }
 
