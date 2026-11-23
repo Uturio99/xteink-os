@@ -33,6 +33,36 @@ bool XtcReaderActivity::loadBook() {
   return true;
 }
 
+bool XtcReaderActivity::handleLoadFailure() {
+  const char* options[1] = {I18N.get(StrId::STR_OK_BUTTON)};
+  loadFailurePopup.showMessage("", I18N.get(StrId::STR_FILE_OPEN_FAILED), options, 1, 0,
+                               [this](const int) { finish(); });
+  requestUpdate();
+  return true;
+}
+
+void XtcReaderActivity::loop() {
+  if (loadFailurePopup.isActive()) {
+    loadFailurePopup.handleInput(mappedInput, [this] { requestUpdate(); });
+    return;
+  }
+  if (!xtc) {
+    finish();
+    return;
+  }
+  ReaderActivity::loop();
+}
+
+void XtcReaderActivity::render(RenderLock&& lock) {
+  if (loadFailurePopup.isActive()) {
+    renderer.clearScreen();
+    loadFailurePopup.processRender(renderer, mappedInput);
+    return;
+  }
+  if (!xtc) return;
+  ReaderActivity::render(std::move(lock));
+}
+
 void XtcReaderActivity::openChapterSelection() {
   if (xtc && xtc->hasChapters() && !xtc->getChapters().empty()) {
     startActivityForResult(std::make_unique<XtcReaderChapterSelectionActivity>(renderer, mappedInput, xtc, currentPage),

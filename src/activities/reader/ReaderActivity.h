@@ -30,7 +30,7 @@ class ReaderActivity : public Activity {
                           std::string bookPath, bool allowFastInitialRefresh);
 
   virtual bool loadBook() = 0;
-  // Called when loadBook() failed. Return true to keep the activity alive
+  // Called when the file is missing or loadBook() failed. Return true to keep the activity alive
   // (e.g. showing a dialog); false finishes it (the default).
   virtual bool handleLoadFailure() { return false; }
   virtual std::string getBookTitle() const = 0;

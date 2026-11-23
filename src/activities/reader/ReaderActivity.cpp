@@ -63,7 +63,7 @@ void ReaderActivity::onEnter() {
 
   if (!Storage.exists(bookPath.c_str())) {
     LOG_ERR("READER", "File does not exist: %s", bookPath.c_str());
-    finish();
+    if (!handleLoadFailure()) finish();
     return;
   }
 

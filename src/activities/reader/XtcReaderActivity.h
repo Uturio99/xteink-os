@@ -6,10 +6,12 @@
 #include <string>
 
 #include "ReaderActivity.h"
+#include "components/OptionPopup.h"
 
 class XtcReaderActivity final : public ReaderActivity {
   std::shared_ptr<Xtc> xtc;
   uint32_t currentPage = 0;
+  OptionPopup loadFailurePopup;
 
   enum class StatusBarOverlayPosition { Bottom, Top };
   struct StatusBarInfo {
@@ -26,6 +28,7 @@ class XtcReaderActivity final : public ReaderActivity {
   void loadProgress();
 
   bool loadBook() override;
+  bool handleLoadFailure() override;
   std::string getBookTitle() const override { return xtc ? xtc->getTitle() : ""; }
   std::string getBookAuthor() const override { return xtc ? xtc->getAuthor() : ""; }
   std::string getBookThumbBmpPath() const override { return xtc ? xtc->getThumbBmpPath() : ""; }
@@ -39,6 +42,8 @@ class XtcReaderActivity final : public ReaderActivity {
       : ReaderActivity("XtcReader", renderer, mappedInput, std::move(bookPath), allowFastInitialRefresh) {}
   ~XtcReaderActivity() override = default;
 
+  void loop() override;
+  void render(RenderLock&& lock) override;
   bool pageTurn(bool isForward) override;
   bool skipPages(int amount) override;
   bool isAtEndOfBook() const override;
