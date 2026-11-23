@@ -362,7 +362,7 @@ Settings are grouped into **System**, **Display**, **Reader**, **Controls**, **L
   - **Hide** persists across reboots. Setting **Settings → Connectivity → Plugins** to **Enabled** again brings the installer back.
   - Plugin Hub is optional. Users who prefer manual installation can download it directly from [crosspoint-plugin-hub releases](https://github.com/crosspoint-reader/crosspoint-plugin-hub/releases) and copy/extract the `pluginhub` folder so it ends up at `/.crosspoint/plugins/pluginhub/`, `/plugins/pluginhub/`, or `/.plugins/pluginhub/`. Once installed, Plugin Hub appears as a normal entry under **Home → Plugins**.
 
-- **Language**: Set the UI language. CrossPoint supports 32 languages: English, Spanish, French, German, Czech, Brazilian Portuguese, European Portuguese, Russian, Swedish, Romanian, Catalan, Ukrainian, Belarusian, Italian, Polish, Finnish, Danish, Dutch, Turkish, Kazakh, Hungarian, Lithuanian, Slovenian, Valencian, Hebrew, Arabic, Slovak, Bosnian, Vietnamese, Norwegian Bokmål, Indonesian, and Orangutan.
+- **Language**: Set the UI language. This build ships English and Tiếng Việt only. If a stored setting names another language, the UI falls back to English.
 
 - **Manage Fonts**: Browse, download, and manage custom font families installed from the SD card. See [Custom Fonts (SD Card)](#38-custom-fonts-sd-card) for more information.
 
@@ -635,6 +635,9 @@ See [docs/sd-card-fonts.md](./docs/sd-card-fonts.md) for full installation detai
 ## 4. Reading Mode
 
 Once you have opened a book, the button layout changes to facilitate reading.
+
+> [!NOTE]
+> If a book cannot be opened (for example an unreadable or corrupt EPUB), the device shows **Cannot open file**; confirming with **OK** returns you to the previous screen.
 
 ### Page Turning
 

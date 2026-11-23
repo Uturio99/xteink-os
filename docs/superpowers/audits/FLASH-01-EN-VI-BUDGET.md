@@ -105,3 +105,12 @@ Font intervals/glyph counts parsed from `lib/EpdFont/builtinFonts/*.h`. No linke
 2. Keep `en` hyphenation only, or is per-book `lang=` hyphenation for foreign books desired via optional tries?
 3. With i18n allowlisted to EN,VI: confirm the persisted-language fallback path (settings may store e.g. `de`) — needs a migration/default-to-EN check before removal ships.
 4. Is the web UI (FilesPage + jszip, ~84 KB of it) in scope for the same slimming pass?
+
+## Implementation result (bc7cbf04, 2026-11-23)
+
+- **Items 1+2 landed.** `custom_i18n_builtin_langs=en,vi` is wired into the build; `LanguageRegistry` keeps English only and the dead hyphenation trie headers, resources, and script were trimmed.
+- **x4pro flash:** 5,937,494 → 5,230,710 B (-706,784 B). RAM: 111,580 B. IRAM unchanged at 16,384/16,384 B.
+- **Item 3 (fonts) not done.** Regeneration would break the FIX-01 fallback path, and the math/symbol ranges are kept per PO decision.
+- **Item 4 (web UI) kept.** jszip is required by FilesPage's client-side EPUB conversion; not removable.
+- **Item 5 (keyboard) kept.** The layout set is a persisted bitmask; the ~1-2 KB saving is not worth a settings migration.
+- All four review axes passed. Hardware **NOT TESTED**.

@@ -98,3 +98,14 @@ No High-severity findings: no double-handling between host and child (handleCust
 - **UX-F02 recorded as SDK design limit.** `fui::keyboard` only inflates the bottom edge of key hit rects (`bottomHitOverflow`, FreeInkUI keyboard.h:109,663); there is no horizontal/gap-inclusive hit option. Key width stays ~38 px until an SDK change adds horizontal hit padding; no code change.
 - **UX-F05 fixed.** `FileBrowserActivity::handleButtons` no longer gates the Back-release action on `getHeldTime() < GO_HOME_MS`: any release the Books-mode long-Back root jump (handleCustomInput) doesn't claim performs the short-Back action (up dir / cancel picker at root / go Home at Books root). Verified in `simulator_x4_pro`: Books root long Back → Home; `/sub` long Back → root jump (unchanged); `/sub` short Back → up dir (unchanged); PickFirmware root long Back → cancel; PickFirmware `/sub` long Back → up dir.
 - **UX-F03, UX-F04, UX-F06 unchanged** (Low / PO design question).
+
+## UX-03 disposition (2026-11-23)
+
+- **UX-F03 fixed.** The catalog Search hit is now 44x44 (CatalogScreens.cpp, da6c90fa).
+- **UX-F06 disposition (PO decision).** A nav-zone tap on the sheet chrome dismisses the sheet without switching tabs, implemented via a dedicated chrome hit value in `renderOptionSheet` (da6c90fa).
+- **UX-F04 deferred by PO.** The 36 px prev/next chapter capsules stay for design consistency; revisited only if usability suffers.
+- **UX-F02 unchanged.** Still an SDK limit (`fui::keyboard` has no horizontal hit padding).
+
+### Added to NOT TESTED
+
+- Opening a missing (not corrupt) EPUB file still exits silently; the XTC reader has no equivalent error message. These are the known boundaries of da6c90fa's load-failure handling.
