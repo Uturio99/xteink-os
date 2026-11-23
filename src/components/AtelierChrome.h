@@ -131,12 +131,12 @@ void drawScrubberTrack(const GfxRenderer& renderer, int x, int y, int w, int h, 
                        bool allowGrayscale = false);
 void drawReaderChrome(const GfxRenderer& renderer, const char* chapterTitle, int currentPage, int pageCount,
                       int bookPercent, bool isBookmarked, bool pageCountEstimated, bool showTop, bool showPageCount,
-                      bool showProgressBar, bool showBattery, bool showClock, bool allowGrayscale = false);
+                      bool showProgressBar, bool showBattery, bool showBatteryPercent, bool showClock,
+                      bool allowGrayscale = false);
 void drawEditorialMessageScreen(const GfxRenderer& renderer, const char* eyebrowCode, const char* topRight,
                                 const char* headline, const char* subline, const char* footerLeft,
                                 const char* footerRight);
-void drawNoveOsSplashScreen(const GfxRenderer& renderer, const char* eyebrowCode, const char* statusLine,
-                            const char* subHint, const char* footerLeft, const char* footerRight);
+void drawNoveOsSplashScreen(const GfxRenderer& renderer);
 void drawSubHeader(const GfxRenderer& renderer, const char* leftText, const char* rightText = nullptr);
 void drawFooterHint(const GfxRenderer& renderer, const char* text);
 

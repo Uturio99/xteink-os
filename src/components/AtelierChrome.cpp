@@ -29,6 +29,11 @@ namespace {
 bool sGrayscalePassActive = false;
 int sPendingBottomNavTab = -1;
 
+// X4 Pro chrome policy — BW single-pass only (the gray path drives two display
+// updates per frame = visible double-flash; flip to true to restore 4-level
+// grayscale).
+constexpr bool kChromeGrayscale = false;
+
 // Suspends the Atelier text hook for a scoped renderer call so fallback
 // measure/draw see the real EpdFont metrics and never re-enter the hook.
 struct ScopedTextHookSuspend {
@@ -614,6 +619,20 @@ void drawWifiGlyph(const GfxRenderer& renderer, const int x, const int y) {
   }
 }
 
+// Battery outline + proportional fill in a 16x9 box at (x, y), muted shade.
+// Used by reader chrome when the status bar shows an icon instead of %.
+static void drawBatteryGlyph(const GfxRenderer& renderer, const int x, const int y, const uint16_t percent) {
+  constexpr int kBodyW = 14;
+  constexpr int kBodyH = 9;
+  fillRect(renderer, x, y, kBodyW, 1, 2);
+  fillRect(renderer, x, y + kBodyH - 1, kBodyW, 1, 2);
+  fillRect(renderer, x, y, 1, kBodyH, 2);
+  fillRect(renderer, x + kBodyW - 1, y, 1, kBodyH, 2);
+  fillRect(renderer, x + kBodyW, y + 3, 2, 3, 2);
+  const int fillW = static_cast<int>((static_cast<uint32_t>(percent) * (kBodyW - 4) + 50) / 100);
+  if (fillW > 0) fillRect(renderer, x + 2, y + 2, fillW, kBodyH - 4, 2);
+}
+
 void drawTocIcon(const GfxRenderer& renderer, const int x, const int y) {
   drawLineAA(renderer, x + 3.0f, y + 4.5f, x + 13.0f, y + 4.5f, 0.7f, 3);
   drawLineAA(renderer, x + 3.0f, y + 8.0f, x + 13.0f, y + 8.0f, 0.7f, 3);
@@ -720,12 +739,12 @@ void renderGrayscalePass(GfxRenderer& renderer, const HalDisplay::RefreshMode re
   if (!paintPass) return;
   const auto prevHook = renderer.uiTextOverrideHook();
   const bool prevActive = sGrayscalePassActive;
-  if (bwFastOnly) {
+  if (bwFastOnly || !kChromeGrayscale) {
     sGrayscalePassActive = false;
     renderer.setUiTextOverrideHook(textHook(false));
     renderer.setRenderMode(GfxRenderer::BW);
     paintPass(ctx);
-    renderer.displayBuffer(HalDisplay::FAST_REFRESH);
+    renderer.displayBuffer(refresh);
     renderer.setUiTextOverrideHook(prevHook);
     sGrayscalePassActive = prevActive;
     return;
@@ -1132,9 +1151,27 @@ void drawScrubberTrack(const GfxRenderer& renderer, const int x, const int y, co
 void drawReaderChrome(const GfxRenderer& renderer, const char* chapterTitle, const int currentPage, const int pageCount,
                       const int bookPercent, const bool isBookmarked, const bool pageCountEstimated,
                       const bool showTop, const bool showPageCount, const bool showProgressBar, const bool showBattery,
-                      const bool showClock, const bool allowGrayscale) {
+                      const bool showBatteryPercent, const bool showClock, const bool allowGrayscale) {
   constexpr int readerX = 40;
   constexpr int readerW = 400;
+
+  // Battery lives at the top-right corner (chrome status bar parity); the
+  // bottom bar keeps only book progress and the optional clock.
+  int battW = 0;
+  if (showBattery) {
+    const uint16_t battPct = std::min<uint16_t>(100, powerManager.getBatteryPercentage());
+    if (showBatteryPercent) {
+      char battBuf[12]{};
+      snprintf(battBuf, sizeof(battBuf), "%u%%", static_cast<unsigned>(battPct));
+      battW = measureText(renderer, kAtelierFont11Reg, battBuf, 0);
+      drawText(renderer, readerX + readerW - battW - 4, 18, kAtelierFont11Reg, battBuf, AtelierTone::Muted, 0,
+               battW + 4, 2, false);
+    } else {
+      constexpr int kBattGlyphW = 16;
+      drawBatteryGlyph(renderer, readerX + readerW - kBattGlyphW - 4, 21, battPct);
+      battW = kBattGlyphW;
+    }
+  }
 
   if (showTop) {
     char pctBuf[20]{};
@@ -1145,13 +1182,13 @@ void drawReaderChrome(const GfxRenderer& renderer, const char* chapterTitle, con
       snprintf(pctBuf, sizeof(pctBuf), "%d%%", pct);
     }
     const int pctW = measureText(renderer, kAtelierFont10Bold, pctBuf, 1);
-    drawText(renderer, readerX + readerW - pctW - 4, 18, kAtelierFont10Bold, pctBuf, AtelierTone::Muted, 1, pctW + 4,
-             2, false);
+    drawText(renderer, readerX + readerW - pctW - 4 - (battW > 0 ? battW + 10 : 0), 18, kAtelierFont10Bold, pctBuf,
+             AtelierTone::Muted, 1, pctW + 4, 2, false);
 
     if (chapterTitle && chapterTitle[0] != '\0') {
       char upperTitle[128]{};
       formatUpperVi(chapterTitle, upperTitle, sizeof(upperTitle));
-      const int maxLeftW = std::max(40, readerW - pctW - 16);
+      const int maxLeftW = std::max(40, readerW - pctW - battW - 26);
       drawText(renderer, readerX, 18, kAtelierFont10Bold, upperTitle, AtelierTone::Muted, 1, maxLeftW, 0, true);
     }
     fillRect(renderer, readerX, 42, readerW, 1, 1);
@@ -1178,14 +1215,8 @@ void drawReaderChrome(const GfxRenderer& renderer, const char* chapterTitle, con
   const bool hasClock = showClock && halClock.isAvailable() &&
                         halClock.formatTime(clockText, sizeof(clockText), SETTINGS.clockFormat == 1);
   char rightBuf[28]{};
-  if (hasClock && showBattery) {
-    snprintf(rightBuf, sizeof(rightBuf), "%s · %u%%", clockText,
-             static_cast<unsigned>(std::min<uint16_t>(100, powerManager.getBatteryPercentage())));
-  } else if (hasClock) {
+  if (hasClock) {
     snprintf(rightBuf, sizeof(rightBuf), "%s", clockText);
-  } else if (showBattery) {
-    snprintf(rightBuf, sizeof(rightBuf), "%u%%",
-             static_cast<unsigned>(std::min<uint16_t>(100, powerManager.getBatteryPercentage())));
   }
   if (rightBuf[0] != '\0') {
     drawText(renderer, readerX + 210, 766, kAtelierFont11Reg, rightBuf, AtelierTone::Muted, 0, readerW - 210, 2,
@@ -1240,21 +1271,12 @@ void drawEditorialMessageScreen(const GfxRenderer& renderer, const char* eyebrow
   }
 }
 
-void drawNoveOsSplashScreen(const GfxRenderer& renderer, const char* eyebrowCode, const char* statusLine,
-                            const char* subHint, const char* footerLeft, const char* footerRight) {
+void drawNoveOsSplashScreen(const GfxRenderer& renderer) {
   if (!isPortrait480x800(renderer)) return;
 
-  static constexpr char kDeviceLabel[] = "XTEINK X4 PRO";
-  const int deviceLabelW = measureText(renderer, kAtelierFont10Bold, kDeviceLabel, 1);
-  if (eyebrowCode && eyebrowCode[0] != '\0') {
-    const int maxLeftW = std::max(0, CONTENT_W - deviceLabelW - 12);
-    drawText(renderer, MARGIN_X, 36, kAtelierFont10Bold, eyebrowCode, AtelierTone::Muted, 1, maxLeftW, 0, true);
-  }
-  drawText(renderer, MARGIN_X, 36, kAtelierFont10Bold, kDeviceLabel, AtelierTone::Muted, 1, CONTENT_W, 2, true);
-  fillRect(renderer, MARGIN_X, 60, CONTENT_W, 1, 3);
-
+  // Centered logo lockup only; sits slightly above the exact middle.
   constexpr int logoX = (480 - NoveOsBranding::LOCKUP_WIDTH) / 2;
-  constexpr int logoY = 196;
+  constexpr int logoY = (800 - NoveOsBranding::LOCKUP_HEIGHT) / 2 - 20;
   for (int row = 0; row < NoveOsBranding::LOCKUP_HEIGHT; ++row) {
     for (int col = 0; col < NoveOsBranding::LOCKUP_WIDTH; ++col) {
       const int idx = row * NoveOsBranding::LOCKUP_WIDTH + col;
@@ -1262,25 +1284,6 @@ void drawNoveOsSplashScreen(const GfxRenderer& renderer, const char* eyebrowCode
       const uint8_t shade = (byte >> (6 - (idx & 3) * 2)) & 0x03u;
       if (shade > 0) paintPixel(renderer, logoX + col, logoY + row, shade);
     }
-  }
-
-  constexpr int ruleY = logoY + NoveOsBranding::LOCKUP_HEIGHT + 28;
-  fillRect(renderer, 216, ruleY, 48, 1, 3);
-  if (statusLine && statusLine[0] != '\0') {
-    drawText(renderer, MARGIN_X, ruleY + 18, kAtelierFont14Reg, statusLine, AtelierTone::Ink, 0, CONTENT_W, 1, true);
-  }
-  if (subHint && subHint[0] != '\0') {
-    drawText(renderer, MARGIN_X, ruleY + 46, kAtelierFont12Reg, subHint, AtelierTone::Muted, 0, CONTENT_W, 1, true);
-  }
-
-  fillRect(renderer, MARGIN_X, 736, CONTENT_W, 1, 3);
-  const int footerRightW = (footerRight && footerRight[0] != '\0') ? measureText(renderer, kAtelierFont10Bold, footerRight, 1) : 0;
-  if (footerLeft && footerLeft[0] != '\0') {
-    const int maxLeftW = footerRightW > 0 ? std::max(0, CONTENT_W - footerRightW - 12) : CONTENT_W;
-    drawText(renderer, MARGIN_X, 750, kAtelierFont10Bold, footerLeft, AtelierTone::Muted, 1, maxLeftW, 0, true);
-  }
-  if (footerRight && footerRight[0] != '\0') {
-    drawText(renderer, MARGIN_X, 750, kAtelierFont10Bold, footerRight, AtelierTone::Muted, 1, CONTENT_W, 2, true);
   }
 }
 

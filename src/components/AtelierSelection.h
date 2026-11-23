@@ -56,8 +56,9 @@ struct AtelierFocusRefreshPlan {
   uint8_t nextCounter = 0;
 };
 
-// Pure focus-refresh policy: initial / forced / every 8th move runs full 3-pass
-// grayscale (HALF_REFRESH on periodic cleanup), steps 1..7 run BW-only FAST_REFRESH.
+// Pure focus-refresh policy: initial / forced / every 8th move runs a HALF_REFRESH
+// cleanup pass, steps 1..7 run BW-only FAST_REFRESH. All passes render BW under
+// the current X4 Pro chrome policy (kChromeGrayscale in AtelierChrome.cpp).
 inline constexpr AtelierFocusRefreshPlan planAtelierFocusRefresh(const uint8_t movesSinceClean, const bool forceFull,
                                                                  const bool cleanOnForceFull) {
   if (forceFull) {

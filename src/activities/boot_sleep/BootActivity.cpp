@@ -20,8 +20,7 @@ void BootActivity::onEnter() {
         [](void* raw) {
           auto* self = static_cast<Ctx*>(raw)->self;
           self->renderer.clearScreen();
-          AtelierChrome::drawNoveOsSplashScreen(self->renderer, NoveOsBranding::OS_EYEBROW, tr(STR_BOOTING), nullptr,
-                                                CROSSPOINT_VERSION, "NOVEOS ATELIER");
+          AtelierChrome::drawNoveOsSplashScreen(self->renderer);
         },
         &ctx);
     return;

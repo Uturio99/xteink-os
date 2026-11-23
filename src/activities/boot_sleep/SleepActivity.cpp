@@ -841,8 +841,7 @@ void SleepActivity::renderDefaultSleepScreen() const {
         [](void* raw) {
           auto* self = static_cast<Ctx*>(raw)->self;
           self->renderer.clearScreen();
-          AtelierChrome::drawNoveOsSplashScreen(self->renderer, "00.2 — NOVEOS STANDBY", tr(STR_SLEEPING),
-                                                tr(STR_POWER_ON_HINT), NoveOsBranding::OS_NAME, CROSSPOINT_VERSION);
+          AtelierChrome::drawNoveOsSplashScreen(self->renderer);
         },
         &ctx);
     return;
