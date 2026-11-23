@@ -79,6 +79,7 @@ void drawCapsuleButton(const GfxRenderer& renderer, int x, int y, int w, int h, 
 void fillCircle(const GfxRenderer& renderer, float cx, float cy, float radius, uint8_t shade, uint8_t bgShade = 0);
 
 void drawWifiGlyph(const GfxRenderer& renderer, int x, int y);
+void drawChargingGlyph(const GfxRenderer& renderer, int x, int y);
 void drawTocIcon(const GfxRenderer& renderer, int x, int y);
 void drawSlidersIcon(const GfxRenderer& renderer, int x, int y);
 void drawSearchIcon(const GfxRenderer& renderer, int x, int y);
@@ -131,7 +132,7 @@ void drawScrubberTrack(const GfxRenderer& renderer, int x, int y, int w, int h, 
                        bool allowGrayscale = false);
 void drawReaderChrome(const GfxRenderer& renderer, const char* chapterTitle, int currentPage, int pageCount,
                       int bookPercent, bool isBookmarked, bool pageCountEstimated, bool showTop, bool showPageCount,
-                      bool showProgressBar, bool showBattery, bool showBatteryPercent, bool showClock,
+                      bool showProgressBar, bool showBattery, bool showBatteryPercent, bool showClock, bool showBookProgressPercent,
                       bool allowGrayscale = false);
 void drawEditorialMessageScreen(const GfxRenderer& renderer, const char* eyebrowCode, const char* topRight,
                                 const char* headline, const char* subline, const char* footerLeft,

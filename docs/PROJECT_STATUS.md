@@ -1,5 +1,17 @@
 # NoveOS project status
 
+## Current baseline decision — 2026-11-23
+
+The owner accepted the current NoveOS scope as complete for personal use and requested that future development be handled as updates. The owner authorized keeping `Uturio99/xteink-os` as `origin` and promoting NoveOS to the default `main` branch. The historical snapshot below is retained as an audit record, not the current product delivery status.
+
+The integration base is `affa6667`. The baseline update includes the charging indicator, conditional Wi-Fi indicator, removal of the placeholder clock, removal of the two redundant Home action buttons, and reader progress beside the page count rather than beside the battery. Existing Vietnamese/CJK content glyphs and EN/VI system UI remain intact.
+
+Verification for this candidate: `pio run -e x4pro -e simulator -e simulator_x4_pro` passed; the existing host CTest suite passed 905/905; `git diff --check` passed. X4 Pro RAM is 111,580/327,680 bytes and app flash is 5,232,682/6,553,600 bytes. The exported app image is `_firmware-out/NoveOS_firmware.bin` in the Windows checkout. These checks do not replace a simulator interaction check or hardware verification.
+
+The owner reported satisfactory operation with no additional known issues. This is product acceptance, not a claim of exhaustive device testing. Four independent read-only reviews (correctness, architecture, embedded and i18n/docs) found no blocking issues; the correctness review was repeated against the correct WSL candidate after an initial wrong-checkout report. Direct simulator verification of the final Home/reader changes remains open. Automated formatting is unavailable because clang-format is not installed; whitespace checks passed. These limitations remain recorded rather than treated as passed checks. Historical hardware, recovery and parity gaps remain recorded below; future updates must preserve recovery and multi-board support.
+
+## Historical evidence snapshot
+
 **Evidence snapshot: 2026-11-22, 63c9baea50f7183dc045affe8727551e90d2e425.** Previous snapshot: 2026-11-11 @04b6b754.
 [Execution contract](EXECUTION_CONTRACT.md) defines authority; [STEP 09](design/specs/STEP-09-NATIVE-INTEGRATION-PLAN.md) owns the delivery path and gates. Git presence, recorded approval, executed checks and physical acceptance are separate states.
 

@@ -415,26 +415,6 @@ void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
   screen.frame().hit(fui::Rect{layout.cta.x, layout.cta.y, static_cast<int16_t>(heroCtaW), layout.cta.height}, SELECT,
                      ctaAction, fui::InputTouch, fui::StateNormal);
 
-  const bool leftFocused = selected == libraryAction;
-  AtelierChrome::strokeCapsule(renderer, layout.btnSecondaryLeft.x, layout.btnSecondaryLeft.y,
-                               layout.btnSecondaryLeft.width, layout.btnSecondaryLeft.height, leftFocused ? 3 : 1,
-                               leftFocused ? 2.0f : 1.0f);
-  AtelierChrome::drawTocIcon(renderer, layout.btnSecondaryLeft.x + (layout.btnSecondaryLeft.width - 16) / 2,
-                             layout.btnSecondaryLeft.y + (layout.btnSecondaryLeft.height - 16) / 2);
-  screen.frame().hit(fui::Rect{layout.btnSecondaryLeft.x, layout.btnSecondaryLeft.y, layout.btnSecondaryLeft.width,
-                               layout.btnSecondaryLeft.height},
-                     SELECT, static_cast<int16_t>(libraryAction), fui::InputTouch, fui::StateNormal);
-
-  const bool rightFocused = selected == settingsAction;
-  AtelierChrome::strokeCapsule(renderer, layout.btnSecondaryRight.x, layout.btnSecondaryRight.y,
-                               layout.btnSecondaryRight.width, layout.btnSecondaryRight.height, rightFocused ? 3 : 1,
-                               rightFocused ? 2.0f : 1.0f);
-  AtelierChrome::drawSlidersIcon(renderer, layout.btnSecondaryRight.x + (layout.btnSecondaryRight.width - 16) / 2,
-                                 layout.btnSecondaryRight.y + (layout.btnSecondaryRight.height - 16) / 2);
-  screen.frame().hit(fui::Rect{layout.btnSecondaryRight.x, layout.btnSecondaryRight.y, layout.btnSecondaryRight.width,
-                               layout.btnSecondaryRight.height},
-                     SELECT, static_cast<int16_t>(settingsAction), fui::InputTouch, fui::StateNormal);
-
   // 01.2 Shelf Header + 1px bottom Ink hairline
   char upperRecent[64]{};
   AtelierChrome::formatUpperVi(tr(STR_MENU_RECENT_BOOKS), upperRecent, sizeof(upperRecent));

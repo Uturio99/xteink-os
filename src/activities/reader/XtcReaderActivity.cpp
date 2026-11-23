@@ -175,7 +175,7 @@ void XtcReaderActivity::renderStatusBarOverlay(GfxRenderer& renderer, const Stat
     AtelierChrome::drawReaderChrome(renderer, pageInfo.title.c_str(), pageInfo.currentPage, pageInfo.pageCount, pct,
                                     false, false, sb.showsTitle() || sb.showBookProgressPercent,
                                     sb.showChapterPageCount, true, sb.showBattery, sb.showBatteryPercent,
-                                    sb.showsClock());
+                                    sb.showsClock(), sb.showBookProgressPercent);
     return;
   }
 #endif

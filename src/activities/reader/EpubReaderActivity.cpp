@@ -2588,7 +2588,7 @@ void EpubReaderActivity::renderStatusBar() const {
     AtelierChrome::drawReaderChrome(renderer, title.c_str(), currentPage, static_cast<int>(pageCount), bookPct,
                                     currentPageBookmarked, section ? section->isBuilding() : false, showTop,
                                     sb.showChapterPageCount, showBar, sb.showBattery, sb.showBatteryPercent,
-                                    sb.showsClock(),
+                                    sb.showsClock(), sb.showBookProgressPercent,
                                     static_cast<bool>(SETTINGS.textAntiAliasing));
     return;
   }

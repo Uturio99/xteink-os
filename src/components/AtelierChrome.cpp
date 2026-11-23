@@ -6,7 +6,9 @@
 #include <BitmapHelpers.h>
 #include <CrossPointSettings.h>
 #include <HalClock.h>
+#include <HalGPIO.h>
 #include <HalPowerManager.h>
+#include <WiFi.h>
 #include <I18n.h>
 #include <Utf8.h>
 
@@ -633,6 +635,34 @@ static void drawBatteryGlyph(const GfxRenderer& renderer, const int x, const int
   if (fillW > 0) fillRect(renderer, x + 2, y + 2, fillW, kBodyH - 4, 2);
 }
 
+void drawChargingGlyph(const GfxRenderer& renderer, const int x, const int y) {
+  // Small filled lightning bolt (~7x11), AA edges, matching BaseTheme's charging bolt.
+  constexpr float px_[] = {4.3f, 1.0f, 3.85f, 3.36f, 7.0f, 3.15f};
+  constexpr float py_[] = {0.0f, 6.0f, 6.0f, 11.0f, 4.0f, 4.0f};
+  constexpr int n = 6;
+  for (int py = y; py <= y + 11; ++py) {
+    for (int px = x; px <= x + 7; ++px) {
+      const float sx = px + 0.5f - x;
+      const float sy = py + 0.5f - y;
+      bool inside = false;
+      float minD = 99.0f;
+      for (int i = 0, j = n - 1; i < n; j = i++) {
+        const float xi = px_[i], yi = py_[i], xj = px_[j], yj = py_[j];
+        if ((yi > sy) != (yj > sy) && sx < (xj - xi) * (sy - yi) / (yj - yi) + xi) inside = !inside;
+        const float ex = xj - xi, ey = yj - yi;
+        const float t = std::clamp(((sx - xi) * ex + (sy - yi) * ey) / (ex * ex + ey * ey), 0.0f, 1.0f);
+        minD = std::min(minD, std::hypotf(sx - (xi + t * ex), sy - (yi + t * ey)));
+      }
+      const float cov = std::clamp(0.5f + (inside ? minD : -minD), 0.0f, 1.0f);
+      if (cov >= 0.45f) {
+        paintPixel(renderer, px, py, 3);
+      } else if (cov >= 0.16f) {
+        paintPixel(renderer, px, py, 2);
+      }
+    }
+  }
+}
+
 void drawTocIcon(const GfxRenderer& renderer, const int x, const int y) {
   drawLineAA(renderer, x + 3.0f, y + 4.5f, x + 13.0f, y + 4.5f, 0.7f, 3);
   drawLineAA(renderer, x + 3.0f, y + 8.0f, x + 13.0f, y + 8.0f, 0.7f, 3);
@@ -778,15 +808,14 @@ void renderGrayscalePass(GfxRenderer& renderer, const HalDisplay::RefreshMode re
 
 void drawStatusBar(const GfxRenderer& renderer, const int x, const int y, const int w, const int h,
                    const bool backButton) {
-  char clockText[16] = "09:00";
+  char clockText[16]{};
   if (halClock.isAvailable()) {
-    char liveClock[12]{};
-    if (halClock.formatTime(liveClock, sizeof(liveClock), SETTINGS.clockFormat == 1)) {
-      snprintf(clockText, sizeof(clockText), "%s", liveClock);
-    }
+    halClock.formatTime(clockText, sizeof(clockText), SETTINGS.clockFormat == 1);
   }
-  drawText(renderer, x, y + (h - kAtelierFont12Bold.lineHeight) / 2, kAtelierFont12Bold, clockText, AtelierTone::Ink, 0,
-           90, 0, false);
+  if (clockText[0] != '\0') {
+    drawText(renderer, x, y + (h - kAtelierFont12Bold.lineHeight) / 2, kAtelierFont12Bold, clockText, AtelierTone::Ink,
+             0, 90, 0, false);
+  }
 
   char rightLabel[32]{};
   formatUpperVi(backButton ? tr(STR_ATELIER_BACK) : tr(STR_ATELIER_MENU), rightLabel, sizeof(rightLabel));
@@ -812,11 +841,18 @@ void drawStatusBar(const GfxRenderer& renderer, const int x, const int y, const 
   char pctText[12]{};
   snprintf(pctText, sizeof(pctText), "%u%%", static_cast<unsigned>(pct));
   const int pctW = measureText(renderer, kAtelierFont11Reg, pctText, 0);
-  const int pctX = rightBlockLeft - 12 - pctW;
+  const bool charging = gpio.isUsbConnected();
+  const int pctX = rightBlockLeft - (charging ? 22 : 12) - pctW;
   drawText(renderer, pctX, y + (h - kAtelierFont11Reg.lineHeight) / 2, kAtelierFont11Reg, pctText, AtelierTone::Muted, 0,
            pctW + 4, 0, false);
+  if (charging) {
+    drawChargingGlyph(renderer, pctX + pctW + 5, y + (h - 11) / 2);
+  }
 
-  drawWifiGlyph(renderer, pctX - 10 - 14, y + (h - 11) / 2);
+  // WIFI_MODE_APSTA is named WIFI_AP_STA in the simulator stub; >= WIFI_MODE_AP covers both.
+  if (WiFi.status() == WL_CONNECTED || WiFi.getMode() >= WIFI_MODE_AP) {
+    drawWifiGlyph(renderer, pctX - 10 - 14, y + (h - 11) / 2);
+  }
 }
 
 void drawHeader(const GfxRenderer& renderer, const char* title, const char* rightMeta, const bool backButton,
@@ -1151,7 +1187,8 @@ void drawScrubberTrack(const GfxRenderer& renderer, const int x, const int y, co
 void drawReaderChrome(const GfxRenderer& renderer, const char* chapterTitle, const int currentPage, const int pageCount,
                       const int bookPercent, const bool isBookmarked, const bool pageCountEstimated,
                       const bool showTop, const bool showPageCount, const bool showProgressBar, const bool showBattery,
-                      const bool showBatteryPercent, const bool showClock, const bool allowGrayscale) {
+                      const bool showBatteryPercent, const bool showClock, const bool showBookProgressPercent,
+                      const bool allowGrayscale) {
   constexpr int readerX = 40;
   constexpr int readerW = 400;
 
@@ -1174,21 +1211,10 @@ void drawReaderChrome(const GfxRenderer& renderer, const char* chapterTitle, con
   }
 
   if (showTop) {
-    char pctBuf[20]{};
-    const int pct = std::clamp(bookPercent, 0, 100);
-    if (isBookmarked) {
-      snprintf(pctBuf, sizeof(pctBuf), "• %d%%", pct);
-    } else {
-      snprintf(pctBuf, sizeof(pctBuf), "%d%%", pct);
-    }
-    const int pctW = measureText(renderer, kAtelierFont10Bold, pctBuf, 1);
-    drawText(renderer, readerX + readerW - pctW - 4 - (battW > 0 ? battW + 10 : 0), 18, kAtelierFont10Bold, pctBuf,
-             AtelierTone::Muted, 1, pctW + 4, 2, false);
-
     if (chapterTitle && chapterTitle[0] != '\0') {
       char upperTitle[128]{};
       formatUpperVi(chapterTitle, upperTitle, sizeof(upperTitle));
-      const int maxLeftW = std::max(40, readerW - pctW - battW - 26);
+      const int maxLeftW = std::max(40, readerW - (battW > 0 ? battW + 16 : 0));
       drawText(renderer, readerX, 18, kAtelierFont10Bold, upperTitle, AtelierTone::Muted, 1, maxLeftW, 0, true);
     }
     fillRect(renderer, readerX, 42, readerW, 1, 1);
@@ -1199,21 +1225,33 @@ void drawReaderChrome(const GfxRenderer& renderer, const char* chapterTitle, con
                       allowGrayscale);
   }
 
-  if (showPageCount) {
-    char pageBuf[40]{};
-    if (pageCount > 0) {
-      snprintf(pageBuf, sizeof(pageBuf),
-               pageCountEstimated ? tr(STR_ATELIER_PAGE_OF_EST_FMT) : tr(STR_ATELIER_PAGE_OF_FMT), currentPage,
-               pageCount);
-    } else {
-      snprintf(pageBuf, sizeof(pageBuf), tr(STR_ATELIER_PAGE_FMT), currentPage);
-    }
-    drawText(renderer, readerX, 766, kAtelierFont11Reg, pageBuf, AtelierTone::Muted, 0, 210, 0, true);
-  }
-
   char clockText[12]{};
   const bool hasClock = showClock && halClock.isAvailable() &&
                         halClock.formatTime(clockText, sizeof(clockText), SETTINGS.clockFormat == 1);
+  const int clockWidth = hasClock ? measureText(renderer, kAtelierFont11Reg, clockText, 0) : 0;
+
+  if (showPageCount || showBookProgressPercent || isBookmarked) {
+    char pageBuf[40]{};
+    if (showPageCount) {
+      if (pageCount > 0) {
+        snprintf(pageBuf, sizeof(pageBuf),
+                 pageCountEstimated ? tr(STR_ATELIER_PAGE_OF_EST_FMT) : tr(STR_ATELIER_PAGE_OF_FMT), currentPage,
+                 pageCount);
+      } else {
+        snprintf(pageBuf, sizeof(pageBuf), tr(STR_ATELIER_PAGE_FMT), currentPage);
+      }
+    }
+    char progressBuf[64]{};
+    if (showBookProgressPercent) {
+      snprintf(progressBuf, sizeof(progressBuf), "%s%s%s(%d%%)", isBookmarked ? "• " : "", pageBuf,
+               pageBuf[0] ? " " : "", std::clamp(bookPercent, 0, 100));
+    } else {
+      snprintf(progressBuf, sizeof(progressBuf), "%s%s", isBookmarked ? "• " : "", pageBuf);
+    }
+    drawText(renderer, readerX, 766, kAtelierFont11Reg, progressBuf, AtelierTone::Muted, 0,
+             readerW - (hasClock ? clockWidth + 16 : 0), 0, true);
+  }
+
   char rightBuf[28]{};
   if (hasClock) {
     snprintf(rightBuf, sizeof(rightBuf), "%s", clockText);
