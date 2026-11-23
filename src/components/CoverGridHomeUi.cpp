@@ -92,7 +92,8 @@ void drawAtelierEditorialCover(const GfxRenderer& renderer, const HomeLayoutRect
   AtelierChrome::normalizeUtf8Stack(book.title.c_str(), mainTitle, sizeof(mainTitle));
   if (char* dashPos = std::strstr(mainTitle, " — ")) *dashPos = '\0';
 
-  const WrappedAtelierLines coverLines = AtelierChrome::wrapText(renderer, AtelierChrome::font17Serif(), mainTitle, innerW, 3);
+  const WrappedAtelierLines coverLines =
+      AtelierChrome::wrapText(renderer, AtelierChrome::font17Serif(), mainTitle, innerW, 3, true);
   const int lineStep = 20;
   const int blockH = std::max(1, coverLines.count) * lineStep;
   const int blockY = r.y + (r.height - blockH) / 2 - 2;
@@ -189,7 +190,7 @@ int CoverGridHomeUi::selectedAction(const MappedInputManager& input) {
 int CoverGridHomeUi::visibleBookCount() const {
   if (!books) return 0;
 #if FREEINK_DEVICE_X4PRO
-  if (renderer.getScreenWidth() == 480 && renderer.getScreenHeight() == 800) {
+  if (AtelierChrome::isPortrait480x800(renderer)) {
     return x4ProVisibleBookCount(static_cast<int>(books->size()));
   }
 #endif
@@ -200,7 +201,7 @@ void CoverGridHomeUi::screenFn(UiScreen& screen, void* user) { static_cast<Cover
 
 void CoverGridHomeUi::draw(UiScreen& screen) {
 #if FREEINK_DEVICE_X4PRO
-  if (renderer.getScreenWidth() == 480 && renderer.getScreenHeight() == 800) {
+  if (AtelierChrome::isPortrait480x800(renderer)) {
     drawX4ProPortrait(screen);
     return;
   }
@@ -355,7 +356,7 @@ void CoverGridHomeUi::drawX4ProPortrait(UiScreen& screen) {
     heroSub = emDash + 5;
   }
   const WrappedAtelierLines titleLines =
-      AtelierChrome::wrapText(renderer, AtelierChrome::font27Light(), heroMain, layout.heroTitle.width, 2);
+      AtelierChrome::wrapText(renderer, AtelierChrome::font27Light(), heroMain, layout.heroTitle.width, 2, true);
   int titleY = layout.heroTitle.y;
   for (int i = 0; i < titleLines.count; ++i) {
     AtelierChrome::drawText(renderer, layout.heroTitle.x, titleY, AtelierChrome::font27Light(), titleLines.lines[i],

@@ -97,6 +97,7 @@ add_subdirectory(plugin_catalog_paging)
 add_subdirectory(plugin_manifest_classification)
 add_subdirectory(plugin_picker_layout)
 add_subdirectory(x4pro_home_layout)
+add_subdirectory(atelier_wrap_ellipsis)
 add_subdirectory(protected_paths)
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)

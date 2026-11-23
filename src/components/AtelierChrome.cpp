@@ -442,62 +442,24 @@ void drawText(const GfxRenderer& renderer, const int x, const int yTop, const At
 }
 
 WrappedAtelierLines wrapText(const GfxRenderer& renderer, const AtelierFont& font, const char* text,
-                             const int maxWidth, const int maxLines) {
-  WrappedAtelierLines res{};
-  if (!text || text[0] == '\0' || maxLines <= 0) return res;
+                             const int maxWidth, const int maxLines, const bool ellipsisIfTruncated) {
+  if (!text || text[0] == '\0' || maxLines <= 0) return {};
   char norm[256];
   normalizeUtf8Stack(text, norm, sizeof(norm));
   const TextMeasure m = pickTextMeasure(renderer, font, norm);
+  const auto measure = [](const char* line, const void* context) {
+    return measureProbeWith(*static_cast<const TextMeasure*>(context), line, 0);
+  };
+  auto res = wrapAtelierLines(measure, &m, norm, maxWidth, maxLines);
   res.useFallback = m.useFallback;
-  const char* p = norm;
-  while (*p && res.count < maxLines && res.count < 4) {
-    while (*p == ' ') ++p;
-    if (!*p) break;
-    const char* lineStart = p;
-    const char* lastFit = p;
-    const char* scan = p;
-    char probe[128]{};
-    while (*scan) {
-      const char* nextSpace = scan;
-      while (*nextSpace && *nextSpace != ' ') ++nextSpace;
-      const size_t candLen = static_cast<size_t>(nextSpace - lineStart);
-      if (candLen >= sizeof(probe)) break;
-      memcpy(probe, lineStart, candLen);
-      probe[candLen] = '\0';
-      if (measureProbeWith(m, probe, 0) <= maxWidth) {
-        lastFit = nextSpace;
-        if (*nextSpace == ' ') {
-          scan = nextSpace + 1;
-          continue;
-        }
-        scan = nextSpace;
-        break;
-      }
-      break;
-    }
-    if (lastFit == lineStart) {
-      const char* wordEnd = lineStart;
-      while (*wordEnd && *wordEnd != ' ') ++wordEnd;
-      const char* cur = lineStart;
-      const char* best = lineStart;
-      while (cur < wordEnd) {
-        const char* next = cur + 1;
-        while (next < wordEnd && (static_cast<unsigned char>(*next) & 0xC0u) == 0x80u) ++next;
-        const size_t n = static_cast<size_t>(next - lineStart);
-        if (n >= sizeof(probe)) break;
-        memcpy(probe, lineStart, n);
-        probe[n] = '\0';
-        if (measureProbeWith(m, probe, 0) > maxWidth && best > lineStart) break;
-        best = next;
-        cur = next;
-      }
-      lastFit = best > lineStart ? best : wordEnd;
-    }
-    const size_t outLen = std::min(sizeof(res.lines[0]) - 1, static_cast<size_t>(lastFit - lineStart));
-    memcpy(res.lines[res.count], lineStart, outLen);
-    res.lines[res.count][outLen] = '\0';
-    ++res.count;
-    p = lastFit;
+  if (ellipsisIfTruncated) {
+    const auto measureTail = [](const char* line, const void* context) {
+      const auto& metrics = *static_cast<const TextMeasure*>(context);
+      // A Latin prefix must not switch away from the original fallback font.
+      return metrics.useFallback ? measureProbeWith(metrics, line, 0)
+                                 : measureText(*metrics.renderer, *metrics.font, line, 0);
+    };
+    ellipsizeAtelierTail(measureTail, &m, res, maxWidth);
   }
   return res;
 }

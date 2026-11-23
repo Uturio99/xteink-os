@@ -19,13 +19,7 @@ struct AtelierFont;
 
 enum class AtelierTone : uint8_t { Ink, Muted, PaperOnInk, MutedOnInk };
 
-struct WrappedAtelierLines {
-  char lines[4][128]{};
-  int count = 0;
-  // True when the whole wrapped string uses the built-in fallback font
-  // (per-string decision); every line must be drawn with the same choice.
-  bool useFallback = false;
-};
+#include "AtelierWrap.h"
 
 namespace AtelierChrome {
 
@@ -70,7 +64,7 @@ void drawText(const GfxRenderer& renderer, int x, int yTop, const AtelierFont& f
               int8_t trackingPx = 0, int maxWidth = 480, int align = 0, bool ellipsisIfOverflow = true,
               bool forceFallback = false);
 WrappedAtelierLines wrapText(const GfxRenderer& renderer, const AtelierFont& font, const char* text, int maxWidth,
-                             int maxLines);
+                             int maxLines, bool ellipsisIfTruncated = false);
 
 // 4-level grayscale AA drawing primitives
 void paintPixel(const GfxRenderer& renderer, int x, int y, uint8_t shade);
