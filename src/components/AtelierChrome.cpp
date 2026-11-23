@@ -1096,7 +1096,7 @@ void drawBottomNav(const GfxRenderer& renderer, const int activeTab, UiAppHost::
   const char* const tabLabels[4] = {tr(STR_NAV_HOME), tr(STR_LIBRARY), tr(STR_NAV_FILES), tr(STR_SETTINGS_TITLE)};
   constexpr int colW = CONTENT_W / 4;
   constexpr int hitColW = 480 / 4;
-  constexpr int16_t hitY = 736;
+  constexpr int16_t hitY = BOTTOM_NAV_HIT_Y;
   constexpr int16_t hitH = 800 - hitY;
   for (int i = 0; i < 4; ++i) {
     const int tabX = MARGIN_X + i * colW;
@@ -1115,7 +1115,7 @@ void drawBottomNav(const GfxRenderer& renderer, const int activeTab, UiAppHost::
 }
 
 bool handleBottomNavTap(const int tx, const int ty, const int currentTab, void (*goHomeFn)(), void (*goBackFn)()) {
-  if (ty < 736 || ty >= 800 || tx < 0 || tx >= 480) {
+  if (ty < BOTTOM_NAV_HIT_Y || ty >= 800 || tx < 0 || tx >= 480) {
     return false;
   }
   const int tab = tx / (480 / 4);
@@ -1337,6 +1337,13 @@ void renderOptionSheet(const GfxRenderer& renderer, const AtelierOptionSheetSpec
       addHit(hitCtx,
              fui::Rect{0, static_cast<int16_t>(sheetY), static_cast<int16_t>(screenW), static_cast<int16_t>(sheetH)},
              actionChrome, 0);
+      // Nav strip under the sheet: value 1 marks it as dismiss-on-release.
+      // Registered before option/button hits so those still win the
+      // newest-first scan inside the band.
+      addHit(hitCtx,
+             fui::Rect{0, BOTTOM_NAV_HIT_Y, static_cast<int16_t>(screenW),
+                       static_cast<int16_t>(screenH - BOTTOM_NAV_HIT_Y)},
+             actionChrome, 1);
     }
     return sheetY;
   };

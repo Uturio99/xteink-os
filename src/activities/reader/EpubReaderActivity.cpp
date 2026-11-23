@@ -1523,7 +1523,15 @@ bool EpubReaderActivity::skipPages(int amount) {
 // instead of silently falling back to the previous screen. Exact error
 // strings are set by openProtectedBook (ContentProtection.cpp).
 bool EpubReaderActivity::handleLoadFailure() {
-  if (loadProtectionError.empty()) return false;
+  if (loadProtectionError.empty()) {
+    // Generic open failure (corrupt or unreadable file): same dialog, so the
+    // user sees the error instead of a silent return to the library.
+    const char* options[1] = {I18N.get(StrId::STR_OK_BUTTON)};
+    loadFailurePopup.showMessage("", I18N.get(StrId::STR_FILE_OPEN_FAILED), options, 1, 0,
+                                 [this](const int) { finish(); });
+    requestUpdate();
+    return true;
+  }
   const std::string& perr = loadProtectionError;
   StrId msg = StrId::STR_DRM_PROTECTED_FILE;
   bool offerSync = false;

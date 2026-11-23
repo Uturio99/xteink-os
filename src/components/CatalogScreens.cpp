@@ -25,8 +25,8 @@ void catalogScreenHeader(UiAppHost::UiScreen& screen, const GfxRenderer& rendere
     AtelierChrome::drawHeader(renderer, title, hasTrailingIcon ? "        " : nullptr, true, "05.1");
     if (hasTrailingIcon) {
       AtelierChrome::drawSearchIcon(renderer, AtelierChrome::MARGIN_X + AtelierChrome::CONTENT_W - 22, 57);
-      screen.frame().hit(fui::Rect{static_cast<int16_t>(AtelierChrome::MARGIN_X + AtelierChrome::CONTENT_W - 44), 46,
-                                   44, 40},
+      screen.frame().hit(fui::Rect{static_cast<int16_t>(AtelierChrome::MARGIN_X + AtelierChrome::CONTENT_W - 44), 44,
+                                   44, 44},
                          trailingAction, 0, fui::InputTouch);
     }
     screen.setContentMarginFromScreen(fui::Insets{AtelierChrome::LIST_TOP_MIN_Y, 0, 16, 0});

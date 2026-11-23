@@ -36,6 +36,8 @@ constexpr int16_t LIST_TOP_MIN_Y = 90;
 constexpr int16_t LIST_BOTTOM_MAX_Y = 734;
 constexpr int16_t BOTTOM_NAV_Y = 740;
 constexpr int16_t BOTTOM_NAV_H = 48;
+// Top of the bottom-nav touch strip (extends to the screen bottom).
+constexpr int16_t BOTTOM_NAV_HIT_Y = 736;
 
 inline bool isPortrait480x800(const GfxRenderer& renderer) {
   return renderer.getScreenWidth() == 480 && renderer.getScreenHeight() == 800;
